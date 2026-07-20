@@ -57,7 +57,7 @@ body { letter-spacing: 0.005em; }
 .VPHomeHero .tagline { max-width: 620px; font-size: 21px; line-height: 1.8; }
 .VPHomeHero .image-container { width: 610px; height: 410px; transform: none; }
 .VPHomeHero .image-bg { display: none; }
-.VPHomeHero .VPImage { max-width: 610px; max-height: 410px; }
+.VPHomeHero .VPImage { width: 100%; max-width: 610px; max-height: 410px; }
 .VPButton { border-radius: 6px !important; padding-inline: 26px !important; }
 
 .VPFeatures { padding: 0 32px !important; border-bottom: 1px solid var(--vp-c-divider); }
@@ -203,8 +203,9 @@ body { letter-spacing: 0.005em; }
 
 @media (max-width: 960px) {
   .VPHomeHero { min-height: auto; padding-top: 70px !important; }
-  .VPHomeHero .image { max-width: 100%; margin-top: 42px; padding: 0; }
+  .VPHomeHero .image { max-width: 100%; margin: 42px 0 24px; padding: 0; }
   .VPHomeHero .image-container { width: min(100%, 610px); height: auto; }
+  .VPHomeHero .VPImage { position: static; transform: none; }
   .VPFeatures .VPFeature { border-right: 0 !important; border-bottom: 1px solid var(--vp-c-divider) !important; }
   .topic-index__grid { grid-template-columns: 1fr; }
   .topic-row:nth-child(odd) { border-right: 0; padding-right: 8px; }
