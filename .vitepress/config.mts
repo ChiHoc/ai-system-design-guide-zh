@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineConfig } from 'vitepress'
+import { formatMathNotation, hasMathNotation, isFormulaFence } from './math-notation.mjs'
 
 const root = process.cwd()
 const statePath = join(root, 'translation-state.json')
@@ -101,14 +102,26 @@ export default defineConfig({
   markdown: {
     lineNumbers: true,
     config(md) {
-      // Mermaid 在客户端渲染，其他代码围栏继续走 VitePress 默认高亮。
+      // Mermaid 在客户端渲染；上游的无语言公式围栏改为数学排版。
       const defaultFence = md.renderer.rules.fence!
       md.renderer.rules.fence = (tokens, index, options, env, self) => {
         const token = tokens[index]
         if (token.info.trim() === 'mermaid') {
           return `<MermaidDiagram code="${encodeURIComponent(token.content)}" />`
         }
+        if (!token.info.trim() && isFormulaFence(token.content)) {
+          return `<div class="formula-block" role="math" aria-label="${md.utils.escapeHtml(token.content.trim())}"><pre>${formatMathNotation(token.content.trim())}</pre></div>`
+        }
         return defaultFence(tokens, index, options, env, self)
+      }
+
+      // 正文仍保持上游原始文本，只在输出阶段把常见数学上下标排版正确。
+      md.renderer.rules.text = (tokens, index) => {
+        const content = tokens[index].content
+        const escaped = md.utils.escapeHtml(content)
+        return hasMathNotation(content)
+          ? `<span class="math-notation">${formatMathNotation(content)}</span>`
+          : escaped
       }
     },
   },

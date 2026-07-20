@@ -164,6 +164,25 @@ body { letter-spacing: 0.005em; }
 .vp-doc table { display: table; width: 100%; font-size: 14px; }
 .vp-doc th { background: var(--vp-c-bg-soft); }
 .vp-doc div[class*='language-'] { border: 1px solid var(--vp-c-divider); border-radius: 6px; box-shadow: none; }
+.formula-block {
+  margin: 16px 0;
+  overflow-x: auto;
+  padding: 20px 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg-soft);
+}
+.formula-block pre {
+  margin: 0;
+  font-family: "STIX Two Math", "Cambria Math", "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+.formula-block sup, .formula-block sub, .math-notation sup, .math-notation sub {
+  font-size: 0.72em;
+  line-height: 0;
+}
 .mermaid-diagram { margin: 28px 0; overflow-x: auto; padding: 24px; border: 1px solid var(--vp-c-divider); background: var(--vp-c-bg); }
 .mermaid-diagram svg { display: block; margin: auto; max-width: 100%; }
 .sync-meta {
@@ -199,6 +218,8 @@ body { letter-spacing: 0.005em; }
   .VPFeatures, .topic-index { padding-inline: 22px !important; }
   .learning-path-section { padding: 32px 22px 0; }
   .learning-paths { margin-bottom: 48px; }
+  .formula-block { padding: 16px; }
+  .vp-doc table { display: block; max-width: 100%; overflow-x: auto; }
   .home-sync { grid-template-columns: 42px 1fr; }
   .home-sync a { grid-column: 2; }
   .sync-meta { align-items: flex-start; flex-direction: column; }
