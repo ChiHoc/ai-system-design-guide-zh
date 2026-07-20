@@ -30,9 +30,9 @@ features:
     link: /14-evaluation-and-observability/01-llm-evaluation
 ---
 
-## 学习路径
-
-<div class="learning-paths">
+<section class="learning-path-section" aria-labelledby="learning-path-title">
+  <h2 id="learning-path-title">学习路径</h2>
+  <div class="learning-paths">
   <a href="./01-foundations/01-llm-internals">
     <span>01 · 从零入门</span>
     <strong>基础 → 模型 → Prompt → RAG</strong>
@@ -48,6 +48,7 @@ features:
     <strong>基础设施 → 安全 → 可靠性 → 评估</strong>
     <small>把原型扩展为可运营的生产系统。</small>
   </a>
-</div>
+  </div>
+</section>
 
 <HomeTopicIndex />

@@ -117,12 +117,24 @@ body { letter-spacing: 0.005em; }
 .vp-doc h1 { font-size: clamp(35px, 4vw, 48px); letter-spacing: -0.035em; line-height: 1.18; }
 .vp-doc h2 { margin-top: 54px; border-top: 1px solid var(--vp-c-divider); padding-top: 28px; }
 
+.learning-path-section {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 52px 32px 0;
+}
+
+.learning-path-section > h2 {
+  margin: 0 0 24px;
+  border: 0;
+  padding: 0;
+  font-size: 26px;
+}
+
 .learning-paths {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
-  max-width: 1416px;
-  margin: 52px auto 64px;
+  margin: 0 0 64px;
   overflow: hidden;
   border: 1px solid var(--vp-c-divider);
   border-radius: 10px;
@@ -185,7 +197,8 @@ body { letter-spacing: 0.005em; }
   .VPHomeHero .heading .text { font-size: 42px; }
   .VPHomeHero .tagline { font-size: 17px; }
   .VPFeatures, .topic-index { padding-inline: 22px !important; }
-  .learning-paths { margin: 32px 22px 48px; }
+  .learning-path-section { padding: 32px 22px 0; }
+  .learning-paths { margin-bottom: 48px; }
   .home-sync { grid-template-columns: 42px 1fr; }
   .home-sync a { grid-column: 2; }
   .sync-meta { align-items: flex-start; flex-direction: column; }
