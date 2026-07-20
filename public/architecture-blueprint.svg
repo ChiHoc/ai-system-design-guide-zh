@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 470" role="img" aria-labelledby="title desc">
+  <title id="title">AI 系统分层架构</title><desc id="desc">用户、应用、Agent、检索、工具与模型层之间的数据流。</desc>
+  <defs><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#d9e5ff" stroke-width="1"/></pattern><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0l10 5-10 5z" fill="#0b5cff"/></marker></defs>
+  <rect width="720" height="470" fill="url(#grid)" opacity=".7"/>
+  <g fill="#fff" stroke="#86aaf9" stroke-width="2">
+    <rect x="58" y="52" width="130" height="96" rx="5"/><rect x="294" y="52" width="130" height="96" rx="5"/><rect x="530" y="52" width="130" height="96" rx="5"/>
+    <rect x="86" y="232" width="160" height="76" rx="5"/><rect x="280" y="232" width="160" height="76" rx="5"/><rect x="474" y="232" width="160" height="76" rx="5"/>
+    <rect x="86" y="354" width="548" height="72" rx="5"/>
+  </g>
+  <g fill="#153667" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="20" text-anchor="middle">
+    <text x="123" y="105">用户</text><text x="359" y="105">应用层</text><text x="595" y="105">Agent</text>
+    <text x="166" y="277">检索层</text><text x="360" y="277">知识库 / Memory</text><text x="554" y="277">工具与服务</text><text x="360" y="397">模型层（LLM）</text>
+  </g>
+  <g stroke="#0b5cff" stroke-width="2.5" fill="none" marker-end="url(#arrow)"><path d="M188 100h96"/><path d="M424 100h96"/><path d="M595 148v72"/><path d="M474 270h-24"/><path d="M280 270h-24"/><path d="M360 354v-36"/></g>
+</svg>

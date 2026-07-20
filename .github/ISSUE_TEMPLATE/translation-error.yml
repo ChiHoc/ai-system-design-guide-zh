@@ -1,0 +1,19 @@
+name: 翻译问题
+description: 报告误译、漏译或术语不一致
+title: "[翻译] "
+labels: [translation]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: 页面
+      description: 请粘贴中文页面或文件路径。
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: 问题与建议译法
+      description: 请同时提供对应英文原文，便于核对。
+    validations:
+      required: true

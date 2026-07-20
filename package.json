@@ -1,0 +1,27 @@
+{
+  "name": "ai-system-design-guide-zh",
+  "private": true,
+  "description": "AI System Design Guide 的简体中文镜像与 VitePress 阅读站。",
+  "license": "MIT",
+  "repository": "github:ChiHoc/ai-system-design-guide-zh",
+  "homepage": "https://chihoc.github.io/ai-system-design-guide-zh/",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "docs:dev": "vitepress dev .",
+    "docs:build": "vitepress build .",
+    "docs:preview": "vitepress preview .",
+    "validate": "node scripts/validate-content.mjs",
+    "sync:check": "node scripts/upstream-diff.mjs",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "mermaid": "^11.12.0",
+    "vitepress": "^1.6.4"
+  },
+  "overrides": {
+    "vite": "6.4.3"
+  }
+}

@@ -1,0 +1,864 @@
+{
+  "upstream_repository": "ombharatiya/ai-system-design-guide",
+  "upstream_commit": "df612278ea4c51a3cf0489cf00aa2b7bf63f22da",
+  "files": {
+    "00-interview-prep/01-question-bank.md": {
+      "source_blob": "9b077075f3b5c940016d5008b636a2a6d5876845",
+      "translation_blob": "e95f83a4209448db65803835c7e84fe922bf8307",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "00-interview-prep/02-answer-frameworks.md": {
+      "source_blob": "795828578ae6184b9b710a1485f61ef63834d884",
+      "translation_blob": "3536107713a58233a57f6a7e95aa76bd5df2d2da",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "00-interview-prep/03-common-pitfalls.md": {
+      "source_blob": "b593fe8f84a4d4d059ec365465b3c924e69be490",
+      "translation_blob": "f41d713fc698d4c6db507ef05523db7566fb7a7f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "00-interview-prep/04-whiteboard-exercises.md": {
+      "source_blob": "6f32d547d05d82c0acf327bc873cd12ab371f90b",
+      "translation_blob": "90a39a4c5089947ed49a3c4f6d6e35647bad6309",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "00-interview-prep/05-behavioral-for-ai-roles.md": {
+      "source_blob": "7963af93136cd73c8072f542331f6240ea2881ec",
+      "translation_blob": "221083a95f59b8a4083b478d4af475e223b1d356",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "00-interview-prep/06-job-market-trends-2026.md": {
+      "source_blob": "4decf82f0d1d25494d256f95a1df49ef288e9c06",
+      "translation_blob": "5148aa4bb08cc6f82a72000d0ad8e983bc266444",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "00-interview-prep/07-faq.md": {
+      "source_blob": "d158cf522a373d9b5a1d7bec89f49648086d4976",
+      "translation_blob": "c59fd01caf58ae27dc8cc10e7120b9e83103e596",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "00-interview-prep/README.md": {
+      "source_blob": "235b283b892f73f0f064285c0a0831c0f2906431",
+      "translation_blob": "2a77f01e5491fb8c6ee72b8e707e493627a06b9d",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "01-foundations/01-llm-internals.md": {
+      "source_blob": "b434702c25dec277d5948a7af44a7becf3e41d74",
+      "translation_blob": "ed1188b8db519990b40c109187e8768ab293db46",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "01-foundations/02-tokenization-deep-dive.md": {
+      "source_blob": "5404cd7acb2760a38a4ae7e765812416af33368a",
+      "translation_blob": "ae244407c87f1b298842e00269138ea13207c754",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "01-foundations/03-attention-mechanisms.md": {
+      "source_blob": "ac33d9271f5f3e51fd1a637a277a6f91641e5112",
+      "translation_blob": "952a950f2aaefb7a08f1fb23fd91a3e3d0a566fd",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "01-foundations/04-transformer-architecture.md": {
+      "source_blob": "ec9aa25717370038eaac285280c381467fde0e38",
+      "translation_blob": "a1a5897d82aa08f56f2baf12e6766edb930632b0",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "01-foundations/05-embeddings-and-vector-spaces.md": {
+      "source_blob": "32911a17f789063fe68b420590d3fe2a94deb6ab",
+      "translation_blob": "fdeebb300816f7631ff188a378fba4df9a1e60b5",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "01-foundations/06-inference-pipeline.md": {
+      "source_blob": "d15cc6c39a543fbae35d7aebdbd218baf88c1cb7",
+      "translation_blob": "c7209891e143a35c084c45ecd062ccdccb112e20",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "02-model-landscape/01-model-taxonomy.md": {
+      "source_blob": "a377d851c8d8339c374ee545ab9c250f139dca83",
+      "translation_blob": "814551b4fe0f4985e0562a53a0abd947f00fe62a",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "02-model-landscape/02-capability-assessment.md": {
+      "source_blob": "e03f8ab20948074b6e914067f8d02b9e8dcac7c7",
+      "translation_blob": "d74af3d20e42e000d6d3797e936892e53e93cce5",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "02-model-landscape/03-pricing-and-costs.md": {
+      "source_blob": "0a2588bb4e62bbdfea22f454e0358f34a4550450",
+      "translation_blob": "5c3752040b9198459bf23ae3f6d1a4eab7ed8c9b",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "02-model-landscape/04-model-selection-guide.md": {
+      "source_blob": "eea1d3803b55db7fd250ea3113e78cf421328af5",
+      "translation_blob": "668f13d2e760d09846924ab261c42e8248bfaa56",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "03-training-and-adaptation/01-pretraining-basics.md": {
+      "source_blob": "90e3455d7de030088168b4f1b84742cdd272e1d0",
+      "translation_blob": "cee855a26211908a1a63bdcc84616e34b408b02e",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "03-training-and-adaptation/02-fine-tuning-strategies.md": {
+      "source_blob": "2971fb57024a7b0662a9831e35238693d3d1010c",
+      "translation_blob": "835d553d9a224ab2c7601b6d968674de704e8378",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "03-training-and-adaptation/03-lora-qlora-peft.md": {
+      "source_blob": "c72fa648cfc4ca468b7ac6cc5c845bfb0e5d2cba",
+      "translation_blob": "e06bd5854c42be01272bac14c7c715c0d1f3ecdf",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "03-training-and-adaptation/04-rlhf-and-dpo.md": {
+      "source_blob": "e9c4b2c541449a43ddd1be6bd8c827040dc9146f",
+      "translation_blob": "0e9591c3474367704a170c7538d34dfaa149b58f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "03-training-and-adaptation/05-knowledge-distillation.md": {
+      "source_blob": "45c39cddf1124ad5c9897830f009042f41f4882c",
+      "translation_blob": "29a987ab09ac8cbdc6454c68c65165290c1412de",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "03-training-and-adaptation/06-synthetic-data-generation.md": {
+      "source_blob": "786f0ae4e568ac18a945c68520d93855172c30d7",
+      "translation_blob": "f387159540044deb30f9f2388243752882560e1b",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "03-training-and-adaptation/07-quantization-deep-dive.md": {
+      "source_blob": "027f623345ec41f83d77cc06fd0117d050474228",
+      "translation_blob": "b3e90ce26f6a1430cb16f77d6ac15b2a0f547303",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "03-training-and-adaptation/08-rlvr-and-reasoning-models.md": {
+      "source_blob": "725ff10e88b29638042c5a2df272f5e4b8f4b34f",
+      "translation_blob": "27ffdf50ffb09251e587196887e6c9acbc6fa9ad",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "04-inference-optimization/01-inference-fundamentals.md": {
+      "source_blob": "f577f1bfa5257c2d8b6b6ba75ba8715281255e5e",
+      "translation_blob": "92b89fb0af3c6d0ad8450c80b7eb8dd2e80f31b3",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "04-inference-optimization/02-kv-cache-and-context-caching.md": {
+      "source_blob": "94143c51d324c238a5d72bcb2d912e1ca17fb24e",
+      "translation_blob": "036d155a2564248b4b4154ab2fffa6a2db631aef",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "04-inference-optimization/03-speculative-decoding.md": {
+      "source_blob": "2e18318e007c749b0027be26eb9b920350cb0f3c",
+      "translation_blob": "b246698317743a62269f66686ce2b50d1bdb3511",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "04-inference-optimization/04-batching-strategies.md": {
+      "source_blob": "740dde1209c5a35c973bd9481f449b9c335e8084",
+      "translation_blob": "6fbb66f59000aae2ee1a540a86cf04ac797218d4",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "04-inference-optimization/05-paged-attention.md": {
+      "source_blob": "dc09e6480bf426ceacbd18ef857c11ccf679d0b7",
+      "translation_blob": "d01e24ad88c631a3d636134456a473edb0b9d6d4",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "04-inference-optimization/06-serving-infrastructure.md": {
+      "source_blob": "02158664b91319985c5322bfca3c825bb8cc750d",
+      "translation_blob": "487e790a79d1096d191917d8ebbe819f9c66ed0b",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "04-inference-optimization/07-cost-optimization-playbook.md": {
+      "source_blob": "2593aa5def6db7a9ca1b5fbd380f5981e4a4a461",
+      "translation_blob": "7e5d5d46c2c53768b51de0d325815d1840967c63",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "04-inference-optimization/08-diffusion-llms.md": {
+      "source_blob": "d85fc510b44abcc2b509ed059462aad562791c84",
+      "translation_blob": "b8c1ea80b21c3076a66abc68151696dcd09d1b80",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "04-inference-optimization/09-on-device-and-edge-deployment.md": {
+      "source_blob": "fd70226385ea1dbfdd9528d6c6c625378135818d",
+      "translation_blob": "08fb992d8f1f5bc299f4184318ad774ba8b96574",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "05-prompting-and-context/01-prompt-engineering-fundamentals.md": {
+      "source_blob": "ce9d50d16b28bf95046b2bc45e8ceb470428b768",
+      "translation_blob": "2b4c296d8fad7fd95e4925d6c46d8aa02c9cc586",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "05-prompting-and-context/02-few-shot-and-icl.md": {
+      "source_blob": "eb01dc2168161aa3082f61e0d452cfc005056c04",
+      "translation_blob": "1cecabff2e0a72ea0d38dbafd72dc39a8777ec1a",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "05-prompting-and-context/03-chain-of-thought.md": {
+      "source_blob": "6e0cf99413f1d4ce74e05db902a3fe7ebf2d3c7c",
+      "translation_blob": "d08c88e143cf61a0d6673b2772cbd77fea51fb83",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "05-prompting-and-context/04-tree-of-thought.md": {
+      "source_blob": "44c8aa8a7b916b421881adac684ce0bb97aa21c2",
+      "translation_blob": "481284c6b53d15a360915d1a3c322f021057356b",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "05-prompting-and-context/05-context-engineering.md": {
+      "source_blob": "ff5f597a81fcb9bfa616fd7e98d0a09fef252966",
+      "translation_blob": "301dbeba0f582c5681331b76789a2760d625dd37",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "05-prompting-and-context/06-structured-generation.md": {
+      "source_blob": "5a1750c6a6fda61936b394f93ed5be9e025b62aa",
+      "translation_blob": "7c50c9892ae1afd736167cdb99a3bda083431494",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "05-prompting-and-context/07-prompt-optimization-dspy.md": {
+      "source_blob": "607b1dcc914aec0143011616e834503e5d83fb0d",
+      "translation_blob": "5289a56576c3cd52458929fffe9739b3c23b4e4c",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "05-prompting-and-context/08-prompt-injection-defense.md": {
+      "source_blob": "31a602f2f1a66366b35395f3c8ba61896586d434",
+      "translation_blob": "7eca8577d2654cac114e78c0fbaf64f795ad78d7",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/01-rag-fundamentals.md": {
+      "source_blob": "d4c745d4ca0417d5bd6b9b3a9d26fedceefdb1c9",
+      "translation_blob": "b6ff2cf6adacd8ca24a5c440870d288a5d2edab8",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/02-chunking-strategies.md": {
+      "source_blob": "529ceef89e3ab17e8f8d3f07749df42dbee6f155",
+      "translation_blob": "d35721dbd6a8577c2db750fb0bdac92de30c8247",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/03-embedding-models.md": {
+      "source_blob": "029d85d0c995c1bfb9bdb767e377a178234a59c6",
+      "translation_blob": "7a49beb98305a0716d3847810835907d93f01b7f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "06-retrieval-systems/04-vector-databases.md": {
+      "source_blob": "031088468c432752c3697d35aefb20ce83c6d3ba",
+      "translation_blob": "96827c1404d2a07ef6684606505b1e21213ae69a",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "06-retrieval-systems/05-hybrid-search.md": {
+      "source_blob": "55314a1dfcf9c7957c914af76a089c7513524e2f",
+      "translation_blob": "2e97f26c91d97d944bd738605fe85e665b0a1000",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "06-retrieval-systems/06-reranking-strategies.md": {
+      "source_blob": "2dd518f0c719fa425c38c05c330919373c12081d",
+      "translation_blob": "04444937fa6bc0762f18ca21643c1929718b261b",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "06-retrieval-systems/07-graph-rag.md": {
+      "source_blob": "22d1271b4330a442ac4a1f38491bf9adf6d3481b",
+      "translation_blob": "2d457318387e2e1445cbd3d158457889894d5d62",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/08-agentic-rag.md": {
+      "source_blob": "d796dce47b7e4535cc2cff0c819029a7422f9ec0",
+      "translation_blob": "75bc5f006307b84c4c2f01d628d65d7744bda105",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/09-advanced-retrieval-patterns.md": {
+      "source_blob": "08789bb1bcb3c98e28cf0b941a3c20757cc31acb",
+      "translation_blob": "812110b19571d2dfff7185845227638860cdb566",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/10-contextual-retrieval.md": {
+      "source_blob": "5ec810c5aa33366e905deca3c2509644908822f8",
+      "translation_blob": "6f418c417e1c6e85c776cbe54168a9ecd833f002",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/11-late-interaction-colbert.md": {
+      "source_blob": "a6a007975e43863984712183dcdca7491f1c9c2a",
+      "translation_blob": "495751ef234563e1ff48089c7943279de7e1462f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/12-multimodal-rag.md": {
+      "source_blob": "6efaf1a02d3a88051a8b6e57839f2a3f753b996c",
+      "translation_blob": "8f9cd1046656af32a2800ce0b4e94e82f084881b",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/13-rag-evaluation-patterns.md": {
+      "source_blob": "0ba3c6dfc9c85e9181fcc9712c11e462155f18ac",
+      "translation_blob": "402609899730222734883d73a498a45cb61bfabb",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/14-production-rag-at-scale.md": {
+      "source_blob": "fc5957e945e03e094430cfc788692fb8455c9b0e",
+      "translation_blob": "4d9a0ce6fab72e4316d407e1a585d15e8cee5316",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "06-retrieval-systems/15-data-engineering-for-ai.md": {
+      "source_blob": "d1a957a934485ba2122139448bff464eb5617e53",
+      "translation_blob": "f42513b2e0fb7b24561b84775cf25cc21c356cbb",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "07-agentic-systems/01-agent-fundamentals.md": {
+      "source_blob": "c7dbfbc45f3e3b34ed322c179cac8edd7cbad611",
+      "translation_blob": "3bd34080531cc8d66d53f392f4c0230848a14e09",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/02-reasoning-loops-react-and-beyond.md": {
+      "source_blob": "9a4ec87047edfaf2096cde280793fb27b4dc7a3a",
+      "translation_blob": "ed5f45e3345c88d5cd2d04bc37c3c442c77d99f1",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/03-tool-use-and-mcp.md": {
+      "source_blob": "eda818a600591d6ec8d43b8020724f3dd108ed4e",
+      "translation_blob": "0a731482bd090fcf86dfd3c56a58c08ea252e366",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/04-multi-agent-orchestration.md": {
+      "source_blob": "5f9e345709e88a088fd3b9a9d2639512eafb18af",
+      "translation_blob": "7b7878c3520e5164e477b84871ba1fddda9c5b6e",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/05-agent-memory-and-state.md": {
+      "source_blob": "d49169353660d3f486a1f7b8e0761e97e263cf80",
+      "translation_blob": "5f2264ae9a06fafb55696d28604483e2236d6688",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/06-planning-and-decomposition.md": {
+      "source_blob": "570fecd269564e4aac9ae7cf17f808f442857f02",
+      "translation_blob": "ea1c220959d72ade8d3f3f2cad45ecfa1e53b0d3",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/07-error-handling-and-recovery.md": {
+      "source_blob": "5c835638c7ae26e795aa3c4f59e078463e65d547",
+      "translation_blob": "90b0a96f8bd02479a8f91f68cba4b87bbb035cc1",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/08-human-in-the-loop-patterns.md": {
+      "source_blob": "46e739454e9bde7bc9e9f0453e793f816a4ec044",
+      "translation_blob": "b602939d3afef4f1cc9a585f59ac46a005a6eecb",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/09-agentic-security-and-sandboxing.md": {
+      "source_blob": "547f902c38145e414f184ae517325fa9b8d78c86",
+      "translation_blob": "38e80dc956e8515b2d60cfe414b47bc5fb80410e",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/10-evaluating-agentic-systems.md": {
+      "source_blob": "78377ef5c71954eb199506b34cb6d135456e375b",
+      "translation_blob": "8fb8f8b1b03ee4bc10020ce56f3c5b368088e033",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "07-agentic-systems/11-durable-execution.md": {
+      "source_blob": "6863c0cc79d89c0a47494b7ab66551be72a01090",
+      "translation_blob": "6f130c2c131af71fb50f5e9dee1939bbe2009383",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "07-agentic-systems/12-loop-engineering.md": {
+      "source_blob": "cee9e91f20ccdd3f686bbf7699e1606c1f8c9858",
+      "translation_blob": "f0d9c827aa322f35e08d63a909ca5f2319de54d0",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "07-agentic-systems/README.md": {
+      "source_blob": "835612c9c2d563b6a6c9a20488b597a31ad9be64",
+      "translation_blob": "29b7e6a88af587706884900a55885e2532a902f1",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "08-memory-and-state/01-memory-architectures.md": {
+      "source_blob": "98b63b2b29dd813577f6b7b25dc7a087728ff7cb",
+      "translation_blob": "41e3334fd787ecec8f9a85ddcdf9f529a07838b0",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "08-memory-and-state/02-short-term-context.md": {
+      "source_blob": "0117de3cf796ce268ef588aeea5efb5fb4cc6642",
+      "translation_blob": "faf803f85bf943aefe4f62105cf94d923849762b",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "08-memory-and-state/03-long-term-memory.md": {
+      "source_blob": "00d70db4e3ef46708c187301bd3180851f64dd39",
+      "translation_blob": "276e22a908c97c5606894546b8cade9f599b6110",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "08-memory-and-state/04-agentic-memory-mem0.md": {
+      "source_blob": "08e08a9a2f3cbda4b9c9716834620a180d702341",
+      "translation_blob": "64272c85095ad820b0dde47f26da2938e26683bc",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "08-memory-and-state/05-semantic-caching.md": {
+      "source_blob": "2efba5a413234986ded198cbde08f69260f438ec",
+      "translation_blob": "b2475b891822aaa2ed16cf37585ca6ef892a3f86",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "08-memory-and-state/06-state-management-patterns.md": {
+      "source_blob": "73f00ad5ab31aa87124be8e6206eb5b19c9594e5",
+      "translation_blob": "df0f85e9a73d7316ebb1e4b4f2ba7ec0f2f095e5",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/01-langchain-deep-dive.md": {
+      "source_blob": "e000332e926ae20c8051dc2564529ba679941cd2",
+      "translation_blob": "acda7d4cede251c051116a8a9f5a6b9f66736fee",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/02-langgraph-orchestration.md": {
+      "source_blob": "d06281e93eb930a6e219d488fabf519c5f841ad4",
+      "translation_blob": "6702055997b2b4906c733c16055054ce588f05b8",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/03-langsmith-observability.md": {
+      "source_blob": "a27953f36d5707fd3786cd1ce3abe7a025c2e36b",
+      "translation_blob": "96f8267d23afb1ea49988e28ce5e33179daead80",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/04-llamaindex.md": {
+      "source_blob": "44222cf8762a1d2d4b7d36f865926295b3af1183",
+      "translation_blob": "28e46c44fca266a04855306295c1dd8c6f5a0e6f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/05-dspy.md": {
+      "source_blob": "e1bcf43e329613ce81f29d2b77c5acff89d4c5e0",
+      "translation_blob": "23fcf0d0425e86a3a2ad5582cee64ea2234a1345",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/06-semantic-kernel.md": {
+      "source_blob": "aeec33150414900ba0ecc61f9e577f341e9c90a4",
+      "translation_blob": "f3f5d5f7bd106900a1a4ad807dee12daca5a01d6",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/07-autogen-crewai.md": {
+      "source_blob": "c971555c1ac612037dd829fdeda8eab22709ea68",
+      "translation_blob": "86ca92c33535d34e0860328410747ca775c8185d",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/08-framework-selection-guide.md": {
+      "source_blob": "329ffba3de61d3017214b9f33023f5f23760fe93",
+      "translation_blob": "4fc24f6a7c7861fba285a8ba1aff9cab599d8d76",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/09-claude-code.md": {
+      "source_blob": "6725a630dbd48addb3897b49ce135f52777969b1",
+      "translation_blob": "475f5aca8546c0d0b9f28f73027974b34de728c9",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/10-opencoderguide.md": {
+      "source_blob": "42f158de4649788ef7a106e6beb93dd07cb132c3",
+      "translation_blob": "244b906efa0be1f40be3a2e3cc8bec2af40b7797",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "09-frameworks-and-tools/11-pydantic-ai-and-mastra.md": {
+      "source_blob": "530a3bf954b8e987ee892f8ec6a8e0c23f4ca6de",
+      "translation_blob": "108acab5e4ca942a86304cd686ea490d29a96a4d",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "09-frameworks-and-tools/12-navigating-framework-churn.md": {
+      "source_blob": "00e1073233caf707b5649dee42e866056da7ac4e",
+      "translation_blob": "cee02722a11e2b9be49e0a2055d4208e3536d3cc",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "10-document-processing/01-ocr-and-layout.md": {
+      "source_blob": "6227881ada4f418c54c59ae77fc71a3282f78d2a",
+      "translation_blob": "1b24ec9d892754ba9073d3852a8da4fdcb2027c2",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "11-infrastructure-and-mlops/01-llm-infrastructure.md": {
+      "source_blob": "a604fbbfb844c8e3667abbb5ba016abf2d836fff",
+      "translation_blob": "b86c732c4c1b682c45933a53896d4e561499a418",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "11-infrastructure-and-mlops/02-cicd.md": {
+      "source_blob": "1f504f465b41ad866c54e76be3fa7449b4838450",
+      "translation_blob": "2047df346a0a8a85808ba7e72a6bddaa2e3f41f1",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md": {
+      "source_blob": "7f72ef6e754d9e406e56e9334596b137b9cdd49b",
+      "translation_blob": "75df5e56a3e9721f67b57952d79cd498a806ce96",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "11-infrastructure-and-mlops/04-finops-and-token-economics.md": {
+      "source_blob": "2ccaa7d5277ca70296fca5f484bb359da6a9e4d5",
+      "translation_blob": "67c3960f53727d0da0c2763629c52f4077c8b6ef",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "12-security-and-access/01-llm-security.md": {
+      "source_blob": "9a53f3d774bab79744c8f5f7a3c0941c02486e91",
+      "translation_blob": "bc7c2c8081f9bdb7ac56134d151df8b15edf1b0d",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "12-security-and-access/02-access-control.md": {
+      "source_blob": "48f361c67f01a53c9e8f28db3414b22a87dece5d",
+      "translation_blob": "08ce41947053f375b1c833a7800f799cc7131871",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "13-reliability-and-safety/01-guardrails.md": {
+      "source_blob": "2727221e1be2b7693490156d6ed3ed63857f98dd",
+      "translation_blob": "7ac69bc75416095abfa7a9ed69b63eb7d92d98e9",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "13-reliability-and-safety/02-ensemble-methods.md": {
+      "source_blob": "d8b732eb60ceb5c01cb64a0e5de326e1e2b11a55",
+      "translation_blob": "610d89a2344d2161a4ff695523f7ca57df6302c9",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "13-reliability-and-safety/03-reliability-patterns.md": {
+      "source_blob": "20b158667eb8622cea6619d0c2c7f7d458f50ba1",
+      "translation_blob": "622f76d5ade6c3a40441a606c4ff7101f703f698",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "13-reliability-and-safety/04-ai-governance-and-compliance.md": {
+      "source_blob": "7012a3cd50c708f545e50a92a8c2209d1108cd02",
+      "translation_blob": "492e011049b03fb0c57c7c8874475315b0958826",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "14-evaluation-and-observability/01-llm-evaluation.md": {
+      "source_blob": "62b1738ceb6dbecba6a3c839eabe8d17e0bda66a",
+      "translation_blob": "63eb0da3b52fd0cbfd31136487aaf8c32098a84e",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "14-evaluation-and-observability/02-observability.md": {
+      "source_blob": "c7ff57c5d76823321f22dd9f2088fed751485053",
+      "translation_blob": "b3f4adb6f067112241a696ce6f7d1ba274af69fc",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "14-evaluation-and-observability/03-benchmarks-and-leaderboards.md": {
+      "source_blob": "60deb44b7c702400b1e5f2fe0025ab8e4c2b527b",
+      "translation_blob": "54127a41e7e3624c92962b8b49a03075f7369532",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "15-ai-design-patterns/01-design-patterns.md": {
+      "source_blob": "683ac50f357202780fb71332ff15a8d3f8d8d534",
+      "translation_blob": "51748c7a454bd3b94b755ed5d574c41bb8ae6b2d",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "15-ai-design-patterns/02-anti-patterns.md": {
+      "source_blob": "c5a0d1a9d23300f109c2824e0fdcb83a3c7a33f6",
+      "translation_blob": "ff8483a81106a75465ef236e49e1dd13b803c531",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "16-case-studies/01-enterprise-rag.md": {
+      "source_blob": "65110a1277a0a379c0cc12d97c654bbd4e698620",
+      "translation_blob": "7d548bbb87cda255300d769c077d6831df8bbff8",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "16-case-studies/02-conversational-agent.md": {
+      "source_blob": "bef074923c0ecb59906fa92382f05391eea1b0f3",
+      "translation_blob": "d90c9234e423f3758083227c8b700567b1321879",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "16-case-studies/03-financial-analysis.md": {
+      "source_blob": "7ca63bfafd223b6bc08c7de8f7dcc2e754ea9ddb",
+      "translation_blob": "50ddbdac207198e453ee6a19e35567b3d50f9a9c",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "16-case-studies/04-code-assistant.md": {
+      "source_blob": "725f0e822d81dacffd245c6640b5b21a6ef81d55",
+      "translation_blob": "8f7a3a08de5a472f1d25e401ddf1c850a142b5b2",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "16-case-studies/05-content-moderation.md": {
+      "source_blob": "bdce9447fe7d9ed3bbde28c920bf68d2b9dde5c3",
+      "translation_blob": "d6701585ed20907182753dda466e21d7688e011c",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "16-case-studies/06-real-time-search.md": {
+      "source_blob": "61b850b9cd79ec6568905ed013c05e331f6357bf",
+      "translation_blob": "05f3ff5815a57d999048d16f953fc1672f0e0a3f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/07-autonomous-coding-agent.md": {
+      "source_blob": "4ed9a1335f4579885b5f34eccfd0bba5c31e2096",
+      "translation_blob": "fef6ba2cf3b3e224bd07373f155e9563a2072356",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/08-multi-tenant-saas.md": {
+      "source_blob": "ada7756272e2d7555c40af965382a722e533292d",
+      "translation_blob": "2e17b41e76aec9b07096a47f172bd3b32d43b69c",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/09-customer-support-automation.md": {
+      "source_blob": "6949a355ef0f98cda1ac32f0bbaa211efe14804e",
+      "translation_blob": "7dfd56a323cbbf51a3552208d04296c2aaf39165",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/10-document-intelligence.md": {
+      "source_blob": "21dd7ee3f3dc1632d615a3dfd678b6b42b298f62",
+      "translation_blob": "03187f805ee05924067849944b2d24509b2664b0",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/11-recommendation-engine.md": {
+      "source_blob": "a9a3de938abb310a998ed76939388c5c9e5c9e5a",
+      "translation_blob": "2c78faf9901c6dbc243617ef79cb5f1d7c563c21",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/12-compliance-automation.md": {
+      "source_blob": "0b0ff141b4306cbc8c38b24dbdb5ae6179784af6",
+      "translation_blob": "19f2a23d2d8fe57646d6bb13a8da3ce86c71c18c",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/13-voice-ai-healthcare.md": {
+      "source_blob": "6ce40ee08d1fa561317c0de81da52f9d1425a311",
+      "translation_blob": "f89e23c76dc3b3efd76f8ebfd0ac6d5071a28251",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/14-fraud-detection.md": {
+      "source_blob": "96e713198048459afec03b05072361ed6c114963",
+      "translation_blob": "9adbbeea968e7a4f4705f352fdd5a2987df294b8",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/15-knowledge-management.md": {
+      "source_blob": "dce128269db27dffa1f10c0d1d918417b71dc1a5",
+      "translation_blob": "f2a46d06fdecd64277b40d6474a0951e02beea1c",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/16-computer-use-agent-production.md": {
+      "source_blob": "e6ae914d244e807c802b7bc0e813fbf19acc4025",
+      "translation_blob": "5c4c91812e909129e0f2d0296fddaa3493ccc08f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/17-multi-tenant-fine-tuning-platform.md": {
+      "source_blob": "daecd46098064ce096fff019f9384724ad2b396b",
+      "translation_blob": "f5e01820b28232704efc93166a12e915ac4d6190",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/18-eval-gated-cicd.md": {
+      "source_blob": "f48f4f7924cc51e890ac6575157b69439a6cd119",
+      "translation_blob": "b90f9d6b226741758db0981ef7bca6f6291447b4",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/19-customer-distillation-pipeline.md": {
+      "source_blob": "51e650e0b385ea516ca6e2fb2026c3d255613255",
+      "translation_blob": "a625600087728fdabbe83b0d98d772ad2dd77065",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "16-case-studies/20-mcp-knowledge-agent.md": {
+      "source_blob": "dc2ebaab80f7270d1171165c38d0f31c50ba9b13",
+      "translation_blob": "6728c015221f3777e5a797374352b781f4ffbe9f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "17-tool-use-and-computer-agents/01-tool-use-landscape.md": {
+      "source_blob": "5d2e08ff8049dfe9c35aa3ab921e9a8568d73199",
+      "translation_blob": "d8e315c59e174fb9cc3cc7182f5f29cc37baf9b1",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "17-tool-use-and-computer-agents/02-architecture-patterns.md": {
+      "source_blob": "0807e3ba4dc7c01d28b059b9c3b4419898f414fd",
+      "translation_blob": "3381419f39133ac0422df5c943b25a1f74793271",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "17-tool-use-and-computer-agents/03-openclaw-deep-dive.md": {
+      "source_blob": "6728dbf9e30d621164a53529f8523eb5762191dd",
+      "translation_blob": "313c192550d6c8cfef743afb44a4a617d08f1e52",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "17-tool-use-and-computer-agents/04-computer-use-agents.md": {
+      "source_blob": "9300d40abfa27ca61134398851ae60a51af76f9a",
+      "translation_blob": "ae1949f6848e3ced1efcda116a7a8bf64f2d6585",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "17-tool-use-and-computer-agents/05-building-tool-agents.md": {
+      "source_blob": "0af004704c318d2d22a94c0fcc441b4eae1526ec",
+      "translation_blob": "9d84a471c60ba4a45cc80b1afa7eed0e99e15a35",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "17-tool-use-and-computer-agents/06-use-cases-and-case-studies.md": {
+      "source_blob": "8f26b5a9d5e5f42fd9cd8c3eb32cffd6907c6d49",
+      "translation_blob": "306030f5b03d837506c18372c6569698556cbe37",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "17-tool-use-and-computer-agents/07-safety-and-governance.md": {
+      "source_blob": "cc2fde3bc88779939256a05709593839c3cb126d",
+      "translation_blob": "8945f57a9c30a448f663062ae982a47f33068c41",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "18-voice-and-audio-agents/01-realtime-voice-agents.md": {
+      "source_blob": "982c94d73b4d36bb571c2f59e53558353357e3cb",
+      "translation_blob": "1a6233074242726cfc3769dcbf9450f7f64a5418",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "19-multimodal-generation/01-multimodal-generation.md": {
+      "source_blob": "733eaa8fade45e1d52692b862134b81ca489f280",
+      "translation_blob": "0c5b6416b6a9000052a06d1f96795e6983accd76",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:05:35.189Z"
+    },
+    "CONTRIBUTING.md": {
+      "source_blob": "5b8137d2a9e808c160904505d20e14fca2d5760d",
+      "translation_blob": "c331a881087f89b5a6ea191e45592897e167753e",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "COURSES.md": {
+      "source_blob": "1e6afe1eea6827ee386682cb53a7caf40486a5b1",
+      "translation_blob": "1fc32a57397b5045ffcf632cea362866f155d290",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "GLOSSARY.md": {
+      "source_blob": "453ac46f5d9c60d2f472a7a2289c3dbaf4ee9d14",
+      "translation_blob": "e86f3f96203875feb9cb5b15cf65f7ce469c2156",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "PATTERNS.md": {
+      "source_blob": "71d386dba583d89625cedc8ae5193bec2bf83054",
+      "translation_blob": "3293acb3d50a3f506046b2b8e329df7da59d9580",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "README.md": {
+      "source_blob": "b79801ecfb30fa886687b273b22eeb8db3e618c2",
+      "translation_blob": "5837046956f8d9925750dfe897d40001df4baf06",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "RESEARCH-RADAR.md": {
+      "source_blob": "599d69f0dda236a5880147d5b4b21b9b1566a150",
+      "translation_blob": "5dc1c10bb379f1f013006706c9648c458f38a223",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "TRANSITION_GUIDE.md": {
+      "source_blob": "763d1ccbb3f1132c40ed6d6b535c9720f0fe2649",
+      "translation_blob": "38d08b2026f018aa63fe951240950da4ec9cd2e7",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:04:30.846Z"
+    },
+    "ai_evals_complete_guide_langwatch_langfuse.md": {
+      "source_blob": "237d75b37b8a39a3b6c557f80420fa6bc0a7888f",
+      "translation_blob": "4249036ff0ae01c3b30fee2365923ae97d56336f",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    },
+    "ai_evals_comprehensive_study_guide.md": {
+      "source_blob": "67dec9bccfec569410fd1a896be8a0ee1a27c721",
+      "translation_blob": "0af66bf1451b5c35dee7083600c7f5d977004a21",
+      "review": "automated-second-pass",
+      "synced_at": "2026-07-20T07:06:26.017Z"
+    }
+  }
+}
