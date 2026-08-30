@@ -1,8 +1,8 @@
 # AI 系统设计面试准备
 
-适用于高级工程师（senior）与资深工程师（staff）AI 工程岗位的面试准备：116 道系统设计题、可执行的答题框架及一段完整的模拟面试逐字稿、常见陷阱、九道白板练习、行为面准备、速答 FAQ，以及 2026 年 6 月的招聘趋势。
+适用于高级工程师（senior）与资深工程师（staff）AI 工程岗位的面试准备：122 道系统设计题、可执行的答题框架及一段完整的模拟面试逐字稿、常见陷阱、九道白板练习、行为面准备、速答 FAQ，以及 2026 年 6 月的招聘趋势。
 
-> **新增内容（2026 年 6 月）：** 题库新增了 Tooling 和 Lifecycle（工具链与生命周期）版块，并增加了 6 道 2026 年 6 月题目（Fable 5 tier routing（分层路由）、agentic context engineering（代理式上下文工程）、computer-use reliability（计算机操作可靠性）、Agent Skills（Agent 能力）、eval gaming（评测投机/游戏化）、cost-aware multi-provider routing（按成本感知的多供应商路由）），目前持续编号至 Q1-Q116。白板题集新增了两道练习（evaluation pipeline design（评估流水线设计）、agent memory and state（代理记忆与状态））。答题框架新增了一段完整的 45 分钟 SPIDER 模拟面试逐字稿。行为面新增了两道更高难度的 STAR-L 示例、一个薪酬问题集合，以及一份大声练习指南。
+> **新增内容（2026 年 7 月）：** 题库新增了 6 道 2026 年 7 月题目（MCP 无状态化改造、智能体的供应商故障设计、编码 CLI 遥测信任边界、请求级模型路由、评测沙箱隔离、智能体数据注入），目前题目连续编号为 Q1–Q122。6 月早些时候新增了“工具与生命周期”部分及 6 道 2026 年 6 月题目。白板题新增两道练习（评测流水线设计、智能体记忆与状态）。答题框架新增一段完整的 45 分钟 SPIDER 模拟面试逐字稿。行为面新增两个更难的 STAR-L 示例、一组薪酬问题，以及大声练习指南。
 
 ## 开始前准备
 
@@ -37,7 +37,7 @@ mindmap
       Answer Frameworks
       Whiteboard exercises
     Staff or Principal
-      Advanced sets Q50 to Q116
+      Advanced sets Q50 to Q122
       Behavioral STAR-L
       Eval and memory exercises
     Applied Scientist
@@ -54,7 +54,7 @@ mindmap
 
 | 文件 | 用途 |
 |------|------|
-| [01-question-bank.md](01-question-bank.md) | 116 道真实面试题（Q1-Q116，连续编号），按主题分组，含标准答案与追问（更新至 2026 年 6 月）。 |
+| [01-question-bank.md](01-question-bank.md) | 122 道真实面试题（Q1–Q122，连续编号），按主题分组，含标准答案与追问（更新至 2026 年 7 月）。 |
 | [02-answer-frameworks.md](02-answer-frameworks.md) | 五种结构化答题框架（SPIDER、ETA、tradeoff（权衡）、debugging（调试）、STAR-L）以及一段完整的 45 分钟 SPIDER 模拟面试逐字稿。 |
 | [03-common-pitfalls.md](03-common-pitfalls.md) | 会导致 staff 级 offer 落空的典型模式：在 tradeoff（权衡）上泛泛而谈、缺少 observability（可观测性）、忽略 failure modes（失败模式）。 |
 | [04-whiteboard-exercises.md](04-whiteboard-exercises.md) | 九道系统设计白板题及参考解法，包含 evaluation pipeline design（评估流水线设计）和 agent memory（代理记忆）练习。最接近真实面试流程的模拟。 |

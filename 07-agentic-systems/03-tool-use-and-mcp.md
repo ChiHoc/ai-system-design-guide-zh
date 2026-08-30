@@ -1,16 +1,17 @@
 # 工具使用与 MCP
 
-工具是智能体的“手脚”。业界已经标准化采用 **模型上下文协议（Model Context Protocol，MCP）**，它以统一、优先本地的通信层取代了碎片化的自定义工具定义。MCP 发展迅速：可流式 HTTP 传输、OAuth 2.1 认证，以及原生计算机使用工具都已登陆 MCP 2.0（于 2026 月获批）。与此同时，**Agent-to-Agent（A2A，智能体到智能体）** 以及其他互操作协议也已出现，用于在 MCP 的工具访问层之上补充智能体协同能力。
+工具是智能体的“手脚”。业界已经标准化采用 **模型上下文协议（Model Context Protocol，MCP）**，它以统一、优先本地的通信层取代了碎片化的自定义工具定义。可流式 HTTP、OAuth 2.1 认证和原生计算机使用工具是在 2025 年各次规范修订中落地的（生态中常笼统称为 MCP 2.0）；**2026-07-28 修订**又将协议核心重构为无状态，这是 MCP 发布以来最大一次改造（见下文[无状态化改造](#mcp-2026-07-28-无状态化改造)）。与此同时，**Agent-to-Agent（A2A，智能体到智能体）** 以及其他互操作协议也已出现，用于在 MCP 的工具访问层之上补充智能体协同能力。
 
 ## 目录
 
 - [工具使用机制](#工具使用机制)
 - [模型上下文协议（MCP）](#模型上下文协议-mcp)
 - [MCP 2.0：可流式 HTTP 与认证](#定义高精度工具)
-- [MCP 路线图与生态系统](#mcp-与-openai-函数调用)
+- [MCP 2026-07-28：无状态化改造](#mcp-2026-07-28-无状态化改造)
+- [MCP 扩展与生态系统（2026 年 7 月）](#mcp-扩展与生态系统-2026-年-7-月)
 - [Agent-to-Agent 协议（A2A）](#流式工具调用)
 - [协议格局：MCP + A2A + ACP](#mcp-2-0-可流式-http-与认证)
-- [计算机使用工具（Anthropic）](#mcp-路线图与生态系统)
+- [计算机使用工具（Anthropic）](#计算机使用工具-anthropic)
 - [定义高精度工具](#agent-to-agent-协议-a2a)
 - [MCP 与 OpenAI 函数调用](#协议格局-mcp-a2a-acp)
 - [Context7：实时文档 MCP](#a2a-v1-0-正式版与-2026-年-5-月的-mcp-生产故事)
@@ -116,22 +117,117 @@ MCP 2.0 规范（于 2026 月获批）引入了两项重大变化：
 
 ---
 
-## MCP 路线图与生态系统
+## MCP 2026-07-28：无状态化改造
 
-截至 2026 月，已有超过 2,300 个公开 MCP 服务器，主要 AI 工具（Claude、Cursor、Windsurf）都原生支持它。MCP 已经从开发者工具跨入消费级硬件（例如，Elgato Stream Deck 7.4 于 2026 月发售时已支持 MCP）。Microsoft 也已将 MCP 采纳为 Windows AI Foundry 和 Microsoft 365 Copilot 的主要集成标准。
+2026年7月28日，MCP 在十周发布候选冻结后定稿规范修订 **2026-07-28**。核心现已**无状态**：移除 `initialize` 握手和 `Mcp-Session-Id`，每个请求在 `_meta` 中携带协议版本与客户端能力，服务器在结果 `_meta` 中标识自己；跨调用状态改为服务器签发、作为普通工具参数传递的显式句柄。因此远程 MCP 可置于普通轮询负载均衡器后水平扩展，无需粘性会话或共享会话存储。
 
-MCP 路线图聚焦以下支柱：
+### MCP 的演进历程
 
-1. **传输可扩展性**：将可流式 HTTP 演进为一个在普通 HTTP 基础设施上可水平扩展的 **无状态核心**，并在负载均衡器和代理后保持正确行为。**MCP Server Cards** 提供一个 `.well-known` URL，用于结构化服务器元数据发现。
-2. **MCP Apps（服务器渲染 UI）**：一种扩展，允许 MCP 服务器连同工具一起提供交互式 UI，从而使工具结果可以作为组件渲染在客户端中，而不是纯文本。这是 OpenAI 以 [Apps SDK](../09-frameworks-and-tools/07-autogen-crewai.md) 形式推出的模式的规范级标准化。它将 MCP 服务器从无头工具端点变成了交互式界面。
-3. **Tasks 扩展（长时间运行工作）**：一种标准方式，用于建模无法在单次请求/响应中完成的工作，使客户端能够启动长任务、轮询或订阅进度，并在稍后收集结果。这使 MCP 适用于耗时数分钟或数小时而非数秒的智能体工作负载。
-4. **智能体通信**：在 MCP 现有工具层之上支持智能体到智能体模式。
-5. **企业认证（2026 年第二季度）**：面向基于浏览器的智能体的带 PKCE 的 OAuth 2.1，以及与企业身份提供商集成的 SAML/OIDC，解锁受监管行业部署。
-6. **MCP Registry（2026 年第四季度）**：一个经过筛选与验证的服务器目录，包含安全审计、使用统计和 SLA 承诺。
+```mermaid
+flowchart LR
+    A[2024 年 11 月<br>MCP 发布<br>stdio + HTTP SSE] --> B[2025 年修订<br>可流式 HTTP、OAuth 2.1、<br>信息征询]
+    B --> C[2026 年 1 月 26 日<br>MCP Apps 作为首个<br>正式扩展发布]
+    C --> D[2026 年 6 月 18 日<br>企业托管授权<br>稳定]
+    D --> E[2026 年 7 月 28 日<br>无状态核心<br>MRTR、扩展框架]
+```
 
-**治理**：MCP 治理工作组引入了贡献者阶梯（Contributor Ladder）和委托模型，允许特定领域的工作组在无需完整核心维护者审查的情况下接受 SEP（Specification Enhancement Proposals，规范增强提案）。
+### MCP 的三代对比
 
-> *已于 2026 月验证。来源：modelcontextprotocol.io/development/roadmap*
+| 维度 | 初始发布（2024 年11月） | 可流式 HTTP 时代（2025 修订） | 2026-07-28 修订 |
+|---|---|---|---|
+| 会话 | 有状态 `initialize` | 有状态 `Mcp-Session-Id` | 无状态；每个请求在 `_meta` 携带版本和能力 |
+| 传输 | stdio、HTTP+SSE | 新增可流式 HTTP | 可流式 HTTP 强制 `Mcp-Method` / `Mcp-Name` 路由头；HTTP+SSE 正式弃用 |
+| 服务端发起请求 | Sampling、Roots | 新增 elicitation | 移除，改为多轮往返请求（MRTR） |
+| 中途用户输入 | 无 | `elicitation/create` 推送 | `input_required` 结果，客户端携状态重试 |
+| 长时间运行工作 | 无 | 实验性 | Tasks 正式扩展（基于轮询的句柄） |
+| 服务器渲染 UI | 无 | MCP Apps 作为扩展发布（2026年1月） | MCP Apps 纳入正式扩展框架 |
+| 认证 | 无标准 | OAuth 2.1 + PKCE、动态客户端注册 | OAuth 加固：RFC 9207 `iss` 校验、issuer-bound credentials、CIMD 替代 DCR；EMA 面向企业 IdP |
+| 列表缓存 | 无 | 无 | 列表和读取结果必须给出 `ttlMs` + `cacheScope`；确定性工具排序用于 prompt-cache 命中 |
+| 流恢复 | 无 | SSE `Last-Event-ID` 可恢复 | 已移除；客户端重新发起请求，持久工作使用 Tasks |
+| 水平扩展 | 单进程 | 负载均衡器后的粘性会话 | 任意实例服务任意请求；无需共享状态 |
+
+### 多轮往返请求（MRTR）
+
+`elicitation/create`、`sampling/createMessage` 和 `roots/list` 已移除。服务端需要中途输入时，返回 `resultType: "input_required"`、`inputRequests` 与不透明 `requestState`；客户端收集输入，并以 `inputResponses` 和原状态重试。状态随重试携带，因此任意负载均衡后实例都能恢复调用，且人工审批门仍可水平扩展。结果必须包含 `resultType`（`complete` 或 `input_required`；Tasks 等扩展可增加值），旧服务器缺失该字段时按 `complete` 处理。
+
+```mermaid
+sequenceDiagram
+    participant C as MCP 客户端
+    participant LB as 负载均衡器
+    participant S1 as 服务器实例 1
+    participant S2 as 服务器实例 2
+
+    C->>LB: tools/call archive_records
+    LB->>S1: 路由到任意实例
+    S1-->>C: resultType input_required + requestState
+    Note over C: 客户端收集用户批准
+    C->>LB: 携 inputResponses + requestState 重试 tools/call
+    LB->>S2: 不同实例也可以
+    S2-->>C: resultType complete
+```
+
+### 已弃用或移除的功能
+
+该修订还采用了正式的功能生命周期（Active、Deprecated、Removed），最短弃用窗口为十二个月，并提供公开的已弃用功能登记表。对于本次修订中新弃用的功能（Roots、Sampling、Logging、DCR），最早移除日期为2027年7月28日；HTTP+SSE 自2025年3月起已弃用，适用更早的时钟。
+
+| 功能 | 在 2026-07-28 的状态 | 迁移目标 |
+|---------|----------------------|------------|
+| `initialize` 握手、`Mcp-Session-Id` | 已移除 | 每个请求在 `_meta` 中携带版本和能力；使用 `server/discover` RPC 探测 |
+| `elicitation/create`、`sampling/createMessage`、`roots/list` | 已移除 | 多轮往返请求 |
+| SSE 流恢复（`Last-Event-ID`） | 已移除 | 重新发起请求；将持久工作交给 Tasks 扩展 |
+| Roots | 已弃用 | 通过工具参数、资源 URI 或服务器配置传递目录 |
+| Sampling | 已弃用 | 直接调用 LLM 提供商 API |
+| Logging | 已弃用 | stderr（stdio）或 OpenTelemetry |
+| HTTP+SSE 传输 | 正式弃用 | 可流式 HTTP |
+| 动态客户端注册（RFC 7591） | 已弃用 | Client ID Metadata Documents（client ID 是托管客户端元数据的 URL） |
+
+`elicitation/create`、`sampling/createMessage` 与 `roots/list` 这些 RPC 机制已从核心协议移除，而它们服务的功能本身仍处于带迁移路径的弃用期，因此上表同时包含两类条目。
+
+还有两项虽小但影响设计的传输变更：可流式 HTTP POST 现在强制使用 `Mcp-Method` 和 `Mcp-Name` HTTP 头，使负载均衡器、网关和 WAF 无需解析 JSON-RPC 就能路由与过滤 MCP 流量；列表结果（`tools/list`、`prompts/list`、`resources/list`）必须声明 `ttlMs` 与 `cacheScope`，让客户端能有依据地缓存工具目录。
+
+### 扩展框架
+
+核心现在刻意保持精简；其余功能都是**扩展**，以反向 DNS ID 标识、独立于核心规范进行版本化，并通过 SEP 流程中的 Extensions Track 治理。正式扩展包括：
+
+| 扩展 | 状态 | 功能 |
+|-----------|--------|--------------|
+| **Tasks**（`io.modelcontextprotocol/tasks`） | 正式；由 AWS 贡献、改为基于轮询的生命周期 | 工具调用可以返回任务句柄；客户端轮询 `tasks/get`，通过 `tasks/update` 推送中途输入，并以 `tasks/cancel` 取消。这是处理超出单次请求生命周期工作的标准方式。 |
+| **MCP Apps** | 自2026年1月26日起正式 | 工具声明 `ui://` 模板；宿主在 sandboxed iframe 中渲染（无 DOM 访问、默认拒绝 CSP），UI 到宿主的通信通过 postMessage 承载 JSON-RPC，UI 触发的动作仍经过同一工具调用同意路径。Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等均可渲染。 |
+| **企业托管授权（EMA）** | 自2026年6月18日起稳定 | 组织通过 IdP 集中配置 MCP 服务器访问：OIDC 或 SAML 断言经 RFC 8693 交换为 ID-JAG，再由 RFC 7523 JWT bearer grant 换取 MCP access token，无需逐用户同意屏幕。Okta 是首个支持的 IdP；Claude 和 VS Code 在发布时即支持。 |
+
+### 迁移清单
+
+- 移除 `initialize` / session-ID 逻辑；在 `_meta` 中发送版本和能力，并实现 `server/discover` RPC（现为 MUST）。
+- 将 elicitation 和 sampling 流程改为 MRTR：返回携带 `requestState` 的 `input_required`，并接受携带 `inputResponses` 的重试。
+- 将任何跨调用状态移入作为工具参数传递的显式句柄，或采用 Tasks 扩展。
+- 发出 `Mcp-Method` / `Mcp-Name` 头，在列表结果上声明 `ttlMs` / `cacheScope`，并以确定顺序返回工具。
+- 规划从 DCR 到 Client ID Metadata Documents 的认证迁移；按 RFC 9207 校验 `iss`，且绝不跨 issuer 重用客户端凭据。
+- 为真实工作预留成本：维护者本身警告自定义实现会显著增加工作量。
+
+> *已于2026年7月31日验证。来源：modelcontextprotocol.io/specification/2026-07-28/changelog、blog.modelcontextprotocol.io*
+
+---
+
+## MCP 扩展与生态系统（2026 年 7 月）
+
+本章截至5月跟踪的路线图条目大多已经交付，生态系统数据又增长了一个数量级。截至2026年7月，状态如下：
+
+| 路线图条目（2026年5月表述） | 状态（2026年7月） |
+|---------------------------------|--------------------|
+| 传输可扩展性 / 无状态核心 | 已在2026-07-28修订中**交付**（见[无状态化改造](#mcp-2026-07-28-无状态化改造)） |
+| MCP Apps（服务器渲染 UI） | 2026年1月26日作为首个正式扩展**交付**；Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等可渲染，早期应用合作伙伴包括 Figma、monday.com 和 Adobe Express |
+| Tasks 扩展（长时间运行工作） | 作为正式 `io.modelcontextprotocol/tasks` 扩展**交付**，改为基于轮询的任务句柄 |
+| 企业认证 | 2026年6月18日以企业托管授权扩展形式**交付**（Okta 为首个 IdP；Claude 和 VS Code 发布时支持） |
+| MCP Server Cards（`.well-known` 发现） | 仍为草案，作为实验性扩展（SEP-2127）开发；不同于新的核心 `server/discover` RPC，后者是协议内能力查询 |
+| MCP Registry | 仍处于预览（`registry.modelcontextprotocol.io`）；GA 时间尚未公布 |
+
+**现在值得区分的两层发现机制：** 连接前的 HTTP 发现使用 `.well-known` server cards（实验性，服务于 registry 和 crawler），协议内发现使用 `server/discover` RPC（自2026-07-28起为强制核心，用于版本协商）。
+
+**生态规模（2026年7月）：** 官方 MCP SDK 每月下载约500M，TypeScript 和 Python SDK 各累计超过1B。2026-07-28修订的 Beta SDK 于6月29日发布；在7月28日正式发布时，AWS、Cloudflare、Google Cloud、Microsoft 和 Netlify 宣布首发支持。Microsoft 推出可由 Microsoft 365 管理中心管理的 MCP 联邦 Copilot Connectors，Apple 让 Xcode 成为外部编码智能体的 MCP host，Bloomberg 也发布了把 MCP 作为内部智能体—工具层的生产案例。
+
+**治理：** MCP 由 Linux Foundation 的 Agentic AI Foundation 治理。治理工作组运行 Contributor Ladder 和委派模型，让特定领域工作组无需完整核心维护者审查即可接纳 SEP；2026-07-28修订增加了正式 Extensions Track。
+
+> *已于2026年7月31日验证。来源：modelcontextprotocol.io、blog.modelcontextprotocol.io*
 
 ---
 
@@ -178,7 +274,7 @@ A2A 任务支持带流式状态更新的长时间运行操作，因此适合持�
 
 | 协议 | 层 | 目的 | 治理方 |
 |----------|-------|---------|-------------|
-| **MCP** | 智能体到工具 | 通用工具与数据访问 | Anthropic（开放规范） |
+| **MCP** | 智能体到工具 | 通用工具与数据访问 | Linux Foundation（Agentic AI Foundation） |
 | **A2A** | 智能体到智能体 | 跨厂商智能体委派 | Linux Foundation |
 | **ACP** | 智能体通信 | 轻量级异步智能体消息传递（REST） | IBM / Linux Foundation |
 
@@ -375,6 +471,8 @@ Claude 会在编写使用该库的代码之前自动调用 `resolve-library-id` 
 ---
 
 ## 参考资料
+- Model Context Protocol. “规范修订版 2026-07-28：变更日志”（2026 年 7 月）。https://modelcontextprotocol.io/specification/2026-07-28/changelog
+- Model Context Protocol 博客。“企业托管授权”（2026 年 6 月）。https://blog.modelcontextprotocol.io/posts/enterprise-managed-auth/
 - Anthropic. “模型上下文协议规范”（2025）
 - Google. “Agent2Agent 协议规范 v0.3”（2026）
 - Linux Foundation. “Agent2Agent 协议项目”（2025）

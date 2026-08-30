@@ -20,6 +20,7 @@
 - [10. 多模态：世界模型、VLA 与 Omni](#_10-多模态-世界模型、vla-与-omni)
 - [11. 更小、更便宜、更快](#_11-更小、更便宜、更快)
 - [12. 测试时训练：在推理时学习](#_12-测试时训练-在推理中学习)
+- [13. Skill Engineering：以 SKILL.md 作为可移植层](#_13-skill-engineering-以-skill-md-作为可移植层)
 - [一条 90 天学习路径](#_90-天学习路径)
 - [它如何映射到本指南](#这如何映射到指南)
 
@@ -212,6 +213,20 @@
 **成熟度（2026）：** 主要仍是研究和竞赛，不是线上服务。它最经受实战检验的场景是离线 ARC-Prize 流水线；架构和记忆变体已在 3-5B 参数规模验证，但没有公开证据表明有前沿模型在其服务路径中部署 TTT 层。与之相对，测试时*计算*已经在各处生产环境中使用。实际结论是：先使用提示、检索或普通微调，并持续关注 TTT 作为新颖任务适配和长上下文效率的前沿方向。
 
 **它连接到哪里：** [测试时计算的边界](#_2-测试时计算的局限)（它的冻结权重同胞）、[Agent Memory and State](07-agentic-systems/05-agent-memory-and-state.md)（记忆变体）、[Fine-Tuning Strategies](03-training-and-adaptation/02-fine-tuning-strategies.md) 和 [Knowledge Distillation](03-training-and-adaptation/05-knowledge-distillation.md)（它临时借用的适配能力）。
+
+---
+
+## 13. Skill Engineering：以 SKILL.md 作为可移植层
+
+**为什么重要：** 这是 2026 年 7 月的热点，类似于 6 月的循环工程。Agent Skills（带 YAML `name` 和 `description` 前置元数据的 `SKILL.md` 文件夹，可选包含 `scripts/`、`references/` 与 `assets/`，并按渐进式披露加载）如今已在 agentskills.io 形成开放标准，并被多家厂商采用：Microsoft Agent Framework 支持 Python 与 .NET，Red Hat 发布了将 `AGENTS.md` 与 skills 配合用于项目上下文的指南；AI Engineer World's Fair 2026 更将“每个智能体平台都围绕 skills 构建”列为前五趋势。值得检验的主张是：skills 正成为编码工作流的交换格式，是与 MCP（工具）和 A2A（智能体委派）并列的可移植层。
+
+**该栈现在有三层互操作性。** MCP 标准化智能体可*触及*的内容（工具与数据），A2A 标准化可*委派给谁*（其他智能体），skills 标准化智能体*知道如何做什么*（过程、团队规范和领域工作流）。skill 是可跨平台迁移的提示层知识；它不授予能力，而是编码胜任力。这一区分很重要：即使 skills 由用户编写且不受信任，能力控制仍可在 MCP 与执行框架层强制实施。
+
+**新兴的失败模式**已有名称。“skills hell”指增殖与漂移：数十个相互重叠的 skills 像工具蔓延一样争夺模型注意力。模型版本漂移则指针对某次模型发布调优的 skill 必须在下次发布时重新验证。实践中的对策与工具卫生相同：少而专注、描述明确的 skills；每个 skill 都有评估覆盖；把 skill 库作为有负责人的依赖面，而不是 wiki。
+
+**成熟度（2026 年 7 月）：** 已有真实规范、多厂商采用，且生产团队正在专门招聘维护 skill 库的人；但尚无跨厂商一致性测试套件，第三方 skill 的安全机制（skill 天生是被注入的指令）仍处于早期。应像对待第三方代码一样对待第三方 skill：安装前审查、固定版本，并且绝不允许 skill 指令扩大智能体的行动边界。
+
+**关联位置：** [Loop Engineering](07-agentic-systems/12-loop-engineering.md)（skills 是应用循环中可复用知识的构件）、[Tool Use and MCP](07-agentic-systems/03-tool-use-and-mcp.md)（skills 所依托的能力层）、[Context Engineering](05-prompting-and-context/05-context-engineering.md)（渐进式披露是一种上下文预算技术）、[Agentic Security](07-agentic-systems/09-agentic-security-and-sandboxing.md)（不受信任的 skills 是注入面）。
 
 ---
 
