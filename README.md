@@ -34,7 +34,7 @@
 
 这是一份实用且持续更新的指南，覆盖 AI system design（AI 系统设计）、RAG architectures（RAG 检索增强生成架构）、LLM engineering（LLM 工程）、agentic AI（智能体化 AI）、MCP 和 A2A protocols（A2A 协议），以及 AI engineering interview preparation（AI 工程面试准备）。内容包括生产模式、模型选型、评估方法，以及来自 staff-level interviews（Staff 级别面试）的真实案例。
 
-**首次阅读？** 可直接跳转到 [116-question Interview Bank](00-interview-prep/01-question-bank.md)、[RAG Fundamentals chapter](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
+**首次阅读？** 可直接跳转到 [122-question Interview Bank](00-interview-prep/01-question-bank.md)、[RAG Fundamentals chapter](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
 
 ---
 
@@ -96,12 +96,12 @@ flowchart TD
 
 | This Guide | Printed Books |
 |------------|---------------|
-| June 2026 models (Claude Fable 5, Claude Opus 4.8, GPT-5.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Llama 4, Kimi K2.7, Qwen 3.7, GLM-5.2, Mistral Medium 3.5, Gemma 4, DiffusionGemma) | Stuck on GPT-4 |
+| July 2026 models (Claude Opus 5, Claude Sonnet 5, Claude Fable 5, GPT-5.6, Gemini 3.1 Pro, Gemini 3.6 Flash, DeepSeek V4 Pro, Kimi K3, Inkling, GLM-5.2, Qwen 3.7, Llama 4) | Stuck on GPT-4 |
 | MCP 2.0, A2A v1.0, OpenClaw, Computer Use, Agentic RAG, ColBERT, latent reasoning, MoE serving | Does not exist |
-| Real pricing with June 2026 verification dates | Already wrong |
-| Staff-level interview Q&A (116 questions through June 2026) + Job Market Trends | Generic questions |
+| Real pricing with July 2026 verification dates | Already wrong |
+| Staff-level interview Q&A (122 questions through July 2026) + Job Market Trends | Generic questions |
 
-**快速模型选择（2026 年 6 月）：** Claude Fable 5 适合追求能力上限（$10/$50 per 1M），Claude Opus 4.8 适合工具使用和长时程 agentic coding（智能体式编码），GPT-5.5 适合通用生产场景，Gemini 3.1 Pro 适合多模态，DeepSeek V4 Flash（$0.14/$0.28 per 1M）或 V4 Pro（$0.435/$0.87）适合低成本的前沿级输出，Llama 4 适合自托管。完整拆解见 [Model Taxonomy](02-model-landscape/01-model-taxonomy.md)。
+**快速模型选择（2026 年 7 月）：** Claude Fable 5 适合追求能力上限（$10/$50 per 1M），Claude Opus 5 以 $5/$25 适合长时程智能体式编码，Claude Sonnet 5 是生产默认档（8 月 31 日前首发价 $2/$10），GPT-5.6 Terra 以 $2/$12 适合通用生产、Luna 以 $0.20/$1.20 适合高量层，Gemini 3.1 Pro 适合多模态，DeepSeek V4 Flash（$0.14/$0.28 per 1M）适合低成本前沿级输出，Kimi K3 或 Inkling 适合开放权重。完整拆解见 [Model Taxonomy](02-model-landscape/01-model-taxonomy.md)。
 
 ---
 
@@ -111,7 +111,7 @@ flowchart TD
 - A staff-level reference for designing production AI systems (RAG, agents, MCP, eval pipelines, multi-tenant isolation).
 - 一本用于设计生产级 AI 系统的 staff-level 参考（RAG、智能体、MCP、评估流水线、多租户隔离）。
 - An interview-prep companion with 116 real questions, answer frameworks with a worked mock transcript, and nine whiteboard exercises through June 2026.
-- 一份面试准备伴侣材料，包含 116 道真实题、带完整示例的答题框架，以及截至 2026 年 6 月的 9 道白板练习。
+- 一份面试准备伴侣材料，包含 122 道真实题、带完整示例的答题框架，以及截至 2026 年 7 月的 9 道白板练习。
 - A living document tracking new model releases, protocol changes, and emerging patterns as they ship.
 - 一本跟踪新模型发布、协议变化和新兴模式并随之更新的活文档。
 - Opinionated about tradeoffs: latency vs cost, accuracy vs faithfulness, single-agent vs multi-agent.
@@ -134,9 +134,9 @@ flowchart TD
 ## 📖 Guide Structure
 
 ```
-├── 00-interview-prep/           # Questions (116), frameworks, exercises, job-market trends (June 2026)
+├── 00-interview-prep/           # Questions (122), frameworks, exercises, job-market trends (June 2026)
 ├── 01-foundations/              # Transformers, attention, embeddings
-├── 02-model-landscape/          # Claude Fable 5, Claude Opus 4.8, GPT-5.5, Gemini 3.1, DeepSeek V4, Llama 4, Kimi K2.6, Qwen 3.6
+├── 02-model-landscape/          # Claude Opus 5, Sonnet 5, Fable 5, GPT-5.6, Gemini 3.x, DeepSeek V4, Kimi K3, Inkling, Llama 4
 ├── 03-training-and-adaptation/  # Fine-tuning, LoRA, DPO, distillation, RLVR/GRPO
 ├── 04-inference-optimization/   # KV cache, PagedAttention, vLLM, diffusion LLMs, on-device
 ├── 05-prompting-and-context/    # Prompt engineering, CoT, Extended Thinking, DSPy, prompt injection
@@ -263,7 +263,7 @@ AI system design（AI 系统设计）是围绕 LLM（Large Language Models，大
 
 ### 我该如何准备 AI engineering（AI 工程）面试？
 
-从 [Question Bank](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 6 月共有 116 道题），然后结合 [Answer Frameworks](00-interview-prep/02-answer-frameworks.md) 和 [Whiteboard Exercises](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [Case Studies](16-case-studies/) 中。
+从 [Question Bank](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 7 月共有 122 道题），然后结合 [Answer Frameworks](00-interview-prep/02-answer-frameworks.md) 和 [Whiteboard Exercises](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [Case Studies](16-case-studies/) 中。
 
 ### 什么是 RAG（Retrieval-Augmented Generation，检索增强生成）？
 

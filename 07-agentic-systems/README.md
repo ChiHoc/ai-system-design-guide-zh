@@ -47,7 +47,7 @@ flowchart LR
 |------|----------------|
 | [01-agent-fundamentals.md](01-agent-fundamentals.md) | 什么样的系统才算“agent（智能体）”；agent 与 workflow 的区别；何时选择各自方案。 |
 | [02-reasoning-loops-react-and-beyond.md](02-reasoning-loops-react-and-beyond.md) | ReAct、Plan-and-Execute、Reflexion、Tree-of-Thought；循环设计模式。 |
-| [03-tool-use-and-mcp.md](03-tool-use-and-mcp.md) | Function calling（函数调用）、Model Context Protocol（MCP）、A2A v1.0、MCP 生产级加固。 |
+| [03-tool-use-and-mcp.md](03-tool-use-and-mcp.md) | Function calling（函数调用）、Model Context Protocol（MCP）、2026-07-28 无状态化改造、A2A v1.0、MCP 生产级加固。 |
 | [04-multi-agent-orchestration.md](04-multi-agent-orchestration.md) | 多智能体何时有帮助、何时会适得其反；orchestration（编排）与 choreography（协同编排）。 |
 | [05-agent-memory-and-state.md](05-agent-memory-and-state.md) | L1-L4 记忆层级（工作记忆、情节记忆、语义记忆、程序记忆）及其取舍。 |
 | [06-planning-and-decomposition.md](06-planning-and-decomposition.md) | 任务分解、计划修订、长程规划。 |

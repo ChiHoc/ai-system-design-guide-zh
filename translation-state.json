@@ -1,12 +1,12 @@
 {
   "upstream_repository": "ombharatiya/ai-system-design-guide",
-  "upstream_commit": "df612278ea4c51a3cf0489cf00aa2b7bf63f22da",
+  "upstream_commit": "bb9579ac1875d748108143d9c851c9a57ee14677",
   "files": {
     "00-interview-prep/01-question-bank.md": {
-      "source_blob": "9b077075f3b5c940016d5008b636a2a6d5876845",
-      "translation_blob": "e95f83a4209448db65803835c7e84fe922bf8307",
+      "source_blob": "6080fea8824ed2598f6ab91172d60774ac9fafdf",
+      "translation_blob": "cf11fe7ae3710886ae1d59cac77eb14ead7f6d19",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "00-interview-prep/02-answer-frameworks.md": {
       "source_blob": "795828578ae6184b9b710a1485f61ef63834d884",
@@ -45,10 +45,10 @@
       "synced_at": "2026-07-20T07:05:35.189Z"
     },
     "00-interview-prep/README.md": {
-      "source_blob": "235b283b892f73f0f064285c0a0831c0f2906431",
-      "translation_blob": "2a77f01e5491fb8c6ee72b8e707e493627a06b9d",
+      "source_blob": "e5de835ff36585e90df0be01f8644df231f5c4dd",
+      "translation_blob": "4519ac629c8f518a8e4c9358b0a126564f090f12",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:04:30.846Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "01-foundations/01-llm-internals.md": {
       "source_blob": "b434702c25dec277d5948a7af44a7becf3e41d74",
@@ -87,10 +87,10 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "02-model-landscape/01-model-taxonomy.md": {
-      "source_blob": "a377d851c8d8339c374ee545ab9c250f139dca83",
-      "translation_blob": "814551b4fe0f4985e0562a53a0abd947f00fe62a",
+      "source_blob": "d51c5fcaa6d709911dfc65f9b40329d73d38e6b9",
+      "translation_blob": "10f82e52555c7a850a92f062cc04c6adca7eac0c",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "02-model-landscape/02-capability-assessment.md": {
       "source_blob": "e03f8ab20948074b6e914067f8d02b9e8dcac7c7",
@@ -363,10 +363,10 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "07-agentic-systems/03-tool-use-and-mcp.md": {
-      "source_blob": "eda818a600591d6ec8d43b8020724f3dd108ed4e",
-      "translation_blob": "0a731482bd090fcf86dfd3c56a58c08ea252e366",
+      "source_blob": "a585a001766c2150a42e75155d455819fa038f82",
+      "translation_blob": "66b225d25c920b96dcaaa69bc9d081fd9064696a",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "07-agentic-systems/04-multi-agent-orchestration.md": {
       "source_blob": "5f9e345709e88a088fd3b9a9d2639512eafb18af",
@@ -417,16 +417,16 @@
       "synced_at": "2026-07-20T07:05:35.189Z"
     },
     "07-agentic-systems/12-loop-engineering.md": {
-      "source_blob": "cee9e91f20ccdd3f686bbf7699e1606c1f8c9858",
-      "translation_blob": "f0d9c827aa322f35e08d63a909ca5f2319de54d0",
+      "source_blob": "cfecfed96559d924a9fe8d957fcf211350e79720",
+      "translation_blob": "e990848ae2d5483ac0177bf93442090a3f70d16d",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:05:35.189Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "07-agentic-systems/README.md": {
-      "source_blob": "835612c9c2d563b6a6c9a20488b597a31ad9be64",
-      "translation_blob": "29b7e6a88af587706884900a55885e2532a902f1",
+      "source_blob": "748334bd0b4f1d877a399a11cd57ef13536670f3",
+      "translation_blob": "84e37d743645695d9801e638f2e8dbce64bf8d82",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:04:30.846Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "08-memory-and-state/01-memory-architectures.md": {
       "source_blob": "98b63b2b29dd813577f6b7b25dc7a087728ff7cb",
@@ -831,16 +831,16 @@
       "synced_at": "2026-07-20T07:04:30.846Z"
     },
     "README.md": {
-      "source_blob": "b79801ecfb30fa886687b273b22eeb8db3e618c2",
-      "translation_blob": "5837046956f8d9925750dfe897d40001df4baf06",
+      "source_blob": "e4e456c2f52eaf83d1a13d4f709a0b755b207163",
+      "translation_blob": "2eea25411b380707008c35a2006ca12d61c97510",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:04:30.846Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "RESEARCH-RADAR.md": {
-      "source_blob": "599d69f0dda236a5880147d5b4b21b9b1566a150",
-      "translation_blob": "5dc1c10bb379f1f013006706c9648c458f38a223",
+      "source_blob": "582b9cbcc8b0bc22f1b3390f48a85569e00f26a5",
+      "translation_blob": "4d2c039b63827911104a6af816f55d012ef08feb",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-07-31T18:01:17.407Z"
     },
     "TRANSITION_GUIDE.md": {
       "source_blob": "763d1ccbb3f1132c40ed6d6b535c9720f0fe2649",
