@@ -8,13 +8,15 @@ import { join, resolve } from 'node:path'
 
 const args = process.argv.slice(2)
 const review = args.includes('--review')
+const selfTest = args.includes('--self-test')
 const sourceIndex = args.indexOf('--source')
 const prefixIndex = args.indexOf('--prefix')
 const modelIndex = args.indexOf('--model')
 const afterIndex = args.indexOf('--after')
 const sourceRoot = sourceIndex >= 0 ? resolve(args[sourceIndex + 1]) : null
 const prefixes = prefixIndex >= 0 ? args[prefixIndex + 1].split(',') : []
-const model = modelIndex >= 0 ? args[modelIndex + 1] : 'gpt-5.3-codex-spark'
+// ChatGPT 账户不支持历史默认的 gpt-5.3-codex-spark。
+const model = modelIndex >= 0 ? args[modelIndex + 1] : 'gpt-5.6-terra'
 const after = afterIndex >= 0 ? args[afterIndex + 1] : null
 let files = args.filter((arg, index) =>
   !arg.startsWith('--') && index !== sourceIndex + 1 && index !== prefixIndex + 1
@@ -37,7 +39,7 @@ if (args.includes('--all') && sourceRoot) {
   )).filter((file) => !after || file.localeCompare(after, 'en') >= 0)
 }
 
-if (!sourceRoot || files.length === 0) {
+if (!selfTest && (!sourceRoot || files.length === 0)) {
   console.error('用法: node scripts/translate-content.mjs --source <上游目录> [--all] [--prefix <目录,...>] [--after <文件>] [--review] [--model <模型>] <Markdown 文件...>')
   process.exit(2)
 }
@@ -105,22 +107,20 @@ function pairReviewChunks(source, translation, maxChars = 7_000) {
 }
 
 function runCodex(prompt, input, outputPath) {
+  let lastDetail = ''
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const result = spawnSync('codex', [
       'exec', '-m', model, '-c', "model_reasoning_effort='low'",
       '-s', 'read-only', '-C', tmpdir(), '--skip-git-repo-check',
       '--ignore-user-config', '--disable', 'image_generation', '--ephemeral', '-o', outputPath, prompt,
     ], { input, encoding: 'utf8', stdio: ['pipe', 'ignore', 'pipe'] })
-    if (result.status === 0) break
-    if (attempt === 3) {
-      const detail = result.stderr?.trim().slice(-1_000) ?? ''
-      throw new Error(`Codex 连续失败，最后退出码 ${result.status}\n${detail}`)
-    }
+    const output = existsSync(outputPath) ? readFileSync(outputPath, 'utf8').trim() : ''
+    if (result.status === 0 && output) return
+    lastDetail = result.stderr?.trim().slice(-1_000) ?? 'Codex 未生成输出文件'
+    if (existsSync(outputPath)) unlinkSync(outputPath)
+    if (attempt === 3) throw new Error(`Codex 连续失败，最后退出码 ${result.status}\n${lastDetail}`)
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, attempt * 5_000)
   }
-  const output = readFileSync(outputPath, 'utf8').trim()
-  if (!output) throw new Error('Codex 返回空译文')
-  return output.replace(/^```(?:markdown)?\s*\n/, '').replace(/\n```$/, '')
 }
 
 /** 翻译前把非 Mermaid 代码围栏替换为稳定占位符，模型永远接触不到代码正文。 */
@@ -158,25 +158,30 @@ function tokenLetters(index) {
 }
 
 /** 数字、价格和百分比在送入模型前替换为短哨兵串，避免单位换算或改写。 */
-function protectNumbers(markdown) {
+function protectNumbers(markdown, prefix = 'ZXQNUM') {
   const numbers = []
   const protectedMarkdown = markdown.replace(/(?<![\p{L}\p{N}_])\d+(?:[.,]\d+)*(?:%|[KMB])?(?![\p{L}\p{N}_])/gu, (value) => {
-    const token = `ZXQNUM${tokenLetters(numbers.length)}QXZ`
+    const token = `${prefix}${tokenLetters(numbers.length)}QXZ`
     numbers.push(value)
     return token
   })
   return { markdown: protectedMarkdown, numbers }
 }
 
-function restoreNumbers(markdown, numbers) {
+function restoreNumbers(markdown, numbers, prefix = 'ZXQNUM') {
   let restored = markdown
   numbers.forEach((value, index) => {
-    const token = `ZXQNUM${tokenLetters(index)}QXZ`
+    const token = `${prefix}${tokenLetters(index)}QXZ`
     if (!restored.includes(token)) throw new Error(`数字占位符 ${tokenLetters(index)} 丢失`)
     restored = restored.replace(token, value)
   })
-  if (/ZXQNUM[A-Z]+QXZ/.test(restored)) throw new Error('数字占位符重复或出现未知项')
+  if (new RegExp(`${prefix}[A-Z]+QXZ`).test(restored)) throw new Error('数字占位符重复或出现未知项')
   return restored
+}
+
+/** 审校输出只应还原译文自身的数字；源文只作为不可改写的对照。 */
+function reviewInput(source, translation) {
+  return `<SOURCE>\n${source}\n</SOURCE>\n<TRANSLATION>\n${translation}\n</TRANSLATION>`
 }
 
 /** 与 VitePress 保持一致的标题 slug 规则。 */
@@ -219,7 +224,18 @@ function rewriteTableOfContents(source, translation) {
 }
 
 const translatePrompt = '将 stdin 中的完整 Markdown 忠实翻译为简体中文，只输出翻译后的完整 Markdown，不要解释或用代码围栏包裹全文。正文、标题、面试题、表格标签和上一篇/下一篇导航都要翻译，不得遗留完整英文句子；英文专业术语优先，首次出现附中文解释。保持 Markdown 结构、表格、URL、图片路径、数字、公式、代码块、命令和标识符不变；Mermaid 只翻译可见标签。所有 ZXQNUM...QXZ 与 @@AI_GUIDE_CODE_BLOCK_*@@ 占位符必须原样保留且各出现一次。不得总结、删减或扩写。'
-const reviewPrompt = '校对 stdin 中 SOURCE 与 TRANSLATION 两段 Markdown。只输出修正后的完整中文 TRANSLATION，不要解释或用代码围栏包裹。修正遗漏、反义、数字、价格、安全、法规和术语错误；正文、标题、面试题、表格标签和上一篇/下一篇导航都要翻译，不得遗留完整英文句子。保持 SOURCE 的 Markdown 结构、表格、URL、图片、数字、公式、代码块、命令和标识符，保留已有正确中文。英文专业术语优先，首次出现附中文解释。所有 ZXQNUM...QXZ 与 @@AI_GUIDE_CODE_BLOCK_*@@ 占位符必须原样保留且各出现一次。不得总结、删减或扩写。'
+const reviewPrompt = '校对 stdin 中 SOURCE 与 TRANSLATION 两段 Markdown。只输出修正后的完整中文 TRANSLATION，不要解释或用代码围栏包裹。修正遗漏、反义、数字、价格、安全、法规和术语错误；正文、标题、面试题、表格标签和上一篇/下一篇导航都要翻译，不得遗留完整英文句子。保持 SOURCE 的 Markdown 结构、表格、URL、图片、数字、公式、代码块、命令和标识符，保留已有正确中文。英文专业术语优先，首次出现附中文解释。所有 ZXQSRC...QXZ、ZXQTRN...QXZ 与 @@AI_GUIDE_CODE_BLOCK_*@@ 占位符必须原样保留且各出现一次；只保留 TRANSLATION 中的 ZXQTRN 占位符，不得输出 ZXQSRC 占位符。不得总结、删减或扩写。'
+
+if (selfTest) {
+  if (model !== 'gpt-5.6-terra') throw new Error('审校默认模型不是当前账户支持的 gpt-5.6-terra')
+  const source = protectNumbers('Q1: 2026', 'ZXQSRC')
+  const translation = protectNumbers('2026 年问题 Q1', 'ZXQTRN')
+  const input = reviewInput(source.markdown, translation.markdown)
+  if (!input.includes('ZXQSRCAQXZ') || !input.includes('ZXQTRNAQXZ')) throw new Error('审校数字占位符未隔离')
+  if (restoreNumbers(translation.markdown, translation.numbers, 'ZXQTRN') !== '2026 年问题 Q1') throw new Error('译文数字未按自身顺序还原')
+  console.log('审校数字占位符自检通过。')
+  process.exit(0)
+}
 const cacheRoot = resolve('.translation-cache', review ? 'review' : 'translate')
 mkdirSync(cacheRoot, { recursive: true })
 
@@ -237,13 +253,10 @@ for (const file of files) {
       if (protectedTranslation && protectedSource.fences.length !== protectedTranslation.fences.length) {
         throw new Error(`${file}: 原文与译文代码围栏数量不同，拒绝自动校对`)
       }
-      const numberedSource = protectNumbers(protectedSource.markdown)
-      const numberedTranslation = protectedTranslation ? protectNumbers(protectedTranslation.markdown) : null
-      if (numberedTranslation && JSON.stringify(numberedSource.numbers) !== JSON.stringify(numberedTranslation.numbers)) {
-        throw new Error(`${file}: 原文与译文数字序列不同，需先重新翻译`)
-      }
+      const numberedSource = protectNumbers(protectedSource.markdown, review ? 'ZXQSRC' : 'ZXQNUM')
+      const numberedTranslation = protectedTranslation ? protectNumbers(protectedTranslation.markdown, 'ZXQTRN') : null
       const input = review
-        ? `<SOURCE>\n${numberedSource.markdown}\n</SOURCE>\n<TRANSLATION>\n${numberedTranslation.markdown}\n</TRANSLATION>`
+        ? reviewInput(numberedSource.markdown, numberedTranslation.markdown)
         : numberedSource.markdown
       const key = createHash('sha256').update(`v6\0${model}\0${review ? 'review' : 'translate'}\0${input}`).digest('hex')
       const outputPath = join(cacheRoot, `${key}.md`)
@@ -251,7 +264,9 @@ for (const file of files) {
       for (let attempt = 1; attempt <= 3; attempt += 1) {
         if (!existsSync(outputPath)) runCodex(review ? reviewPrompt : translatePrompt, input, outputPath)
         try {
-          const withNumbers = restoreNumbers(readFileSync(outputPath, 'utf8').trim(), numberedSource.numbers)
+          const tokenPrefix = review ? 'ZXQTRN' : 'ZXQNUM'
+          const withNumbers = restoreNumbers(readFileSync(outputPath, 'utf8').trim(), review ? numberedTranslation.numbers : numberedSource.numbers, tokenPrefix)
+          if (review && /ZXQSRC[A-Z]+QXZ/.test(withNumbers)) throw new Error('审校输出包含源文数字占位符')
           protectedOutput = restoreCodeFences(withNumbers, protectedSource.fences)
           break
         } catch (error) {
