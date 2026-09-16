@@ -34,58 +34,58 @@
 
 这是一份实用且持续更新的指南，覆盖 AI system design（AI 系统设计）、RAG architectures（RAG 检索增强生成架构）、LLM engineering（LLM 工程）、agentic AI（智能体化 AI）、MCP 和 A2A protocols（A2A 协议），以及 AI engineering interview preparation（AI 工程面试准备）。内容包括生产模式、模型选型、评估方法，以及来自 staff-level interviews（Staff 级别面试）的真实案例。
 
-**首次阅读？** 可直接跳转到 [122-question Interview Bank](00-interview-prep/01-question-bank.md)、[RAG Fundamentals chapter](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
+**首次阅读？** 可直接跳转到 [128 道面试题库](00-interview-prep/01-question-bank.md)、[RAG 基础章节](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
 
 ---
 
 ## 📚 快速导航
 
-| I want to... | Start here |
+| 我想要…… | 从这里开始 |
 |--------------|------------|
-| **Prepare for interviews** | [Question Bank](00-interview-prep/01-question-bank.md) → [Answer Frameworks](00-interview-prep/02-answer-frameworks.md) |
-| **Learn AI systems fast** | [LLM Internals](01-foundations/01-llm-internals.md) → [RAG Fundamentals](06-retrieval-systems/01-rag-fundamentals.md) |
-| **Build production RAG** | [Chunking](06-retrieval-systems/02-chunking-strategies.md) → [Vector DBs](06-retrieval-systems/04-vector-databases.md) → [Reranking](06-retrieval-systems/06-reranking-strategies.md) → [Production RAG](06-retrieval-systems/14-production-rag-at-scale.md) |
-| **Advanced retrieval** | [Contextual Retrieval](06-retrieval-systems/10-contextual-retrieval.md) → [ColBERT](06-retrieval-systems/11-late-interaction-colbert.md) → [Multi-modal RAG](06-retrieval-systems/12-multimodal-rag.md) |
-| **Design multi-tenant AI** | [Access Control](12-security-and-access/02-access-control.md) → [Case Study](16-case-studies/08-multi-tenant-saas.md) |
-| **Build agents** | [Agent Fundamentals](07-agentic-systems/01-agent-fundamentals.md) → [MCP & A2A](07-agentic-systems/03-tool-use-and-mcp.md) → [LangGraph](09-frameworks-and-tools/02-langgraph-orchestration.md) |
-| **Run self-driving agent loops** | [Loop Engineering](07-agentic-systems/12-loop-engineering.md) (the four loop levels, termination, budgets, verification, loopmaxxing) |
-| **Tool-use & computer agents** | [Landscape](17-tool-use-and-computer-agents/01-tool-use-landscape.md) → [OpenClaw](17-tool-use-and-computer-agents/03-openclaw-deep-dive.md) → [Safety](17-tool-use-and-computer-agents/07-safety-and-governance.md) |
-| **Autonomous coding agents** | [Claude Code](09-frameworks-and-tools/09-claude-code.md) → [OpenCoder Landscape](09-frameworks-and-tools/10-opencoderguide.md) |
-| **Survive framework version churn** | [Navigating Framework Churn](09-frameworks-and-tools/12-navigating-framework-churn.md) (stale tutorials, version pinning, what to actually learn) |
-| **Pick the right model (2026)** | [Model Taxonomy](02-model-landscape/01-model-taxonomy.md) → [Pricing](02-model-landscape/03-pricing-and-costs.md) |
-| **Evaluate AI in production** | [AI Evals Guide (Phoenix/Langfuse)](ai_evals_comprehensive_study_guide.md) → [AI Evals Guide (LangWatch/Langfuse)](ai_evals_complete_guide_langwatch_langfuse.md) |
-| **Read benchmarks the right way** | [Benchmarks & Leaderboards](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md) (saturation, contamination, harness variance) |
-| **Track frontier research (2026)** | [Research Radar](RESEARCH-RADAR.md) (trending papers and what to learn next) |
-| **Build a voice agent** | [Real-Time Voice Agents](18-voice-and-audio-agents/01-realtime-voice-agents.md) (cascade vs speech-to-speech, latency budgets, the stack) |
-| **Route across models / add a gateway** | [AI Gateways and Model Routing](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md) (fallback, rate limits, LiteLLM) |
-| **Control AI cost** | [FinOps and Token Economics](11-infrastructure-and-mlops/04-finops-and-token-economics.md) (caching, batch, attribution, unit economics) |
-| **Meet AI regulations** | [AI Governance and Compliance](13-reliability-and-safety/04-ai-governance-and-compliance.md) (EU AI Act, NIST RMF, what to implement) |
-| **Generate images, video, audio** | [Multimodal Generation](19-multimodal-generation/01-multimodal-generation.md) (pipelines, provenance, evaluation) |
-| **Train a reasoning model** | [RLVR and GRPO](03-training-and-adaptation/08-rlvr-and-reasoning-models.md) (how o-series and R1 are trained) |
-| **Run models locally** | [On-Device and Edge Deployment](04-inference-optimization/09-on-device-and-edge-deployment.md) (Ollama vs vLLM, quantization, hardware) |
-| **Make agents crash-proof** | [Durable Execution](07-agentic-systems/11-durable-execution.md) (replay, exactly-once, Temporal) |
-| **Engineer the data layer** | [Data Engineering for AI](06-retrieval-systems/15-data-engineering-for-ai.md) (ingestion, dedup, PII, decontamination) |
-| **Find the best courses to learn AI** | [Recommended Courses & Learning Paths](COURSES.md) |
-| **Transition from my current role to AI** | [Role Transition Guide](TRANSITION_GUIDE.md) |
-| **Understand the 2026 AI job market** | [Job Market Trends - June 2026](00-interview-prep/06-job-market-trends-2026.md) |
-| **Get a quick answer to a common question** | [FAQ](00-interview-prep/07-faq.md) (RAG, agents, models, eval, inference, memory, security) |
-| **Look up a term** | [Glossary](GLOSSARY.md) (every term defined) |
+| **准备面试** | [题库](00-interview-prep/01-question-bank.md) → [答题框架](00-interview-prep/02-answer-frameworks.md) |
+| **快速学习 AI 系统** | [LLM 内部机制](01-foundations/01-llm-internals.md) → [RAG 基础](06-retrieval-systems/01-rag-fundamentals.md) |
+| **构建生产级 RAG** | [分块](06-retrieval-systems/02-chunking-strategies.md) → [向量数据库](06-retrieval-systems/04-vector-databases.md) → [重排序](06-retrieval-systems/06-reranking-strategies.md) → [生产级 RAG](06-retrieval-systems/14-production-rag-at-scale.md) |
+| **进阶检索** | [上下文检索](06-retrieval-systems/10-contextual-retrieval.md) → [ColBERT](06-retrieval-systems/11-late-interaction-colbert.md) → [多模态 RAG](06-retrieval-systems/12-multimodal-rag.md) |
+| **设计多租户 AI** | [访问控制](12-security-and-access/02-access-control.md) → [案例研究](16-case-studies/08-multi-tenant-saas.md) |
+| **构建智能体** | [智能体基础](07-agentic-systems/01-agent-fundamentals.md) → [MCP & A2A](07-agentic-systems/03-tool-use-and-mcp.md) → [LangGraph](09-frameworks-and-tools/02-langgraph-orchestration.md) |
+| **运行自主智能体循环** | [循环工程](07-agentic-systems/12-loop-engineering.md) (四层循环、终止、预算、验证、循环极限化) |
+| **工具使用与计算机智能体** | [全景](17-tool-use-and-computer-agents/01-tool-use-landscape.md) → [OpenClaw](17-tool-use-and-computer-agents/03-openclaw-deep-dive.md) → [安全](17-tool-use-and-computer-agents/07-safety-and-governance.md) |
+| **自主编码智能体** | [Claude Code](09-frameworks-and-tools/09-claude-code.md) → [OpenCoder 全景](09-frameworks-and-tools/10-opencoderguide.md) |
+| **应对框架版本更迭** | [应对框架更迭](09-frameworks-and-tools/12-navigating-framework-churn.md) (过时教程、版本固定、真正应该学习的内容) |
+| **选择合适模型（2026）** | [模型分类](02-model-landscape/01-model-taxonomy.md) → [定价](02-model-landscape/03-pricing-and-costs.md) |
+| **在生产环境评估 AI** | [AI 评估指南（Phoenix/Langfuse）](ai_evals_comprehensive_study_guide.md) → [AI 评估指南（LangWatch/Langfuse）](ai_evals_complete_guide_langwatch_langfuse.md) |
+| **正确解读基准测试** | [基准与排行榜](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md) (饱和、污染、评测框架差异) |
+| **跟踪前沿研究（2026）** | [研究雷达](RESEARCH-RADAR.md) (热门论文与下一步学习方向) |
+| **构建语音智能体** | [实时语音智能体](18-voice-and-audio-agents/01-realtime-voice-agents.md) (级联与语音到语音、延迟预算、技术栈) |
+| **跨模型路由或添加网关** | [AI 网关与模型路由](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md) (降级、速率限制、LiteLLM) |
+| **控制 AI 成本** | [FinOps 与 token 经济学](11-infrastructure-and-mlops/04-finops-and-token-economics.md) (缓存、批处理、归因、单位经济性) |
+| **满足 AI 法规要求** | [AI 治理与合规](13-reliability-and-safety/04-ai-governance-and-compliance.md) (欧盟 AI 法案、NIST RMF、需要实施的内容) |
+| **生成图像、视频和音频** | [多模态生成](19-multimodal-generation/01-multimodal-generation.md) (流水线、溯源、评估) |
+| **训练推理模型** | [RLVR 与 GRPO](03-training-and-adaptation/08-rlvr-and-reasoning-models.md) (o 系列与 R1 的训练方式) |
+| **在本地运行模型** | [端侧与边缘部署](04-inference-optimization/09-on-device-and-edge-deployment.md) (Ollama 与 vLLM、量化、硬件) |
+| **使智能体能够从崩溃中恢复** | [持久执行](07-agentic-systems/11-durable-execution.md) (重放、恰好一次、Temporal) |
+| **构建数据层** | [AI 数据工程](06-retrieval-systems/15-data-engineering-for-ai.md) (摄取、去重、个人身份信息、去污染) |
+| **寻找优质 AI 学习课程** | [推荐课程与学习路径](COURSES.md) |
+| **从当前岗位转型到 AI** | [岗位转型指南](TRANSITION_GUIDE.md) |
+| **了解 2026 年 AI 就业市场** | [就业市场趋势](00-interview-prep/06-job-market-trends-2026.md) |
+| **快速解答常见问题** | [FAQ](00-interview-prep/07-faq.md) (RAG、智能体、模型、评估、推理、记忆、安全) |
+| **查找术语** | [词汇表](GLOSSARY.md) (逐项解释术语) |
 
 ### 选择路径
 
 ```mermaid
 flowchart TD
-    A[New visitor] --> B{Your goal}
-    B -->|Interview prep| C[Question Bank]
-    B -->|Build RAG| D[RAG Fundamentals]
-    B -->|Build agents| E[Agent Fundamentals]
-    B -->|Pick a model| F[Model Taxonomy]
-    B -->|Evaluate AI| G[AI Evals Guide]
-    C --> H[Answer Frameworks]
-    D --> I[Chunking + Vector DBs]
-    E --> J[MCP and Tool Use]
-    F --> K[Pricing 2026]
-    G --> L[Phoenix or LangWatch]
+    A[新读者] --> B{你的目标}
+    B -->|面试准备| C[题库]
+    B -->|构建 RAG| D[RAG 基础]
+    B -->|构建智能体| E[智能体基础]
+    B -->|选择模型| F[模型分类]
+    B -->|评估 AI| G[AI 评估指南]
+    C --> H[答题框架]
+    D --> I[分块与向量数据库]
+    E --> J[MCP 与工具使用]
+    F --> K[定价 2026]
+    G --> L[Phoenix 或 LangWatch]
 ```
 
 ---
@@ -94,47 +94,38 @@ flowchart TD
 
 **传统书籍在出版前就已经过时。** 这是一个活文档：当新模型发布、当模式演进时，它会随之更新。
 
-| This Guide | Printed Books |
+| 本指南 | 纸质书籍 |
 |------------|---------------|
-| July 2026 models (Claude Opus 5, Claude Sonnet 5, Claude Fable 5, GPT-5.6, Gemini 3.1 Pro, Gemini 3.6 Flash, DeepSeek V4 Pro, Kimi K3, Inkling, GLM-5.2, Qwen 3.7, Llama 4) | Stuck on GPT-4 |
-| MCP 2.0, A2A v1.0, OpenClaw, Computer Use, Agentic RAG, ColBERT, latent reasoning, MoE serving | Does not exist |
-| Real pricing with July 2026 verification dates | Already wrong |
-| Staff-level interview Q&A (122 questions through July 2026) + Job Market Trends | Generic questions |
+| 2026 年 8 月模型 (Claude Opus 5, Sonnet 5, Fable 5, GPT-5.6 Sol/Terra/Luna, GPT-5.6-Cyber, Gemini 3.7 Flash, Grok 4.6, DeepSeek V4, Kimi K3, Qwen3.8, GLM-5.3, Muse Glimmer, Inkling) | 仍停留在 GPT-4 |
+| MCP 2.0, A2A v1.0, OpenClaw, 计算机使用、智能体式 RAG、ColBERT、潜在推理、MoE 推理服务 | 尚未涵盖 |
+| 附 2026 年 8 月核验日期的实际定价 | 已经过时 |
+| Staff 级面试问答（截至 2026 年 8 月的 128 道题）与就业市场趋势 | 泛泛的问题 |
 
-**快速模型选择（2026 年 7 月）：** Claude Fable 5 适合追求能力上限（$10/$50 per 1M），Claude Opus 5 以 $5/$25 适合长时程智能体式编码，Claude Sonnet 5 是生产默认档（8 月 31 日前首发价 $2/$10），GPT-5.6 Terra 以 $2/$12 适合通用生产、Luna 以 $0.20/$1.20 适合高量层，Gemini 3.1 Pro 适合多模态，DeepSeek V4 Flash（$0.14/$0.28 per 1M）适合低成本前沿级输出，Kimi K3 或 Inkling 适合开放权重。完整拆解见 [Model Taxonomy](02-model-landscape/01-model-taxonomy.md)。
+**快速模型选择（2026 年 8 月）：** Claude Fable 5 适合追求能力上限（$10/$50 per 1M），Claude Opus 5 以 $5/$25 适合长时程智能体式编码，Claude Sonnet 5 是生产默认档（$2/$10，现已成为永久价格），GPT-5.6 Terra 以 $2/$12 适合通用生产、Luna 以 $0.20/$1.20 适合高量层，Gemini 3.7 Flash 年底前半价，价格为 $0.75/$3.75，Kimi K3 或 Muse Glimmer 适合开放权重。请注意，DeepSeek V4 从 8 月 16 日起不再是理所当然的低成本答案：价格将上涨至 3 至 12 倍，并改用高峰与非高峰时段计费。完整拆解见 [模型分类](02-model-landscape/01-model-taxonomy.md)。
 
 ---
 
-## 🎯 What This Guide Is (and Is Not)
+## 🎯 本指南的定位与边界
 
-**This guide IS:**
-- A staff-level reference for designing production AI systems (RAG, agents, MCP, eval pipelines, multi-tenant isolation).
-- 一本用于设计生产级 AI 系统的 staff-level 参考（RAG、智能体、MCP、评估流水线、多租户隔离）。
-- An interview-prep companion with 116 real questions, answer frameworks with a worked mock transcript, and nine whiteboard exercises through June 2026.
-- 一份面试准备伴侣材料，包含 122 道真实题、带完整示例的答题框架，以及截至 2026 年 7 月的 9 道白板练习。
-- A living document tracking new model releases, protocol changes, and emerging patterns as they ship.
+**本指南是：**
+- 一本用于设计生产级 AI 系统的 staff 级参考（RAG、智能体、MCP、评估流水线、多租户隔离）。
+- 一份面试准备配套材料，包含 128 道真实题、带完整模拟面试逐字稿的答题框架，以及截至 2026 年 8 月的九道白板练习。
 - 一本跟踪新模型发布、协议变化和新兴模式并随之更新的活文档。
-- Opinionated about tradeoffs: latency vs cost, accuracy vs faithfulness, single-agent vs multi-agent.
-- 对取舍有明确观点：延迟 vs 成本、准确性 vs 忠实性、单智能体 vs 多智能体。
-- Free, MIT-licensed, and open to PRs from practitioners.
-- 免费、MIT 许可，并欢迎实践者提交 PR。
+- 对取舍有明确观点：延迟与成本、准确性与忠实性、单智能体与多智能体。
+- 免费、采用 MIT 许可，并欢迎实践者提交 PR。
 
-**This guide IS NOT:**
-- A tutorial on Python, PyTorch, or basic ML fundamentals (start with a course; see [COURSES.md](COURSES.md)).
-- Python、PyTorch 或机器学习基础的教程（请先从课程开始；见 [COURSES.md](COURSES.md)）。
-- A vendor-neutral hedge; it names specific models, prices, and frameworks because real systems require real choices.
-- 不做供应商中立回避；它会直接点名具体模型、价格和框架，因为真实系统必须做真实选择。
-- A replacement for hands-on building; read it alongside a project, not instead of one.
-- 不能替代动手构建；应当结合项目阅读，而不是取而代之。
-- A research paper digest; it cites papers when they change practice, not for completeness.
-- 不是论文摘要合集；它只在论文会改变实践时引用，而不是追求完整覆盖。
+**本指南不是：**
+- Python、PyTorch 或机器学习基础教程（请先从课程开始；见 [COURSES.md](COURSES.md)）。
+- 回避具体选择的供应商中立材料；它会点名具体模型、价格和框架，因为真实系统必须做真实选择。
+- 动手构建的替代品；应当结合项目阅读，而不是取代项目实践。
+- 论文摘要合集；只在论文会改变实践时引用，而不追求完整覆盖。
 
 ---
 
-## 📖 Guide Structure
+## 📖 指南结构
 
 ```
-├── 00-interview-prep/           # Questions (122), frameworks, exercises, job-market trends (June 2026)
+├── 00-interview-prep/           # Questions (128), frameworks, exercises, job-market trends (August 2026)
 ├── 01-foundations/              # Transformers, attention, embeddings
 ├── 02-model-landscape/          # Claude Opus 5, Sonnet 5, Fable 5, GPT-5.6, Gemini 3.x, DeepSeek V4, Kimi K3, Inkling, Llama 4
 ├── 03-training-and-adaptation/  # Fine-tuning, LoRA, DPO, distillation, RLVR/GRPO
@@ -163,35 +154,35 @@ flowchart TD
 └── RESEARCH-RADAR.md            # 🛰️ Frontier research radar: trending papers and what to learn next
 ```
 
-### Chapters by AI System Lifecycle Stage
+### 按 AI 系统生命周期阶段组织的章节
 
 ```mermaid
 mindmap
-  root((AI System Design Guide))
-    Foundations
-      LLM Internals
-      Model Landscape
-      Training and Adaptation
-    Build
-      Prompting and Context
-      Retrieval Systems
-      Agentic Systems
-      Tool Use and Computer Agents
-      Voice and Audio Agents
-      Multimodal Generation
-    Operate
-      Inference Optimization
-      Memory and State
-      Frameworks and Tools
-      Infrastructure and MLOps
-    Govern
-      Security and Access
-      Reliability and Safety
-      Evaluation and Observability
-    Apply
-      Design Patterns
-      Case Studies
-      Interview Prep
+  root((AI 系统设计指南))
+    基础
+      LLM 内部机制
+      模型格局
+      训练与适配
+    构建
+      提示词与上下文
+      检索系统
+      智能体系统
+      工具使用与计算机智能体
+      语音与音频智能体
+      多模态生成
+    运行
+      推理优化
+      记忆与状态
+      框架与工具
+      基础设施与 MLOps
+    治理
+      安全与访问
+      可靠性与安全
+      评估与可观测性
+    应用
+      设计模式
+      案例研究
+      面试准备
 ```
 
 ---
@@ -200,54 +191,54 @@ mindmap
 
 真实面试题场景，包含完整解法与图示：
 
-| Case Study | Problem | Key Patterns |
+| 案例研究 | 问题 | 关键模式 |
 |------------|---------|--------------|
-| [Real-Time Search](16-case-studies/06-real-time-search.md) | 5-minute data freshness at scale | Streaming + Hybrid Search |
-| [Coding Agent](16-case-studies/07-autonomous-coding-agent.md) | Autonomous multi-file changes | Sandboxing + Self-Correction |
-| [Multi-Tenant SaaS](16-case-studies/08-multi-tenant-saas.md) | Coca-Cola and Pepsi on same infra | Defense-in-Depth Isolation |
-| [Customer Support](16-case-studies/09-customer-support-automation.md) | 60% auto-resolution rate | Tiered Routing + Escalation |
-| [Document Intelligence](16-case-studies/10-document-intelligence.md) | 50K contracts/month extraction | Vision-LLM + Parallel Extractors |
-| [Recommendation Engine](16-case-studies/11-recommendation-engine.md) | Personalized explanations at 50M users | ML Ranking + LLM Explanations |
-| [Compliance Automation](16-case-studies/12-compliance-automation.md) | FDA regulation pre-screening | Claim Extraction + Precedent DB |
-| [Voice Healthcare](16-case-studies/13-voice-ai-healthcare.md) | Real-time clinical note generation | On-Prem ASR + HIPAA |
-| [Fraud Detection](16-case-studies/14-fraud-detection.md) | 100ms decision with explainability | ML + Rules Hybrid |
-| [Knowledge Management](16-case-studies/15-knowledge-management.md) | 2M docs with access control | Permission-Aware RAG |
-| [Computer-Use Agent](16-case-studies/16-computer-use-agent-production.md) | Expense-report automation across 3 legacy UIs | Firecracker VMs + Action Gate + IPI Defense |
-| [Multi-Tenant Fine-Tuning](16-case-studies/17-multi-tenant-fine-tuning-platform.md) | 280 tenants on shared base + per-tenant LoRA | LoRA Hot-Swap + Eval-as-PRD per Tenant |
-| [Eval-Gated CI/CD](16-case-studies/18-eval-gated-cicd.md) | Block PRs that regress AI quality | Golden Sets + LLM Judges + Statistical Correction |
-| [Customer Distillation](16-case-studies/19-customer-distillation-pipeline.md) | Cut $50K/mo frontier spend to $6K with 3-mo payback | Trace-Based Distillation + Canary Rollout |
-| [MCP Knowledge Agent](16-case-studies/20-mcp-knowledge-agent.md) | Cross-system answers from Snowflake/Confluence/Jira/Slack | MCP + OAuth Resource Server + Capability Gating |
+| [实时搜索](16-case-studies/06-real-time-search.md) | 大规模场景下 5 分钟的数据新鲜度 | 流式处理与混合检索 |
+| [编码智能体](16-case-studies/07-autonomous-coding-agent.md) | 自主修改多个文件 | 沙箱隔离与自我纠正 |
+| [多租户 SaaS](16-case-studies/08-multi-tenant-saas.md) | 可口可乐与百事共享基础设施 | 纵深防御隔离 |
+| [客户支持](16-case-studies/09-customer-support-automation.md) | 60% 自动解决率 | 分层路由与升级处理 |
+| [文档智能](16-case-studies/10-document-intelligence.md) | 每月从 50K 份合同提取信息 | 视觉 LLM 与并行提取器 |
+| [推荐引擎](16-case-studies/11-recommendation-engine.md) | 为 50M 用户提供个性化解释 | ML 排序与 LLM 解释 |
+| [合规自动化](16-case-studies/12-compliance-automation.md) | FDA 法规预审 | 主张提取与先例数据库 |
+| [语音医疗](16-case-studies/13-voice-ai-healthcare.md) | 实时生成临床记录 | 本地部署 ASR 与 HIPAA |
+| [欺诈检测](16-case-studies/14-fraud-detection.md) | 可解释的 100ms 决策 | ML 与规则混合 |
+| [知识管理](16-case-studies/15-knowledge-management.md) | 带访问控制的 2M 份文档 | 权限感知 RAG |
+| [计算机使用智能体](16-case-studies/16-computer-use-agent-production.md) | 跨 3 个遗留 UI 自动处理费用报表 | Firecracker 虚拟机、动作门控与 IPI 防御 |
+| [多租户微调](16-case-studies/17-multi-tenant-fine-tuning-platform.md) | 280 个租户共享基础模型，每个租户独立使用 LoRA | LoRA 热切换与各租户的评估即 PRD |
+| [评估门控 CI/CD](16-case-studies/18-eval-gated-cicd.md) | 阻止使 AI 质量退化的 PR | 黄金集、LLM 评判者与统计校正 |
+| [客户模型蒸馏](16-case-studies/19-customer-distillation-pipeline.md) | 将每月前沿模型支出从 $50K 降至 $6K，3 个月回本 | 基于轨迹的蒸馏与金丝雀发布 |
+| [MCP 知识智能体](16-case-studies/20-mcp-knowledge-agent.md) | 从 Snowflake/Confluence/Jira/Slack 获取跨系统答案 | MCP、OAuth 资源服务器与能力门控 |
 
 ---
 
-## 🔬 Bonus Deep-Dive Guides
+## 🔬 配套深度指南
 
 两本配套指南（每本 3000+ 行）覆盖 AI 评估的端到端流程，面向工程师、PM 和 QA：
 
-| Guide | Platforms Covered | What's Inside |
+| 指南 | 覆盖平台 | 内容 |
 |-------|------------------|---------------|
-| [AI Evals: Comprehensive Study Guide](ai_evals_comprehensive_study_guide.md) | Arize Phoenix + Langfuse | LLM-as-a-Judge, RAG eval, multi-turn eval, production safety, statistical correction with `judgy`, 30-day learning path |
-| [AI Evals: LangWatch + Langfuse Guide](ai_evals_complete_guide_langwatch_langfuse.md) | LangWatch + Langfuse | Same syllabus with LangWatch's 40+ built-in evaluators, side-by-side platform comparisons, platform choice guidance |
+| [AI 评估：综合学习指南](ai_evals_comprehensive_study_guide.md) | Arize Phoenix + Langfuse | LLM 作为评判者、RAG 评估、多轮评估、生产安全、使用 `judgy` 进行统计校正、30 天学习路径 |
+| [AI 评估：LangWatch 与 Langfuse 指南](ai_evals_complete_guide_langwatch_langfuse.md) | LangWatch + Langfuse | 同一教学大纲，结合 LangWatch 的 40+ 内置评估器、平台并排比较和选型指导 |
 
 **两本指南共同覆盖的主题：**
-- Tracing and observability setup (Phoenix, LangWatch, Langfuse)
-- Error analysis: open coding → axial coding → failure mode taxonomy
-- Building LLM judges with Train/Dev/Test split and ground truth calibration
-- Code-based evaluators (regex, JSON schema, format validators)
-- RAG-specific evals: faithfulness, context recall, answer relevance
-- Multi-step pipeline evaluation and multi-turn conversation eval
-- Production guardrails, safety monitoring, real-time drift detection
-- Statistical correction with `judgy` library
-- Human annotation best practices and inter-rater reliability
-- Cost/latency optimization for eval pipelines at scale
+- 追踪与可观测性配置（Phoenix、LangWatch、Langfuse）
+- 错误分析：开放编码 → 主轴编码 → 失败模式分类
+- 划分训练/开发/测试集并用真实标注校准 LLM 评判者
+- 基于代码的评估器（正则表达式、JSON schema、格式校验器）
+- RAG 专项评估：忠实性、上下文召回率、答案相关性
+- 多步流水线评估与多轮对话评估
+- 生产护栏、安全监控、实时漂移检测
+- 使用 `judgy` 库进行统计校正
+- 人工标注最佳实践与标注者间可靠性
+- 大规模评估流水线的成本与延迟优化
 
 ## 🎓 面向面试准备（Interview Prep）
 
 AI 工程（AI engineering）与系统设计（system design）面试常会问这样的问题：
 
-> "Design a multi-tenant RAG system where competitors cannot see each other's data."
+> "设计一个多租户 RAG 系统，使竞争对手无法看到彼此的数据。"
 
-> "Your agent takes 15 steps for a 3-step task. How do you debug it?"
+> "你的智能体花了 15 步完成一个只需 3 步的任务。你会如何调试？"
 
 本指南提供 **具体模式**、**真实取舍** 和 **生产故障模式**：这正是高级别面试官所期望的深度。
 
@@ -259,19 +250,19 @@ AI 工程（AI engineering）与系统设计（system design）面试常会问�
 
 ### 什么是 AI system design（AI 系统设计）？
 
-AI system design（AI 系统设计）是围绕 LLM（Large Language Models，大型语言模型）、检索（retrieval）、Agent（智能体）和评估（evaluation）构建生产级系统的学科。它涵盖模型选择、RAG（Retrieval-Augmented Generation，检索增强生成）流水线、Agent 编排、memory（记忆）、observability（可观测性）和 safety（安全性）。参见 [LLM Internals](01-foundations/01-llm-internals.md) 和 [AI Design Patterns](15-ai-design-patterns/) 以建立基础认知。
+AI system design（AI 系统设计）是围绕 LLM（Large Language Models，大型语言模型）、检索（retrieval）、Agent（智能体）和评估（evaluation）构建生产级系统的学科。它涵盖模型选择、RAG（Retrieval-Augmented Generation，检索增强生成）流水线、Agent 编排、memory（记忆）、observability（可观测性）和 safety（安全性）。参见 [LLM 内部机制](01-foundations/01-llm-internals.md) 和 [AI Design Patterns](15-ai-design-patterns/) 以建立基础认知。
 
 ### 我该如何准备 AI engineering（AI 工程）面试？
 
-从 [Question Bank](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 7 月共有 122 道题），然后结合 [Answer Frameworks](00-interview-prep/02-answer-frameworks.md) 和 [Whiteboard Exercises](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [Case Studies](16-case-studies/) 中。
+从 [题库](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 8 月共有 128 道题），然后结合 [答题框架](00-interview-prep/02-answer-frameworks.md) 和 [白板练习](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [案例研究](16-case-studies/) 中。
 
 ### 什么是 RAG（Retrieval-Augmented Generation，检索增强生成）？
 
-RAG 是一种模式：LLM 会在生成答案之前，从外部知识源（如 vector DB、search index、graph）检索相关上下文，从而减少 hallucinations（幻觉）并让回答基于你的数据。完整流程见 [RAG Fundamentals](06-retrieval-systems/01-rag-fundamentals.md)，规模化实践见 [Production RAG at Scale](06-retrieval-systems/14-production-rag-at-scale.md)。
+RAG 是一种模式：LLM 会在生成答案之前，从外部知识源（如 vector DB、search index、graph）检索相关上下文，从而减少 hallucinations（幻觉）并让回答基于你的数据。完整流程见 [RAG 基础](06-retrieval-systems/01-rag-fundamentals.md)，规模化实践见 [生产级 RAG at Scale](06-retrieval-systems/14-production-rag-at-scale.md)。
 
 ### 什么是 AI agents（AI 智能体），它们与 chatbots（聊天机器人）有何不同？
 
-AI agents（AI 智能体）是由 LLM 驱动的系统，能够规划、调用工具，并通过多步执行来完成目标；而 chatbots（聊天机器人）通常是单轮响应。智能体会引入循环、记忆、错误恢复，以及通过 MCP（Model Context Protocol，模型上下文协议）等协议进行工具使用。可从 [Agent Fundamentals](07-agentic-systems/01-agent-fundamentals.md) 开始。
+AI agents（AI 智能体）是由 LLM 驱动的系统，能够规划、调用工具，并通过多步执行来完成目标；而 chatbots（聊天机器人）通常是单轮响应。智能体会引入循环、记忆、错误恢复，以及通过 MCP（Model Context Protocol，模型上下文协议）等协议进行工具使用。可从 [智能体基础](07-agentic-systems/01-agent-fundamentals.md) 开始。
 
 ### 什么是 MCP（Model Context Protocol，模型上下文协议），它与 A2A 有何区别？
 
@@ -279,7 +270,7 @@ MCP 是一种开放协议，使 LLM 能以标准化方式发现并调用外部�
 
 ### 生产环境中该用哪个 LLM：Claude、GPT、Gemini，还是开源模型？
 
-这取决于 latency budget（延迟预算）、context length（上下文长度）、每百万 token 成本、tool-use quality（工具使用质量）和 data residency（数据驻留）。[Model Taxonomy](02-model-landscape/01-model-taxonomy.md) 和 [Pricing](02-model-landscape/03-pricing-and-costs.md) 章节对 Claude Opus 4.8、GPT-5.5、Gemini 3.1 Pro、DeepSeek V4、Llama 4 等模型截至 2026 年 6 月的情况进行了对比。
+这取决于 latency budget（延迟预算）、context length（上下文长度）、每百万 token 成本、tool-use quality（工具使用质量）和 data residency（数据驻留）。[模型分类](02-model-landscape/01-model-taxonomy.md) 和 [定价](02-model-landscape/03-pricing-and-costs.md) 章节对 Claude Opus 5、Claude Sonnet 5、GPT-5.6、Gemini 3.7 Flash、Grok 4.6、DeepSeek V4 等模型截至 2026 年 8 月的情况进行了对比。
 
 ### 如何在生产环境中评估 LLM 或 RAG 系统？
 
@@ -287,7 +278,7 @@ MCP 是一种开放协议，使 LLM 能以标准化方式发现并调用外部�
 
 ### 如何安全地构建多租户 RAG 系统？
 
-采用 defense-in-depth（纵深防御）：按租户建立独立索引或命名空间、在查询时进行访问检查，以及在 prompt layer（提示层）加入防护。 [Access Control](12-security-and-access/02-access-control.md) 章节和 [Multi-Tenant SaaS Case Study](16-case-studies/08-multi-tenant-saas.md) 覆盖了在面试和生产中都经得住考验的模式。
+采用 defense-in-depth（纵深防御）：按租户建立独立索引或命名空间、在查询时进行访问检查，以及在 prompt layer（提示层）加入防护。 [访问控制](12-security-and-access/02-access-control.md) 章节和 [多租户 SaaS 案例研究](16-case-studies/08-multi-tenant-saas.md) 覆盖了在面试和生产中都经得住考验的模式。
 
 ### 什么是 agentic RAG？
 
@@ -295,15 +286,15 @@ Agentic RAG（智能体式 RAG）把检索与一个智能体循环结合起来�
 
 ### 这份指南免费吗？我可以贡献吗？
 
-是的，MIT 许可且免费。欢迎提交 PR；见 [Contributing Guide](CONTRIBUTING.md)。如果你有 production failure modes（生产故障模式）、新的模型基准，或者想补充面试题，请提交 PR。
+是的，MIT 许可且免费。欢迎提交 PR；见 [贡献指南](CONTRIBUTING.md)。如果你有 production failure modes（生产故障模式）、新的模型基准，或者想补充面试题，请提交 PR。
 
 ### 这份指南多久更新一次？
 
-持续更新。新的模型发布、协议变化（MCP、A2A）和新兴模式会在发布后持续补充。近期新增内容包括 [Tool-Use and Computer Agents](17-tool-use-and-computer-agents/01-tool-use-landscape.md) 和 [June 2026 Job Market Trends](00-interview-prep/06-job-market-trends-2026.md)。
+持续更新。新的模型发布、协议变化（MCP、A2A）和新兴模式会在发布后持续补充。近期新增内容包括 [工具使用与计算机智能体](17-tool-use-and-computer-agents/01-tool-use-landscape.md) 和 [2026 年 8 月就业市场趋势](00-interview-prep/06-job-market-trends-2026.md)。
 
 ### 如果我从后端、QA、PM 或 EM 转向 AI，可以使用这份指南吗？
 
-可以。 [Role Transition Guide](TRANSITION_GUIDE.md) 会把现有技能映射到 AI engineering（AI 工程）、MLE（Machine Learning Engineer，机器学习工程师）和 AI architect（AI 架构师）方向，并按角色提供阅读路径。可搭配 [COURSES.md](COURSES.md) 获取精选学习资源。
+可以。 [岗位转型指南](TRANSITION_GUIDE.md) 会把现有技能映射到 AI engineering（AI 工程）、MLE（Machine Learning Engineer，机器学习工程师）和 AI architect（AI 架构师）方向，并按角色提供阅读路径。可搭配 [COURSES.md](COURSES.md) 获取精选学习资源。
 
 ---
 
@@ -315,14 +306,14 @@ Agentic RAG（智能体式 RAG）把检索与一个智能体循环结合起来�
 - 更新的定价和速率限制
 - 弃用项和最佳实践变更
 
-**⭐ Star and Watch** 这个仓库，以便在更新推送时收到通知。
+**⭐ 点星并关注** 这个仓库，以便在更新推送时收到通知。
 
 ---
 
 ## 🤝 贡献
 
 发现信息过期了？有生产经验想分享？欢迎提交 PR。  
-见 [Contributing Guide](CONTRIBUTING.md)。
+见 [贡献指南](CONTRIBUTING.md)。
 
 ---
 
@@ -330,7 +321,7 @@ Agentic RAG（智能体式 RAG）把检索与一个智能体循环结合起来�
 
 如果这份指南对你有帮助，支持它最直接的方式，是关注新章节和更新最先发布的渠道：
 
-- **Website:** [aidaddy.tech](https://www.aidaddy.tech) - 阅读完整指南，支持搜索、清晰导航和移动端友好布局。
+- **网站：** [aidaddy.tech](https://www.aidaddy.tech) - 阅读完整指南，支持搜索、清晰导航和移动端友好布局。
 - **GitHub:** [@ombharatiya](https://github.com/ombharatiya) - 关注仓库，给项目点星，并留意新版本发布。
 - **X / Twitter:** [@ombharatiya](https://x.com/ombharatiya) - 关于模型发布、MCP、智能体和面试的简短观点。
 - **LinkedIn:** [ombharatiya](https://linkedin.com/in/ombharatiya) - 更深入的文章和高级 AI 岗位面试准备建议。
@@ -350,5 +341,5 @@ MIT License。见 [LICENSE](LICENSE)。
 ---
 
 <p align="center">
-  <b>Built and maintained by <a href="https://github.com/ombharatiya">Om Bharatiya</a> · <a href="https://github.com/ombharatiya">GitHub</a> · <a href="https://x.com/ombharatiya">Twitter</a> · <a href="https://linkedin.com/in/ombharatiya">LinkedIn</a></b>
+  <b>构建与维护： <a href="https://github.com/ombharatiya">Om Bharatiya</a> · <a href="https://github.com/ombharatiya">GitHub</a> · <a href="https://x.com/ombharatiya">Twitter</a> · <a href="https://linkedin.com/in/ombharatiya">LinkedIn</a></b>
 </p>

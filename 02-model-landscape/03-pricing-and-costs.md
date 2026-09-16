@@ -54,9 +54,13 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 
 ## 当前 API 定价
 
-### 2026 年 5 月定价
+### 2026 年 8 月定价
 
-> **最后核验：2026 年 6 月 10 日。** 价格会频繁变动。请始终重新核对：[OpenAI](https://developers.openai.com/api/docs/pricing)、[Anthropic](https://platform.claude.com/docs/en/about-claude/pricing)、[Google](https://ai.google.dev/gemini-api/docs/pricing)、[xAI](https://docs.x.ai/developers/models)、[DeepSeek](https://api-docs.deepseek.com/quick_start/pricing)
+> **最后核验：2026 年 8 月 15 日。** 价格会频繁变动。请始终重新核对：[OpenAI](https://developers.openai.com/api/docs/pricing)、[Anthropic](https://platform.claude.com/docs/en/about-claude/pricing)、[Google](https://ai.google.dev/gemini-api/docs/pricing)、[xAI](https://docs.x.ai/developers/models)、[DeepSeek](https://api-docs.deepseek.com/quick_start/pricing)
+>
+> **2026 年 8 月价格变动（最重要的两项）：** **Claude Sonnet 5 的首发价每 1M $2/$10 于2026年8月10日成为永久价格**，原定9月1日上调至 $3/$15 的计划取消，因此 Sonnet 5 永久低于它取代的 Sonnet 4.6。反方向上，**DeepSeek 自2026年8月16日 16:00 UTC 起将 V4 价格提高至原来的 3 至 12 倍**，并从统一费率改为峰谷计费，结束了它作为无争议低价选项的时期：峰时 V4-Flash 输出（每 1M $1.32）现在高于 GPT-5.6 Luna 的 $1.20。其他新增项包括：**GPT-5.6-Cyber** 每 1M $12.50/$75（8月10日，受限访问）、**Gemini 3.7 Flash** 在2026年12月31日前半价 $0.75/$3.75，以及 **Grok 4.6** $2/$6；后者设有长 prompt 层级，一旦 prompt 达到 200K，较高费率将应用于请求中的每个 token。
+>
+> **2026 年 8 月退役与停止服务：** Claude Opus 4.1 已于 **2026年8月5日**从 Claude API 退役（最后一个 $15/$75 的 Opus 层级；Bedrock 与 Google Cloud 按各自计划继续提供）。OpenAI **Assistants API 将于2026年8月26日停止服务**，由 Responses API 与 Conversations API 取代，Threads 不提供自动迁移。OpenAI 还将在 **2026年11月30日**关闭 Evals Platform、Agent Builder 与 Reusable Prompts（evals 于10月31日转为只读；OpenAI 建议 eval 用户转向第三方 Promptfoo）。Anthropic 的旧版 Workbench 与实验性 prompt-tools API 于 **2026年8月17日**关闭。
 >
 > **2026 年生效的弃用：** OpenAI 于 2026 年 2 月 13 日将 ChatGPT 中的 GPT-4o、GPT-4.1、GPT-4.1-mini、o4-mini 退役；gpt-5.2-chat-latest 和 gpt-5.3-chat-latest 于 2026 年 5 月 8 日弃用；Realtime API Beta 于 2026 年 5 月 12 日移除；Sora 应用于 2026 年 4 月 26 日关闭（API EOL 为 2026 年 9 月 24 日）。Anthropic 将 Claude Sonnet 4 和 Claude Opus 4 于 2026 年 6 月 15 日退役，并将 Claude Opus 4.1 于 2026 年 8 月 5 日退役。Google Vertex 于 2026 年 3 月 26 日退役 `gemini-3-pro-preview`；Project Mariner 于 2026 年 5 月 4 日关闭。Gemini 2.5 Pro/Flash 于 2026 年 6 月 17 日弃用。
 >
@@ -65,7 +69,11 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 #### OpenAI（GPT-5.x 代）
 | 模型 | 输入 / 100万 | 输出 / 100万 | 备注 |
 |-------|------------|-------------|------|
-| **GPT-5.5** ⭐ NEW | $5.00 | $30.00 | 2026 年 4 月 23 日发布。1M context。新一类多模态旗舰模型。 |
+| **GPT-5.6 Sol** ⭐ NEW | $5.00 | $30.00 | 2026年7月9日 GA。GPT-5.6 三层系列的旗舰。1M 上下文，最大输出 128K。 |
+| **GPT-5.6 Terra** ⭐ NEW | $2.00 | $12.00 | 2026年7月30日由 $2.50/$15 下调 20%。以约一半价格提供 GPT-5.5 级质量；通用生产默认选择。 |
+| **GPT-5.6 Luna** ⭐ NEW | $0.20 | $1.20 | 2026年7月30日由 $1/$6 下调 80%。面向开放权重竞争；用于分类、抽取和路由的大规模工作负载层级。 |
+| **GPT-5.6-Cyber** ⭐ NEW | $12.50 | $75.00 | 2026年8月10日。缓存输入 $1.25。400K 上下文。仅限 Daybreak Red：要求身份验证、法律声明、获批用例，且仅支持 Responses API。自2026年9月1日起个人账户必须使用硬件安全密钥。 |
+| **GPT-5.5** | $5.00 | $30.00 | 2026 年 4 月 23 日发布。1M context。新一类多模态旗舰模型。 |
 | **GPT-5.5 Instant** ⭐ NEW | 查看最新 | 查看最新 | 自 2026 年 5 月 5 日起作为 ChatGPT 和 `chat-latest` 的默认模型。高风险提示上的幻觉减少 52.5%。 |
 | **GPT-Realtime-2** ⭐ NEW | $32.00（音频） | $64.00（音频） | 2026 年 5 月 7 日发布。GPT-5 级实时语音。 |
 | **GPT-Realtime-Translate** ⭐ NEW | （音频定价） | （音频定价） | 70+ 输入语言 → 13 种输出语言。 |
@@ -79,21 +87,24 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 #### Anthropic（Claude Fable + 4.x 代）
 | 模型 | 输入 / 100万 | 输出 / 100万 | 上下文 | 备注 |
 |-------|------------|-------------|---------|------|
+| **Claude Opus 5** ⭐ NEW | $5.00 | $25.00 | 1M | 2026年7月24日发布（`claude-opus-5`），价格与 Opus 4.8 相同。可选 Fast 模式每 1M $10/$50，约快 2.5 倍。Claude Max 新默认模型。 |
+| **Claude Sonnet 5** ⭐ NEW | $2.00 | $10.00 | 1M | 2026年6月30日发布（`claude-sonnet-5`），成为各产品默认模型。**首发价于2026年8月10日成为永久价格**，原定9月1日上调至 $3/$15 的计划取消。缓存写入 $2.50（5 分钟）/ $4.00（1 小时）；缓存命中 $0.20；Batch $1/$5。永久低于 Sonnet 4.6。 |
 | **Claude Fable 5** ⭐ NEW | $10.00 | $50.00 | 1M | 2026 年 6 月 9 日发布（`claude-fable-5`），可在 Claude API、Claude Platform on AWS、Bedrock、Vertex AI、Microsoft Foundry 上使用。Anthropic 广泛发布中能力最强的模型（具备 Mythos 级能力并带安全护栏；敏感查询会在 5% 以内的会话中回退到 Opus 4.8）。始终启用 adaptive thinking（自适应思考）；最大输出 128K；适用 30 天数据保留。 |
 | **Claude Mythos 5** ⭐ NEW | $10.00 | $50.00 | 1M | 与 Fable 5 共享同一底层模型，但在部分领域取消了安全护栏。可用范围有限：Project Glasswing 合作方和部分生物学研究人员。以不到一半的价格取代 Mythos Preview。 |
-| **Claude Opus 4.8** | $5.00 | $25.00 | 1M | 2026 年 5 月 28 日发布，可在 API、Bedrock、Vertex AI 上使用。带并行 subagents 的 Dynamic Workflows 研究预览版。可选快速模式为每 100 万 $10 / $50（比 Opus 4.7 的快速模式快约 2.5 倍、便宜 3 倍）。SWE-bench Verified 88.6%；SWE-Bench Pro 69.2%；OSWorld-Verified 82.3%。 |
-| **Claude Opus 4.7** | $5.00 | $25.00 | 1M | 2026 年 4 月 16 日发布，可在 API、Bedrock、Vertex、Microsoft Foundry 上使用。更高分辨率视觉，更强的 SWE。快速模式：每 100 万 $30 / $150。 |
+| **Claude Opus 4.8** | $5.00 | $25.00 | 1M | 2026 年 5 月 28 日发布，可在 API、Bedrock、Vertex AI 上使用。带并行 subagents 的 Dynamic Workflows 研究预览版。可选快速模式为每 100 万 $10 / $50（速度约为标准模式的 2.5 倍，价格为 Opus 4.7 快速模式的 1/3）。SWE-bench Verified 88.6%；SWE-Bench Pro 69.2%；OSWorld-Verified 82.3%。 |
+| **Claude Opus 4.7** | $5.00 | $25.00 | 1M | 2026 年 4 月 16 日发布，可在 API、Bedrock、Vertex、Microsoft Foundry 上使用。更高分辨率视觉，更强的 SWE。该模型不再提供快速模式：请求 fast speed 会返回错误。 |
 | **Claude Opus 4.6** | $5.00 | $25.00 | 1M | 最大输出 128K；以标准费率提供 adaptive thinking。 |
-| **Claude Sonnet 4.6** | $3.00 | $15.00 | 1M | 以更低成本覆盖大多数 Opus 级任务。**截至 2026 年 6 月 10 日，仍没有 Sonnet 4.8。** |
+| **Claude Sonnet 4.6** | $3.00 | $15.00 | 1M | 已被 Claude Sonnet 5（2026年6月30日）取代，后者更新且价格更低（$2/$10）。 |
 | **Claude Haiku 4.5** | $1.00 | $5.00 | 200K | Anthropic 最快的模型；缓存命中输入 $0.10 / 1M。 |
 | **Claude Mythos Preview** | 不适用 | 不适用 | - | 限制性的研究预览版（约 11 个 Glasswing 合作方）；已于 2026 年 6 月 9 日被 Claude Mythos 5 取代。 |
 
 > [!NOTE]
-> **标准定价下的 Claude 1M 上下文**：Fable 5、Opus 4.8、Opus 4.7、Opus 4.6 和 Sonnet 4.6 都以标准费率提供完整的 1M token 上下文窗口，长上下文没有额外溢价层级。Batch API 提供 50% 折扣。缓存命中价格为标准输入价的 10%。Opus 4.8（每 100 万 $10 / $50）以及 Opus 4.7 / 4.6（每 100 万 $30 / $150）的快速模式定价可与缓存倍率叠加，但在 Batch API 或 Claude Platform on AWS 上不可用。发布时没有 Fable 级快速模式。
+> **标准定价下的 Claude 1M 上下文**：Fable 5、Opus 4.8、Opus 4.7、Opus 4.6 和 Sonnet 4.6 都以标准费率提供完整的 1M token 上下文窗口，长上下文没有额外溢价层级。Batch API 提供 50% 折扣。缓存命中价格为标准输入价的 10%。Opus 5 与 Opus 4.8 提供每 1M $10/$50 的 Fast 模式；Opus 4.7 不再提供该模式（请求会报错），Opus 4.6 则按标准速度与费率运行。Opus 4.7 历史 Fast 层级为 $30/$150。Fast 模式定价可与缓存倍率叠加，但在 Batch API 或 Claude Platform on AWS 上不可用。发布时没有 Fable 级快速模式。
 
 #### Google（Gemini 3.x 代）
 | 模型 | 输入 / 100万 | 输出 / 100万 | 上下文 | 备注 |
 |-------|------------|-------------|---------|------|
+| **Gemini 3.7 Flash** ⭐ NEW | $0.75 | $3.75 | 1M | 2026年8月13日 GA。半价首发费率持续至 **2026年12月31日**，之后为 $1.50/$7.50。上下文缓存每 1M $0.075；Batch 为 $0.375/$1.875。长期 model card 与成本计划应使用2027年1月费率。 |
 | **Gemini 3.1 Pro** | $2.00 | $12.00 | 1M | 200K+ 上下文：$4.00/$18.00 |
 | **Gemini 3.1 Flash** | $0.10 | $3.00 | 1M | 性价比最佳；适合高吞吐 |
 | **Gemini 2.5 Flash-Lite** | $0.10 | $0.40 | 1M | 2026 年 6 月弃用 |
@@ -104,16 +115,21 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 #### xAI（Grok）
 | 模型 | 输入 / 100万 | 输出 / 100万 | 上下文 | 备注 |
 |-------|------------|-------------|---------|------|
+| **Grok 4.6** ⭐ NEW | $2.00 | $6.00 | 500K | 2026年8月12日发布。缓存输入 $0.50（Grok 4.5 为 $0.30，因此重缓存循环不会变便宜）。prompt 达到或超过 200K 后，费率翻倍为 $4/$12，且适用于请求中的**每个 token**，而非仅超出部分。Fast 变体为 2 倍费率。 |
 | **Grok 4** | $3.00 | $15.00 | 256K | 原生工具调用；实时搜索 |
 | **Grok 4.1 Fast** | $0.20 | $0.50 | 2M | 高吞吐、低成本 |
 | **Grok 3 mini** | 查看最新 | 查看最新 | - | 更快，但准确性更低 |
 
-#### 通过 API 提供的开源权重模型（2026 年 5 月）
+#### 通过 API 提供的开放权重与价值层模型（2026 年 8 月）
 | 模型 | 输入 / 100万 | 输出 / 100万 | 上下文 | 提供方示例 |
 |-------|------------|-------------|---------|-------------------|
+| **DeepSeek V4 Pro** ⭐ 8月16日重新定价 | 峰时 $1.32 / 谷时 $0.66 | 峰时 $3.96 / 谷时 $1.98 | 1M | **自2026年8月16日 16:00 UTC 起**，DeepSeek 改用峰谷计费，并按 token 类型涨至原价的 3 至 12 倍（缓存命中输入从 $0.003625 涨至 $0.044，为原价的 12.1 倍）。谷时恰为峰时一半。0813 build 于8月13日 GA，MIT 权重。 |
+| **DeepSeek V4 Flash** ⭐ 8月16日重新定价 | 峰时 $0.44 / 谷时 $0.22 | 峰时 $1.32 / 谷时 $0.66 | 1M | 同一轮8月16日重新定价（此前为 $0.14/$0.28）。0731 build 于7月31日 GA，MIT 权重。峰时输出价格现高于 GPT-5.6 Luna 的每 1M $1.20。 |
+| **Qwen3.8-Max** ⭐ NEW | 查看最新 | 查看最新 | 262K（可扩展至约 1M） | 阿里 API；2026年8月12日以商业受限许可证开放权重。 |
+| **Tencent Hy3** ⭐ NEW | ~$0.13 | ~$0.53 | 256K | 通过 OpenRouter。295B / 21B-active MoE，Apache 2.0，自2026年8月5日起全球可用。属于价格最低的准前沿费率之一。 |
+| **MAI-Code-1.1-Flash** ⭐ NEW | $0.20 | $1.20 | 查看最新 | Microsoft，2026年8月11日。相比 MAI-Code-1-Flash 标价下调 73%；已进入 GitHub Copilot。 |
+| **Muse Spark 1.2** ⭐ NEW | $1.25 | $4.25 | 1M | Meta Model API。`muse-spark-1.2-contributor` 层级为 $0.10/$0.20，交换条件是允许用你的提示词与补全进行训练；启用前先核对政策。 |
 | **DeepSeek-V3.2** | $0.28 | $0.42 | 128K | DeepSeek API。缓存命中折扣 98%。通过路由后的有效费率可下降 10-30 倍。 |
-| **DeepSeek V4 Pro** ⭐ NEW | $0.435 | $0.87 | 1M | DeepSeek API。75% 的促销折扣已**永久化**：自 2026 年 6 月 1 日起，新标价为原价的 25%（$1.74 / $3.48）。缓存命中输入：$0.003625/M。1M tokens 时，约为 V3.2 的 27% 计算量 / 10% 内存占用。 |
-| **DeepSeek V4 Flash** ⭐ NEW | $0.14 | $0.28 | 1M | DeepSeek API。缓存命中输入：$0.0028/M（98% 折扣）。13B-active MoE。当前是最便宜的 frontier-class 1M-context API。 |
 | **Mistral Medium 3.5** ⭐ NEW | $1.50 | 查看最新 | 256K | Mistral API。统一聊天 / 推理 / 编码 / 视觉；SWE-Bench Verified 77.6%。 |
 | **Kimi K2.6** ⭐ NEW | 查看最新 | 查看最新 | - | Moonshot API。1T MoE / 32B active；agent swarm 可扩展到 300 个 sub-agents。 |
 | **Qwen 3.6-35B-A3B** ⭐ NEW | 查看最新 | 查看最新 | - | Apache 2.0 权重；可自托管或通过 API 提供方使用。 |
@@ -126,7 +142,7 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 | **Qwen2.5-Coder-32B** | ~$0.50 | ~$1.00 | 32K | Together AI |
 | **Gemma 4（31B / 26B-A4B MoE / E4B / E2B）** ⭐ NEW | 自托管 | 自托管 | 256K | Apache 2.0。140+ 种语言；原生视觉/音频；函数调用。 |
 
-#### 嵌入模型（Embedding Models，2026 年 5 月）
+#### 嵌入模型（Embedding Models）
 | 模型 | 每 100 万 token 成本 | 维度 |
 |-------|------------------|-----------|
 | **Cohere Embed 4** ⭐ NEW | $0.10 | 256 / 512 / 1024 / 1536（Matryoshka） |

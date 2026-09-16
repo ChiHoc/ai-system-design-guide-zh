@@ -1,8 +1,8 @@
 # AI 系统设计面试准备
 
-适用于高级工程师（senior）与资深工程师（staff）AI 工程岗位的面试准备：122 道系统设计题、可执行的答题框架及一段完整的模拟面试逐字稿、常见陷阱、九道白板练习、行为面准备、速答 FAQ，以及 2026 年 6 月的招聘趋势。
+适用于高级工程师（senior）与资深工程师（staff）AI 工程岗位的面试准备：128 道系统设计题、可执行的答题框架及一段完整的模拟面试逐字稿、常见陷阱、九道白板练习、行为面准备、速答 FAQ，以及 2026 年 8 月的招聘趋势。
 
-> **新增内容（2026 年 7 月）：** 题库新增了 6 道 2026 年 7 月题目（MCP 无状态化改造、智能体的供应商故障设计、编码 CLI 遥测信任边界、请求级模型路由、评测沙箱隔离、智能体数据注入），目前题目连续编号为 Q1–Q122。6 月早些时候新增了“工具与生命周期”部分及 6 道 2026 年 6 月题目。白板题新增两道练习（评测流水线设计、智能体记忆与状态）。答题框架新增一段完整的 45 分钟 SPIDER 模拟面试逐字稿。行为面新增两个更难的 STAR-L 示例、一组薪酬问题，以及大声练习指南。
+> **新增内容（2026 年 8 月）：** 题库新增了 6 道 2026 年 8 月题目（首次大规模推理涨价后的成本模型重建、能力分层访问控制、Shai-Hulud 蠕虫事件后的编码智能体供应链防御、Agent Plugin 审查、无状态规范下多租户 MCP 服务器的安全设计，以及在欧盟和加州透明度规则已可执行后交付合成内容溯源），目前题目连续编号为 Q1–Q128。
 
 ## 开始前准备
 
@@ -14,47 +14,47 @@
 
 ```mermaid
 flowchart TD
-    A[Start prep] --> B{Time available}
-    B -->|2 weeks| C[01 Question Bank]
-    B -->|1 week| D[02 Answer Frameworks]
-    B -->|3 days| E[03 Common Pitfalls]
-    C --> F[02 Answer Frameworks]
-    D --> G[04 Whiteboard Exercises]
+    A[开始准备] --> B{可用时间}
+    B -->|2 周| C[01 题库]
+    B -->|1 周| D[02 答题框架]
+    B -->|3 天| E[03 常见陷阱]
+    C --> F[02 答题框架]
+    D --> G[04 白板练习]
     F --> G
     E --> G
-    G --> H[05 Behavioral]
-    H --> I[06 Job Market Trends 2026]
-    I --> J[Interview day]
+    G --> H[05 行为面试]
+    H --> I[06 就业市场趋势 2026]
+    I --> J[面试当天]
 ```
 
 ## 角色化备考路径
 
 ```mermaid
 mindmap
-  root((Role Prep))
-    AI Engineer IC
-      Question Bank Q1 to Q49
-      Answer Frameworks
-      Whiteboard exercises
-    Staff or Principal
-      Advanced sets Q50 to Q122
-      Behavioral STAR-L
-      Eval and memory exercises
-    Applied Scientist
-      Model Selection questions
-      Evaluation questions
-      Optimization questions
-    PM or TPM for AI
-      Common Pitfalls
-      Job Market Trends 2026
-      Answer Frameworks
+  root((按岗位备考))
+    AI 工程师个人贡献者
+      题库 Q1 至 Q49
+      答题框架
+      白板练习
+    Staff 或 Principal 工程师
+      进阶题组 Q50 至 Q128
+      行为面试 STAR-L
+      评估与记忆练习
+    应用科学家
+      模型选择题
+      评估题
+      优化题
+    AI 产品经理或技术项目经理
+      常见陷阱
+      就业市场趋势 2026
+      答题框架
 ```
 
 ## 本文件夹中的文件
 
 | 文件 | 用途 |
 |------|------|
-| [01-question-bank.md](01-question-bank.md) | 122 道真实面试题（Q1–Q122，连续编号），按主题分组，含标准答案与追问（更新至 2026 年 7 月）。 |
+| [01-question-bank.md](01-question-bank.md) | 128 道真实面试题（Q1–Q128，连续编号），按主题分组，含标准答案与追问（更新至 2026 年 8 月）。 |
 | [02-answer-frameworks.md](02-answer-frameworks.md) | 五种结构化答题框架（SPIDER、ETA、tradeoff（权衡）、debugging（调试）、STAR-L）以及一段完整的 45 分钟 SPIDER 模拟面试逐字稿。 |
 | [03-common-pitfalls.md](03-common-pitfalls.md) | 会导致 staff 级 offer 落空的典型模式：在 tradeoff（权衡）上泛泛而谈、缺少 observability（可观测性）、忽略 failure modes（失败模式）。 |
 | [04-whiteboard-exercises.md](04-whiteboard-exercises.md) | 九道系统设计白板题及参考解法，包含 evaluation pipeline design（评估流水线设计）和 agent memory（代理记忆）练习。最接近真实面试流程的模拟。 |
@@ -74,5 +74,5 @@ mindmap
 - 文件按顺序阅读；若只做题目而不先学习答题框架，答案结构会不完整。
 - 白板练习（04 号文件）是最接近真实面试的模拟，正式面试前至少做三题。
 - 行为面（05 号文件）是 staff 与 senior 的分水岭，不可跳过。
-- 2026 年 6 月岗位趋势（06 号文件）是关键优势：了解招聘格局能帮助你提更好的问题并更好地定制经历叙述。
+- 2026 年 8 月岗位趋势（06 号文件）是关键优势：了解招聘格局能帮助你提更好的问题并更好地定制经历叙述。
 - 建议每月回顾本文件夹；随着招聘趋势变化，题库将持续新增题组。

@@ -524,10 +524,10 @@ EM              6–12 mo      $200–280K    AI Engineering Manager
 
 **公开构建。** AI 工程岗位市场奖励可展示的工作成果：
 
-1. **GitHub 作品集** — 一个打磨完善的端到端项目胜过 10 个玩具项目
-2. **写一篇博客文章** — 描述你解决过的一个真实问题以及解决方式（错误分析、评估流水线、RAG 延迟修复）
-3. **为开源做贡献** — OpenHands、LlamaIndex、DSPy、RAGAS。即使是文档 PR 也能让你被注意到。
-4. **使用本仓库的面试准备材料** — [00-interview-prep/01-question-bank.md](00-interview-prep/01-question-bank.md) 包含 80 道题，并配有高质量答案
+1. **GitHub 作品集**：一个打磨完善的端到端项目胜过 10 个玩具项目
+2. **写一篇博客文章**：描述你解决过的一个真实问题以及解决方式（错误分析、评估流水线、RAG 延迟修复）
+3. **为开源做贡献**：OpenHands、LlamaIndex、DSPy、RAGAS。即使是文档 PR 也能让你被注意到。
+4. **使用本仓库的面试准备材料**：[00-interview-prep/01-question-bank.md](00-interview-prep/01-question-bank.md) 包含 128 道题，并配有高质量答案
 
 **面试中该说什么：**
 - 说出具体决策："我选择 Qdrant 而不是 Pinecone，是因为 X"（不要只说"我构建了一个 RAG 系统"）

@@ -119,7 +119,7 @@ Agent Skills 是智能体按需加载的一组指令、脚本和资源文件夹�
 
 ### 现在最好的 LLM 是什么？
 
-截至 2026 年 6 月，没有单一最佳模型，但能力上限已经上移：**Claude Fable 5**（6 月 9 日）是 Anthropic 最强且广泛发布的模型，是带安全护栏的 Mythos 级模型，价格为每 100 万 token 输入 $10、输出 $50。低于这个上限时，排行榜会按任务分化。**Claude Opus 4.8** 在 SWE-Bench Pro 上以 69.2% 领先长周期编码任务，且价格只有 Fable 的一半。**GPT-5.5** 保持着 SWE-bench Verified（88.7%）和 Terminal-Bench 的领先表现。**Gemini 3.1 Pro** 在 GPQA Diamond 上以 94.3% 领先科学推理。**Claude Sonnet 4.6** 仍然是性价比最高的主力模型，价格为 $3/$15。参见 [Model Taxonomy](../02-model-landscape/01-model-taxonomy.md)。
+截至 2026 年 8 月，没有单一最佳模型，排行榜会按任务分化。**Claude Fable 5** 以每 1M token $10/$50 的价格保持能力上限。**Claude Opus 5**（7 月 24 日）是长时程智能体式编码之选，价格为 $5/$25，另有 $10/$50 的 Fast 模式。**GPT-5.6** 分为三个层级：Sol 为 $5/$30，Terra 为 $2/$12、是通用生产默认选择，Luna 为 $0.20/$1.20、面向大规模工作负载。**Gemini 3.7 Flash**（8 月 13 日）是低成本多模态主力，年底前享受半价 $0.75/$3.75。**Claude Sonnet 5** 是性价比主力，永久价格为 $2/$10，比它取代的 Sonnet 4.6 更便宜。参见 [Model Taxonomy](../02-model-landscape/01-model-taxonomy.md)。
 
 ### Claude / GPT / Gemini / DeepSeek 的费用是多少？
 
@@ -233,7 +233,7 @@ OWASP LLM Applications Top 10（v2.0，2025 年发布）是 LLM 安全风险的�
 
 ## 相关阅读
 
-- [问题库（110 道高级面试题）](01-question-bank.md)
+- [问题库（128 道高级面试题）](01-question-bank.md)
 - [回答框架](02-answer-frameworks.md)
 - [常见陷阱](03-common-pitfalls.md)
 - [白板练习](04-whiteboard-exercises.md)
