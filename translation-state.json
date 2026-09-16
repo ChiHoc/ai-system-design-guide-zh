@@ -1,12 +1,12 @@
 {
   "upstream_repository": "ombharatiya/ai-system-design-guide",
-  "upstream_commit": "bb9579ac1875d748108143d9c851c9a57ee14677",
+  "upstream_commit": "3d391f62635922923eecf66014522a955cab5236",
   "files": {
     "00-interview-prep/01-question-bank.md": {
-      "source_blob": "6080fea8824ed2598f6ab91172d60774ac9fafdf",
-      "translation_blob": "cf11fe7ae3710886ae1d59cac77eb14ead7f6d19",
+      "source_blob": "0a017aafd367d361ec5b1911970f0d3511b06512",
+      "translation_blob": "f5ce9f3bfa08c52655611af06ddd9a007a2c40f3",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-31T18:01:17.407Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "00-interview-prep/02-answer-frameworks.md": {
       "source_blob": "795828578ae6184b9b710a1485f61ef63834d884",
@@ -33,22 +33,22 @@
       "synced_at": "2026-07-20T07:05:35.189Z"
     },
     "00-interview-prep/06-job-market-trends-2026.md": {
-      "source_blob": "4decf82f0d1d25494d256f95a1df49ef288e9c06",
-      "translation_blob": "5148aa4bb08cc6f82a72000d0ad8e983bc266444",
+      "source_blob": "29aacc5fb3ab2a073ab17a42f03ad0bf3b10fa33",
+      "translation_blob": "ff95b6e6d96f2de1349c5c59753cef4812dbcf16",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "00-interview-prep/07-faq.md": {
-      "source_blob": "d158cf522a373d9b5a1d7bec89f49648086d4976",
-      "translation_blob": "c59fd01caf58ae27dc8cc10e7120b9e83103e596",
+      "source_blob": "f156dcbd993917bb76179119130a30b808b86a17",
+      "translation_blob": "23e82a750ab6b6f644653b0df44c2f79e610085e",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:05:35.189Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "00-interview-prep/README.md": {
-      "source_blob": "e5de835ff36585e90df0be01f8644df231f5c4dd",
-      "translation_blob": "4519ac629c8f518a8e4c9358b0a126564f090f12",
+      "source_blob": "4cba121e9301747bb29c2dcac46c75b0ed2dfb58",
+      "translation_blob": "bcf239bc5e28c06e3235660cb8a63133e362bcc8",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-31T18:01:17.407Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "01-foundations/01-llm-internals.md": {
       "source_blob": "b434702c25dec277d5948a7af44a7becf3e41d74",
@@ -87,10 +87,10 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "02-model-landscape/01-model-taxonomy.md": {
-      "source_blob": "d51c5fcaa6d709911dfc65f9b40329d73d38e6b9",
-      "translation_blob": "10f82e52555c7a850a92f062cc04c6adca7eac0c",
+      "source_blob": "29f651d223b771e4166dcf08b96b0e22adcbfa96",
+      "translation_blob": "ce932e67e16c55e89630f33e3825c7e3c7e3b208",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-31T18:01:17.407Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "02-model-landscape/02-capability-assessment.md": {
       "source_blob": "e03f8ab20948074b6e914067f8d02b9e8dcac7c7",
@@ -99,16 +99,16 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "02-model-landscape/03-pricing-and-costs.md": {
-      "source_blob": "0a2588bb4e62bbdfea22f454e0358f34a4550450",
-      "translation_blob": "5c3752040b9198459bf23ae3f6d1a4eab7ed8c9b",
+      "source_blob": "c4749ec7b34209fc7f3964a466311a1e639d1da1",
+      "translation_blob": "c639b03094c023f659fb335acc7fcf8abdd9f72d",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "02-model-landscape/04-model-selection-guide.md": {
-      "source_blob": "eea1d3803b55db7fd250ea3113e78cf421328af5",
-      "translation_blob": "668f13d2e760d09846924ab261c42e8248bfaa56",
+      "source_blob": "d1dc6ee35dae456c82a37c0ad4d0d7aeacdcaf0d",
+      "translation_blob": "fb5011fcee1d5a9aed0369d45e682021cd262467",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:05:35.189Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "03-training-and-adaptation/01-pretraining-basics.md": {
       "source_blob": "90e3455d7de030088168b4f1b84742cdd272e1d0",
@@ -363,10 +363,10 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "07-agentic-systems/03-tool-use-and-mcp.md": {
-      "source_blob": "a585a001766c2150a42e75155d455819fa038f82",
-      "translation_blob": "66b225d25c920b96dcaaa69bc9d081fd9064696a",
+      "source_blob": "0932fb0d81896b02940899276750c802fc14e647",
+      "translation_blob": "25149757e9904b1a8c6a045f9d207a4bd896bdf3",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-31T18:01:17.407Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "07-agentic-systems/04-multi-agent-orchestration.md": {
       "source_blob": "5f9e345709e88a088fd3b9a9d2639512eafb18af",
@@ -399,10 +399,10 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "07-agentic-systems/09-agentic-security-and-sandboxing.md": {
-      "source_blob": "547f902c38145e414f184ae517325fa9b8d78c86",
-      "translation_blob": "38e80dc956e8515b2d60cfe414b47bc5fb80410e",
+      "source_blob": "66d3a4c9ed654764f8072e7d72b7f0e131f0b907",
+      "translation_blob": "acfc789a1611f02417aafbae641c47f0d682e2cc",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "07-agentic-systems/10-evaluating-agentic-systems.md": {
       "source_blob": "78377ef5c71954eb199506b34cb6d135456e375b",
@@ -531,10 +531,10 @@
       "synced_at": "2026-07-20T07:05:35.189Z"
     },
     "09-frameworks-and-tools/12-navigating-framework-churn.md": {
-      "source_blob": "00e1073233caf707b5649dee42e866056da7ac4e",
-      "translation_blob": "cee02722a11e2b9be49e0a2055d4208e3536d3cc",
+      "source_blob": "bd43183f908f590f57b6b0188b140060baed4509",
+      "translation_blob": "5d9fe5174a66f4bc4c232327cceb4b6cd964026f",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:05:35.189Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "10-document-processing/01-ocr-and-layout.md": {
       "source_blob": "6227881ada4f418c54c59ae77fc71a3282f78d2a",
@@ -597,10 +597,10 @@
       "synced_at": "2026-07-20T07:05:35.189Z"
     },
     "13-reliability-and-safety/04-ai-governance-and-compliance.md": {
-      "source_blob": "7012a3cd50c708f545e50a92a8c2209d1108cd02",
-      "translation_blob": "492e011049b03fb0c57c7c8874475315b0958826",
+      "source_blob": "9887ad470e7835a636e153fd477f685a84244c3a",
+      "translation_blob": "8e0a09c5f8cd237f2720c5c1deeda62ac4a3abcf",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:05:35.189Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "14-evaluation-and-observability/01-llm-evaluation.md": {
       "source_blob": "62b1738ceb6dbecba6a3c839eabe8d17e0bda66a",
@@ -615,10 +615,10 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "14-evaluation-and-observability/03-benchmarks-and-leaderboards.md": {
-      "source_blob": "60deb44b7c702400b1e5f2fe0025ab8e4c2b527b",
-      "translation_blob": "54127a41e7e3624c92962b8b49a03075f7369532",
+      "source_blob": "d9ba10fc1c9e959c87bceb47dd18e77c0c490237",
+      "translation_blob": "f0013d101eebf859530739d180c5f80d37b9d89d",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:05:35.189Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "15-ai-design-patterns/01-design-patterns.md": {
       "source_blob": "683ac50f357202780fb71332ff15a8d3f8d8d534",
@@ -819,34 +819,34 @@
       "synced_at": "2026-07-20T07:06:26.017Z"
     },
     "GLOSSARY.md": {
-      "source_blob": "453ac46f5d9c60d2f472a7a2289c3dbaf4ee9d14",
-      "translation_blob": "e86f3f96203875feb9cb5b15cf65f7ce469c2156",
+      "source_blob": "93ccda55f875dc6eb80631ba2c35f31dcedaec57",
+      "translation_blob": "469b416442cb3a4ecfe6bd04481665745879e4e2",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:06:26.017Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "PATTERNS.md": {
-      "source_blob": "71d386dba583d89625cedc8ae5193bec2bf83054",
-      "translation_blob": "3293acb3d50a3f506046b2b8e329df7da59d9580",
+      "source_blob": "6484f55b589f24df098189bc82368186588477fe",
+      "translation_blob": "a55df9f1ccf187fce6c5bcf6e6029c0b3353a2c2",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:04:30.846Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "README.md": {
-      "source_blob": "e4e456c2f52eaf83d1a13d4f709a0b755b207163",
-      "translation_blob": "2eea25411b380707008c35a2006ca12d61c97510",
+      "source_blob": "dcfa099affa7ba267c938e58f05947052ff88d7a",
+      "translation_blob": "b1fb82853020e7ec21c1822877a834fd07376a95",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-31T18:01:17.407Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "RESEARCH-RADAR.md": {
-      "source_blob": "582b9cbcc8b0bc22f1b3390f48a85569e00f26a5",
-      "translation_blob": "4d2c039b63827911104a6af816f55d012ef08feb",
+      "source_blob": "271bca34b0b341578e0c54182040e63e931cfee3",
+      "translation_blob": "0a1f0bcf30cb0e12a1f39fe92d92e47d25bf7649",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-31T18:01:17.407Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "TRANSITION_GUIDE.md": {
-      "source_blob": "763d1ccbb3f1132c40ed6d6b535c9720f0fe2649",
-      "translation_blob": "38d08b2026f018aa63fe951240950da4ec9cd2e7",
+      "source_blob": "40a8765fd011229288a7e597d0ca34859d67de98",
+      "translation_blob": "bc0cbe1761f6167a061832ef2a65fa638713c7ec",
       "review": "automated-second-pass",
-      "synced_at": "2026-07-20T07:04:30.846Z"
+      "synced_at": "2026-09-16T07:34:39.880Z"
     },
     "ai_evals_complete_guide_langwatch_langfuse.md": {
       "source_blob": "237d75b37b8a39a3b6c557f80420fa6bc0a7888f",

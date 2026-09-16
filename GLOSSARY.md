@@ -10,6 +10,10 @@
 
 **Agentic System（智能体系统）** - 利用工具自主规划并执行多步任务的 LLM 应用。
 
+**Agent Plugins（智能体插件）** - 一种供应商中立的打包格式（1.0，`2026` 年 8 月），通过 `plugin.json` 清单将 Agent Skills 与 MCP 服务器声明捆绑进一个可安装目录。它标准化了智能体能力的分发；特意只让技能和 MCP 服务器具备可移植性，而将客户端特有的部分留在带命名空间的目录中。参见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md#agent-plugins-智能体插件)。
+
+**Advisor / Executor（顾问 / 执行者）** - 一种编排模式，由成本较低的执行者模型运行智能体循环，并在决策点咨询能力更强的顾问模型：前者传递对话记录，后者返回计划或修正。与提高执行者自身的推理努力相比，它通常能以更低的单任务成本取得更好效果。参见 [PATTERNS.md](PATTERNS.md)。
+
 **AI Control（AI 控制）** - 一种安全方法，假设模型可能未对齐，并设计部署协议（监控、关键动作延后、重采样、分解式认知）以在此情况下仍保持安全。与 alignment 不同，后者旨在从一开始就使模型可信。参见 [Research Radar](RESEARCH-RADAR.md)。
 
 **AI Gateway（AI 网关）** - 你的应用与模型提供商（如 LiteLLM、OpenRouter、Portkey、Kong）之间的控制平面代理。提供一个 OpenAI 兼容 API，并集中化路由、降级、负载均衡、速率限制处理、虚拟密钥与预算、缓存及可观测性。参见 [AI Gateways and Model Routing](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md)。
@@ -128,6 +132,8 @@
 
 **Harness (Scaffold) Variance（Harness/Scaffold 方差）** - 同一模型权重在不同提示、工具访问、推理投入或智能体 scaffold 下，基准分数可出现 10-20 分波动。解释了为何不同供应商自报指标不可跨实验室直接比较，只有同一 harness 的数值才可比。参见 [Benchmarks and Leaderboards](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md)。
 
+**Graph Engineering（图工程）** - 将智能体系统设计为由专用节点、路由边和共享状态对象组成的拓扑，而不是调优单个智能体循环。它是循环工程的后继术语，自 `2026` 年年中起迅速兴起。关键设计维度是静态拓扑（可检查、可测试、可重放）与动态拓扑（自适应，但更难推理）之间的取舍。参见 [Research Radar](RESEARCH-RADAR.md#_14-图工程与编排共识)。
+
 **Harness Engineering（Harness 工程）** - 围绕智能体设计确定性驱动代码（上下文组装、工具执行、预算、停止条件、持久状态、可观测性），而非仅调优模型。Harness 是内核，模型是策略。参见 [Loop Engineering](07-agentic-systems/12-loop-engineering.md)。
 
 **HNSW（Hierarchical Navigable Small World，层次化可导航小世界）** - 向量数据库中近似最近邻搜索的图算法。
@@ -173,6 +179,8 @@
 **LLM-as-Judge（LLM 评审）** - 使用一个 LLM 去评估另一个 LLM 的输出。
 
 **Loop Engineering（循环工程）** - 设计并持续改进包裹智能体的控制循环（触发器、内层 reason-act-observe 循环、验证循环、事件驱动调用、基于评测的改进循环）的学科，而非每一轮都手工提示模型。参见 [Loop Engineering](07-agentic-systems/12-loop-engineering.md)。
+
+**Managed Agents（托管智能体）** - 由提供商托管的智能体运行时，负责提供 harness（持久化、记忆、技能加载、沙箱生命周期、持久执行、身份范围控制），你只需提供智能体逻辑。`2026` 年，随着循环形态和工具协议均趋于稳定、该层具备商品化条件，它成为一个有明确名称的类别。参见 [Research Radar](RESEARCH-RADAR.md#_14-图工程与编排共识)。
 
 **Loopmaxxing（循环极限化）** - 一种反模式，误以为更多迭代自动解决任务。它在没有可验证退出条件的目标上会失败，导致循环不收敛且成本失控。是 token-maxxing 的多步衍生。参见 [Loop Engineering](07-agentic-systems/12-loop-engineering.md)。
 
@@ -245,6 +253,8 @@
 **Speculative Decoding（投机解码）** - 使用较小的草稿模型提出 token，再由大模型验证。
 
 **Speech-to-Speech (S2S)（语音到语音）** - 一种 voice-agent 架构，其中单个多模态模型直接接收音频输入并直接输出音频，而不是采用 STT 到 LLM 再到 TTS 的级联流水线。更自然、延迟更低，但更难调试和控制。见 [Real-Time Voice Agents](18-voice-and-audio-agents/01-realtime-voice-agents.md)。
+
+**State-Handle Hijacking（状态句柄劫持）** - MCP `2026-07-28` 规范中命名的一类攻击。协议级会话移除后，服务器会生成显式状态句柄，并将其作为普通工具参数返回；获得或猜出句柄的攻击者可以读取或修改其他用户的状态。缓解措施：绝不能把句柄当作身份验证；使用非确定性句柄；并在服务器端将句柄绑定到已认证的主体。参见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md)。
 
 **Structured Outputs（结构化输出）** - OpenAI 的（以及 Anthropic 的 tool-mode）能力，可保证模型输出符合所提供的 JSON Schema。比传统 JSON 模式更严格。
 
