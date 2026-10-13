@@ -65,7 +65,8 @@ flowchart LR
 | 架构 | 注意力类型 | 示例 | 最适合 |
 |--------------|---------------|----------|----------|
 | 仅编码器 | 双向 | BERT, RoBERTa | 分类、NER、embedding |
-| 仅解码器 | 因果式（从左到右） | GPT-4, Claude, Llama | 文本生成、聊天 |
+| 仅解码器 | 因果式（从左到右） | GPT-3, Llama, Qwen, Mistral | 文本生成、聊天 |
+| 因果编码器-解码器（2026） | 因果式；解码器 KV 由编码器状态投影而来 | DeepSeek V4.1-Flash | 以较小 KV 缓存提供长上下文服务 |
 | 编码器-解码器 | 交叉注意力 | T5, BART | 翻译、摘要 |
 
 ### 仅解码器（当今大多数 LLM）
@@ -107,13 +108,15 @@ flowchart LR
 
 ### 编码器-解码器（编码器的回归）
 
-虽然仅解码器多年占据主导地位，但在一些专门的**推理**与**验证**任务中，编码器-解码器架构出现了部分回归（例如 o 系列和 Claude 推理模型中的内部 verifier）。
+仅解码器仍占主导，但编码器已经重新出现在大型生成模型内部，而非作为 T5 式翻译堆栈的一部分。公开案例是 **DeepSeek V4.1-Flash**（2026 年 9 月 10 日，MIT 权重）：这是一种**因果编码器-解码器**架构，40 层拆分为 20 层因果编码器和 20 层解码器，解码器的全局 KV 缓存由编码器最终隐藏状态投影而来。DeepSeek 报告称，预填充阶段每个 token 激活 8B 参数，解码阶段激活 16B 参数，全局 KV 每个 token 为 890 字节，约为 V4-Flash 的 1/4。
+
+**对系统设计为何重要：**预填充和解码现在具有不同的活跃参数量，KV 缓存也不再是每层一组 K/V 堆栈。“FLOPs = 2 × 活跃参数量”和教科书中的 KV 公式都需要以模型卡中的数据为准。参见 [Prefill and Decode Phases](06-inference-pipeline.md#prefill-和-decode-阶段-prefill-and-decode-phases)。
 
 ---
 
 ## 混合专家（MoE）
 
-**前沿模型中最重要的架构转变之一（GPT-5.5、Claude Opus 4.7、Gemini 3.1 Pro、DeepSeek V4、Llama 4 Maverick、Mixtral）。**
+**开放权重前沿模型的默认架构（DeepSeek V4 和 V4.1、Kimi K3、GLM-5.3、Qwen3.8、MiMo-V2.6、腾讯 Hy4；更早还有 Llama 4 Maverick 和 Mixtral）。**Google 的 Gemini 技术报告和模型卡描述了稀疏 MoE Transformer；OpenAI 和 Anthropic 不公开其架构，因此任何关于 GPT 或 Claude 内部机制的说法都应视为推测。
 
 MoE 用多个“专家（expert）”和一个“路由器（router）”替代稠密前馈网络（FFN, Feed-Forward Network），由路由器决定某个 token 交给哪些专家处理。
 
@@ -137,11 +140,12 @@ MoE 用多个“专家（expert）”和一个“路由器（router）”替代�
 ```
 
 ### 系统设计中的 MoE 关键细节：
-1. **总参数 vs 活跃参数**：一个 1.6T 参数的 MoE 模型（如 DeepSeek V4 Pro）每个 token 可能只使用 49B 参数。Llama 4 Maverick 在 128 个专家中活跃参数为 17B。Kimi K2.6 是 1T 总参数 / 32B 活跃参数。
-    - **内存约束**：你必须存储全部 1.2T 参数（高 VRAM 占用）。
-    - **算力约束**：你只需为 100B 参数规模的 FLOPs 付费（更低延迟）。
+1. **总参数 vs 活跃参数**：小米 MiMo-V2.6-Pro（2026 年 9 月）存储 1.02T 参数，但每个 token 只激活 42B。DeepSeek V4 Pro 为 1.6T 总参数 / 49B 活跃参数。Llama 4 Maverick 为 400B 总参数 / 17B 活跃参数，在交替的 MoE 层中包含 128 个路由专家和一个共享专家。
+    - **内存约束**：每个专家都必须在某处驻留。1.02T 参数在 FP8 下约为 1 TB，即使使用 4 bit 量化也超过 500 GB，尚未计入任何 KV 缓存。小米的 SGLang 方案将 MiMo-V2.6-Pro 分布在两个 8-GPU 节点上（16 路张量并行）。
+    - **算力约束**：每个 token 的 FLOPs 按 42B 活跃参数量计算，而不是 1.02T 总参数量。
+    - **高 batch 下的陷阱**：不同 token 会路由到不同专家，因此大 batch 每一步都会触及大多数专家，带宽节省会缩小。MoE 服务是专家放置和全互连通信（专家并行）问题，而不只是“更小的模型”。
 2. **路由坍缩**：如果路由器只选择一个专家，其他专家就学不到东西。现代模型使用**负载均衡损失**和**辅助损失**来确保所有专家都被利用。
-3. **DeepSeek-V3 的改进**：引入了**多头潜在注意力（MLA, Multi-head Latent Attention）**和**无辅助损失的负载均衡**，它们已成为 MoE 效率的事实标准。DeepSeek V4（2026 年 4 月）将这两种技术扩展到 100 万 token 的上下文窗口。
+3. **DeepSeek 的改进**：**多头潜在注意力（MLA, Multi-head Latent Attention）**（由 DeepSeek-V2 引入）和**无辅助损失的负载均衡**（DeepSeek-V3）已成为 MoE 效率的事实标准，其他实验室也采用了 MLA（Kimi K2、腾讯 Hy4）。DeepSeek 自身则继续演进：V4（2026 年 4 月预览）采用压缩稀疏注意力和重度压缩注意力的混合方案，DeepSeek 称其在 100 万 token 时仅需 V3.2 KV 缓存的约 10%，以及其每 token FLOPs 的 27%。V4.1-Flash（2026 年 9 月）加入了压缩稀疏注意力 2 和 FP4 KV 缓存（参见 [Attention Mechanisms](03-attention-mechanisms.md#_2026-年开放模型中的混合与稀疏注意力)）。
 
 每个 token 的路由决策如下图所示：
 
@@ -172,11 +176,13 @@ flowchart TD
 
 ## 原生多模态
 
-早期模型使用 **Vision Adapters**（视觉适配器，把冻结的 CLIP 风格视觉编码器连接到 LLM）。前沿模型（GPT-5.2、Gemini 3）则是**原生多模态**。
+早期模型使用 **Vision Adapters**（视觉适配器，把冻结的 CLIP 风格视觉编码器连接到 LLM）。前沿模型如今采用**原生多模态**训练，2026 年的开放模型发布展示了这种设计已经走了多远：
 
 - **共享词表**：视觉 token 和文本 token 存在于同一潜在空间中。
+- **无编码器输入**：Gemma 4 12B “Unified”（2026 年 6 月，Apache 2.0）通过轻量线性层将原始图像块和音频波形直接投影到 LLM 嵌入空间，无需单独的视觉编码器。
+- **开放旗舰模型默认多模态**：MiMo-V2.6 接受文本、图像、视频和音频；GLM-5.3-Flash 是首个原生多模态的 GLM-5 模型，专为 GUI 智能体构建；DeepSeek V4.1-Flash 加入了原生图像输入。自托管栈现在不仅要为文本，还要为图像和音频 token 做预算。
 - **统一 Transformer**：同一组模块同时处理像素和文本。
-- **收益**：相比基于适配器的方法，空间推理和“世界模型”理解能力要强得多。
+- **收益**：相比基于适配器的方法，空间推理和跨模态落地能力更强。
 
 ---
 
@@ -274,13 +280,13 @@ O(n²) 的复杂度限制了上下文长度。100K 上下文窗口意味着每�
 | 注意力类型 | 每个 Query 的 K,V 比例 | KV Cache 降低幅度 | 示例 |
 |----------------|---------------|-------------------|----------|
 | 多头注意力（MHA） | 1:1 | 基线 | GPT-3 |
-| 分组查询注意力（GQA） | 通常 8:1 | 约 8 倍 | Llama 2, Mistral |
+| 分组查询注意力（GQA） | 通常 8:1 | 约 8 倍 | Llama 2 70B、Llama 3、Mistral |
 | 多查询注意力（MQA） | 全部:1 | 约 n_heads 倍 | PaLM, Falcon |
 
 **实际影响：**
-对于 Llama 2 70B 在 8K 上下文中：
-- MHA KV cache：每个请求约 10 GB
-- GQA KV cache：每个请求约 1.3 GB
+对于 Llama 3 70B（注意力形状与 Llama 2 70B 相同）在 8K 上下文（BF16）中：
+- MHA KV cache（若有 64 个 KV 头）：每个请求约 21 GB
+- GQA KV cache（实际为 8 个 KV 头）：每个请求约 2.7 GB
 
 这会直接影响 batch size，从而影响吞吐量。
 
@@ -328,7 +334,8 @@ RoPE(x, pos) = x × cos(pos × θ) + rotate(x) × sin(pos × θ)
 **特性：**
 - 相对式：注意力取决于 (pos_q - pos_k)
 - 比绝对位置编码更容易外推
-- 用于：Llama、Mistral、PaLM
+- 用于：Llama、Mistral、PaLM、Qwen、DeepSeek
+- 上下文扩展：位置插值和 YaRN 等缩放方法可以拉长已训练的 RoPE 窗口。Qwen3.8-Flash-Next 原生支持 262K，通过 YaRN 可达 1M。
 
 ### ALiBi（Attention with Linear Biases，带线性偏置的注意力）
 
@@ -413,7 +420,6 @@ def layer_norm(x, gamma, beta):
 
 **Post-LN（原始 Transformer）：**
 ```
-x = x + Attention(LayerNorm(x))  # Wrong - this is Pre-LN
 x = LayerNorm(x + Attention(x))  # Post-LN: normalize after residual
 ```
 
@@ -483,26 +489,39 @@ Token IDs → Embedding → [Transformer Layer × N] → Output Norm → LM Head
 
 ### 显存需求
 
-```
-Model weights (FP16) ≈ 2 bytes × parameters
-- 70B model: ~140 GB
-- 7B model: ~14 GB
+70B 模型使用 BF16 约需 140 GB，FP8 约需 70 GB，FP4（含 NVFP4/MXFP4 的块缩放）约需 37–40 GB。Llama 70B 的 GQA KV 缓存为每个 token 320 KiB；在 8K 上下文时每个请求约 2.7 GB，在 128K 上下文（Llama 3.1）时约 43 GB。
 
-KV Cache per token (FP16):
-= 2 × layers × heads × head_dim × 2 bytes
-- Llama 70B: 2 × 80 × 64 × 128 × 2 = 2.6 MB per token
-- At 8K context: 21 GB per request
+```
+Model weights ≈ bytes_per_parameter × parameters
+- 70B at BF16: ~140 GB; FP8: ~70 GB; FP4 (NVFP4/MXFP4 incl. block scales): ~37-40 GB
+- 7B at BF16: ~14 GB
+
+KV cache per token (BF16, standard MHA/GQA attention):
+= 2 (K and V) × layers × kv_heads × head_dim × 2 bytes
+- Llama 2/3 70B (80 layers, 8 KV heads, head_dim 128):
+  2 × 80 × 8 × 128 × 2 = 320 KiB per token
+- At 8K context: ~2.7 GB per request; at 128K (Llama 3.1): ~43 GB
+- Same shape with full MHA (64 KV heads): 2.6 MB per token, ~21 GB at 8K
+- MLA, sliding-window, linear-attention hybrids and compressed KV break
+  this formula: DeepSeek V4.1-Flash reports 890 bytes of global KV per token
+  (its sliding-window KV is extra, capped at the window length)
 ```
 
 ### 计算需求
 
-```
-FLOPs per token forward pass ≈ 2 × parameters
-- 70B model: ~140 TFLOPs per token
-- Generate 100 tokens: 14 PFLOPs
+H100 SXM 的稠密 BF16 性能约为 989 TFLOPS，HBM 带宽约为 3.35 TB/s。batch 为 1 时，一个 token 的算术计算约需 0.14 ms，但读取一次 140 GB 的 BF16 权重约需 42 ms；因此 batch-1 解码约有 300 倍受限于内存带宽，批处理可摊销这部分开销。
 
-H100 at 990 TFLOPS (FP16):
-- Single token: 140ms theoretical (actual: ~20-50ms with batching)
+```
+FLOPs per token, forward pass ≈ 2 × active parameters
+- 70B dense model: ~140 GFLOPs per token
+- Generate 100 tokens: ~14 TFLOPs
+
+H100 SXM: ~989 TFLOPS dense BF16, ~3.35 TB/s HBM bandwidth
+- Arithmetic for one token at batch 1: ~0.14 ms
+- Reading 140 GB of BF16 weights once: ~42 ms
+- Batch-1 decode is ~300x memory-bound; batching amortizes each
+  weight read across many requests (in practice 70B BF16 spans 2+ GPUs;
+  the ratio is the point)
 ```
 
 ---
@@ -510,9 +529,9 @@ H100 at 990 TFLOPS (FP16):
 ## 关键要点
 
 - 从 RNN 转向 Transformer 的关键在于并行化，而不只是质量提升；这也是 GPU 扩展规律得以成立的原因。
-- MoE 将总参数量（显存成本）与激活参数量（计算成本）分离：一个 1.2T 的 MoE 模型可以以 100B 稠密模型的延迟水平提供服务。
+- MoE 将总参数量（显存成本）与激活参数量（计算成本）分离：MiMo-V2.6-Pro 存储 1.02T 参数，但每个 token 以 42B 参数计算。节省在小 batch 下最大；大 batch 下每一步都会触及大多数专家。
 - 推理最优扩展在生产中优于 Chinchilla：在模型的整个生命周期内，应当对小模型进行过度训练，因为推理成本通常主导训练成本。
-- GQA 是当前模型中对 KV 缓存优化影响最大的单项优化；在讨论服务成本之前，先理解 N:G 比率。
+- GQA 是 KV 缓存的基线优化（Llama 70B 上为 8 倍）；在讨论服务成本之前，先理解 N:G 比率。2026 年开放旗舰模型进一步采用 MLA、滑动窗口与线性注意力混合架构及压缩 KV，因此不同模型的每 token KV 字节数如今可相差数个数量级。应以模型卡为准，而不是教科书公式。
 - Pre-LN 配合 RMSNorm 是现代默认配置；如果你在面试回答里看到 Post-LN，这通常是在引用 2018 年的论文。
 
 ---
@@ -532,7 +551,9 @@ Attention 会计算所有 token 之间的两两相似度。对于长度为 n 的
 - Flash Attention：计算仍是 O(n²)，但通过 kernel fusion 将内存降到 O(n)
 - 状态空间模型（Mamba）：完全线性 O(n)
 
-权衡在于：n² 是实现完整长程依赖所必需的，但大多数任务并不需要所有两两交互。
+- 混合架构（2026 年的生产答案）：在线性注意力或滑动窗口层之间穿插少量完整或稀疏注意力层。Qwen3.8-Flash-Next 每四层中有三层运行 Gated DeltaNet；MiMo-V2.6-Pro 使用 60 个滑动窗口层和 10 个全局层。
+
+权衡在于：n² 是实现完整长程依赖所必需的，但大多数任务并不需要所有两两交互。纯线性注意力会损失精确召回，因此生产模型会保留部分完整或稀疏注意力层，而不是完全弃用它们。
 
 ### 问：什么是 KV 缓存，它为什么对服务很重要？
 
@@ -546,7 +567,7 @@ KV 缓存会保存前面位置的 K 和 V。每生成一个新 token 时：
 
 这将每个 token 的 K 和 V 计算复杂度从 O(n) 降为 O(1)。
 
-**代价：** 显存占用会随序列长度线性增长。以 Llama 70B 在 8K 上下文为例，KV 缓存每个请求约为 21 GB。这限制了 batch size，并需要 PagedAttention 之类的技术。
+**代价：** 显存占用会随序列长度线性增长。对于 Llama 70B（GQA、8 个 KV 头、BF16），KV 缓存 8K 上下文时每个请求约 2.7 GB，128K 时约 43 GB；没有 GQA 将大 8 倍。这会限制 batch size，并需要 PagedAttention、KV 量化（FP8 KV 缓存通常搭配 FP4 权重，是 2026 年服务配置的主流组合）以及卸载到主机内存等技术。
 
 ### 问：为什么现代 LLM 使用 Pre-LN 而不是 Post-LN？
 
@@ -582,6 +603,9 @@ Llama 2 70B 使用带有 8 个 KV 头的 GQA，对应 64 个 query 头，将 KV 
 - Press et al. "Train Short, Test Long: Attention with Linear Biases" (ALiBi, 2022)
 - Shazeer "GLU Variants Improve Transformer" (2020)
 - Ainslie et al. "GQA: Training Generalized Multi-Query Transformer Models" (2023)
+- Peng et al. "YaRN: Efficient Context Window Extension of Large Language Models" (2023)
+- DeepSeek-AI "DeepSeek-V3 Technical Report" (2024)
+- [DeepSeek-V4.1-Flash 模型卡](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) (2026)
 - [图解 Transformer](https://jalammar.github.io/illustrated-transformer/)
 - [带注释的 Transformer](https://nlp.seas.harvard.edu/2018/04/03/attention.html)
 

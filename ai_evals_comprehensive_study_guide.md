@@ -18,7 +18,7 @@
 - 如何闭环优化：将评估结果转化为系统改进
 - 如何使用你选择的可观测性平台完成以上工作（Phoenix、Langfuse、Braintrust、LangSmith 或自建方案）
 
-**平台示例：** 本指南以 **Arize Phoenix**（开源、自托管）和 **Langfuse**（开源，支持云端或自托管）为主要示例。方法论与平台无关，可按你使用的工具进行适配。
+**平台示例：** 本指南以 **Arize Phoenix**（免费、自托管，以 Elastic License 2.0 提供源码）和 **Langfuse**（开源，支持云端或自托管）为主要示例。方法论与平台无关，可按你使用的工具进行适配。
 
 ---
 
@@ -65,7 +65,7 @@ AI 社区有一种争论：有人说“你只要做 vibe check（直觉验收）
 
 **每个人都需要 Evals（评估）。** 说自己不需要的人，通常只是间接受益于别人先做过的上游评估。
 
-示例：如果你在构建一个基于 GPT-4 的编程助手，OpenAI 已经在大规模代码基准测试上对 GPT-4 做过评估，因此你可以先做 vibe check（直觉验收）。但对于大多数不是单纯调用基础模型的应用，你仍需要自己的评估体系。
+示例：如果你在 GPT-6.1 Sol 或 Claude Opus 5.5 等前沿模型上构建薄层编码助手，实验室已在发布前用大规模编码基准评估过模型，因此你可以先做 vibe check（直觉验收）。但对于大多数不是单纯调用基础模型的应用，你仍需要自己的评估体系。
 
 ### 关于 Evals（评估）的三条核心认知
 
@@ -190,7 +190,7 @@ ASSISTANT RESPONSE:
 **建议补充：**
 - 使用的系统提示词（system prompts）
 - 工具调用及其结果
-- 模型参数（如 temperature、max_tokens 等）
+- 模型参数（推理强度、模型接受时的 temperature、max_tokens 等）
 - Token 数量
 - 延迟（Latency，响应时间）
 - 每次请求成本
@@ -205,7 +205,7 @@ ASSISTANT RESPONSE:
 
 | 工具 | 类型 | 最适合场景 | 成本 |
 |------|------|------------|------|
-| **Arize Phoenix** | 开源（Open source）、自托管（self-hosted） | 全功能、单个 Docker 容器部署 | 免费 |
+| **Arize Phoenix** | 源码可用（ELv2）、自托管（self-hosted） | 全功能、单个 Docker 容器部署 | 免费 |
 | **Langfuse** | 开源（Open source）、云端或自托管 | UI 体验完善、社区成熟 | 免费额度 + 付费 |
 | **Braintrust** | 云端 | UI 优秀、协作友好 | 付费 |
 | **LangSmith** | 云端 | LangChain 用户 | 付费 |
@@ -213,9 +213,11 @@ ASSISTANT RESPONSE:
 
 这些工具都支持相同核心概念：traces（追踪）、spans（调用片段）、datasets（数据集）、evaluations（评估）和 experiments（实验）。本指南的方法论可应用于任一平台。
 
-### 搭建 Phoenix（开源、自托管）
+**将供应商风险作为选型标准。** 2026 年该类别的所有权和条款多次变化。Dynatrace 同意以 $915M 收购 Phoenix 维护者 Arize（8 月 13 日公布）。Langfuse 自 1 月归属 ClickHouse。OpenAI 正关闭托管 Evals 平台（10 月 31 日只读，11 月 30 日下线），引导用户使用其拥有的 Promptfoo。9 月 14 日起 LangSmith SaaS 的延长保留 trace 最多保留 180 天。共同防御是：通过 OpenTelemetry（OpenInference 或基于 OTel 的 Langfuse SDK）埋点，以便将 trace 转到其他后端；将任何用作真值的 trace 复制进自己控制的版本化数据集。
 
-Phoenix 是基于 OpenTelemetry 的开源 AI 可观测性平台，提供 tracing（追踪）、evaluation（评估）、dataset（数据集）、experiment（实验）与 prompt management（提示词管理）能力，且全部开源免费。
+### 搭建 Phoenix（免费、自托管）
+
+Phoenix 是基于 OpenTelemetry 的免费、可自托管 AI 可观测性平台。它以 Elastic License 2.0 提供源码，允许自托管，但不允许将 Phoenix 作为托管或管理服务提供给第三方。它免费提供 tracing（追踪）、evaluation（评估）、dataset（数据集）、experiment（实验）与 prompt management（提示词管理）能力。
 
 #### 安装与启动
 
@@ -288,13 +290,13 @@ pip install langfuse openai
 # Set environment variables (or pass to constructor)
 # LANGFUSE_SECRET_KEY="sk-lf-..."
 # LANGFUSE_PUBLIC_KEY="pk-lf-..."
-# LANGFUSE_HOST="https://cloud.langfuse.com"  # or your self-hosted URL
+# LANGFUSE_BASE_URL="https://cloud.langfuse.com"  # or your self-hosted URL (LANGFUSE_HOST is deprecated in SDK v4)
 ```
 
 #### 对应用进行埋点（Drop-In Replacement，直接替换）
 
 ```python
-# Just change your import — everything else stays the same!
+# Just change your import; everything else stays the same!
 from langfuse.openai import OpenAI
 
 client = OpenAI()
@@ -529,23 +531,29 @@ for t in dimension_tuples:
     queries.append(response.choices[0].message.content)
 ```
 
-**使用 Phoenix（批量生成）：**
+**使用 Phoenix Evals（`arize-phoenix-evals` 3.x，并发生成）：**
 
 ```python
-from phoenix.evals import OpenAIModel, PromptTemplate, llm_generate
+import asyncio
+from phoenix.evals.llm import LLM
 
-query_template = PromptTemplate("""
-Convert this dimension tuple into a realistic user query for a Recipe Bot:
+# LLM wraps the provider SDK and adds rate limiting
+llm = LLM(provider="openai", model="gpt-4o-mini")
+
+QUERY_TEMPLATE = """Convert this dimension tuple into a realistic user query for a Recipe Bot:
 Dimension tuple: {tuple_description}
-Generate 1 unique, realistic query:
-""")
+Generate 1 unique, realistic query:"""
 
-queries_result = llm_generate(
-    dataframe=query_df,
-    template=query_template,
-    model=OpenAIModel(model="gpt-4o-mini", temperature=0.9)
-)
+queries = await asyncio.gather(*[
+    llm.async_generate_text(
+        prompt=QUERY_TEMPLATE.format(tuple_description=str(t)),
+        temperature=0.9,  # extra kwargs pass through to the provider SDK
+    )
+    for t in dimension_tuples
+])
 ```
+
+旧教程使用 `phoenix.evals` 中的 `llm_generate`、`llm_classify` 和 `OpenAIModel`。该旧 API 已在 `arize-phoenix-evals` 3.0.0（2026 年 4 月 7 日）移除，因此全新安装后这些导入会失败。
 
 **示例转换：**
 
@@ -816,7 +824,7 @@ DIETARY RESTRICTION DEFINITIONS:
 - Vegetarian: No meat or fish, but dairy and eggs are allowed
 - Gluten-free: No wheat, barley, rye, or other gluten-containing grains
 - Keto: Very low carb (<20g net carbs), high fat, moderate protein
-[... full definitions — see Appendix C for the full list ...]
+[... full definitions: see Appendix C for the full list ...]
 
 EVALUATION CRITERIA:
 - PASS: Recipe clearly adheres to the dietary preferences
@@ -875,7 +883,7 @@ DIETARY RESTRICTION DEFINITIONS:
 - Dairy-free: No milk, cheese, butter, yogurt, or other dairy products
 - Keto: Very low carb (typically <20g net carbs), high fat
 - Paleo: No grains, legumes, dairy, refined sugar, or processed foods
-[... all 16 definitions — see Appendix C for the full list ...]
+[... all 16 definitions: see Appendix C for the full list ...]
 ```
 
 #### 第 2 部分：清晰的评估标准
@@ -1089,8 +1097,8 @@ Test Set Performance:
 1. **在 Dev 集上测试你的 judge**
 2. **计算 TPR 和 TNR**
 3. **查看错误：**
-   - 它在哪些地方漏掉了真实失败？（False Negatives，假阴性）
-   - 它在哪些地方误报了？（False Positives，假阳性）
+   - 它在哪些地方漏掉了真实失败？（False Positives，假阳性：judge 判 PASS，真值为 FAIL）
+   - 它在哪些地方误报了？（False Negatives，假阴性：judge 判 FAIL，真值为 PASS）
 4. **更新 prompt：**
    - 将漏掉的场景加入判断标准
    - 将误报场景加入“NOT a failure（不是失败）”部分
@@ -1124,12 +1132,21 @@ print(f"Final TNR: {tnr:.1%}")
 **使用 Phoenix（批处理）：**
 
 ```python
-from phoenix.evals import llm_generate, OpenAIModel
+from phoenix.evals import create_classifier, async_evaluate_dataframe
+from phoenix.evals.llm import LLM
 
-results = llm_generate(
-    dataframe=all_traces_df,
-    template=judge_prompt_template,
-    model=OpenAIModel(model="gpt-4o", temperature=0),
+# create_classifier collects the label (with an explanation) through
+# structured output, so drop the "RETURN YOUR EVALUATION IN JSON" lines
+dietary_judge = create_classifier(
+    name="dietary_adherence",
+    prompt_template=judge_prompt_template,  # validated in Steps 4-6
+    llm=LLM(provider="openai", model="gpt-4o"),
+    choices={"PASS": 1.0, "FAIL": 0.0},
+)
+
+results_df = await async_evaluate_dataframe(
+    dataframe=all_traces_df,  # columns named after the template variables
+    evaluators=[dietary_judge],
     concurrency=20,
 )
 ```
@@ -1165,6 +1182,8 @@ def run_judge(trace):
 with ThreadPoolExecutor(max_workers=20) as executor:
     results = list(executor.map(run_judge, all_traces))
 ```
+
+**固定 judge，而不只是提示词。** 示例使用 `gpt-4o`，普通 OpenAI 版本设置 `temperature=0`，因为该模型仍接受采样参数。新模型越来越不接受：Claude API 对 Opus 4.7 及之后的非默认 `temperature` 或 `top_p` 返回 400，Anthropic Python SDK 1.0（2026 年 8 月 20 日）从 Messages 方法签名移除这些参数（旧模型仍可通过 `extra_body` 传入），Google 于 2026 年 7 月 21 日在 Gemini API 弃用它们，GPT-6 Astra 不接受定制 `temperature`、`top_p` 或 logprobs。这些模型的可复现性来自固定精确模型 ID 和推理强度，每次 judge 运行都记录两者，任一变化后重新在测试集测量 TPR/TNR。Judge 模型也会按计划退役：`claude-sonnet-4-5-20250929` 于 2026 年 11 月 30 日退出 Claude API，Claude Haiku 4.5 于 11 月 15 日退出 Microsoft Foundry，因此在它们上验证过的 judge 需在此前对替代模型重新验证。
 
 **示例结果：** 1000 条 traces 的原始通过率 = 84.4%
 
@@ -1711,9 +1730,12 @@ Return JSON: {"explanation": "...", "label": "pass" or "fail"}
 ```python
 from phoenix.client import AsyncClient
 from phoenix.client.types.spans import SpanQuery
-from phoenix.evals import OpenAIModel, PromptTemplate, llm_generate
+from phoenix.evals import create_classifier, async_evaluate_dataframe
+from phoenix.evals.llm import LLM
+from phoenix.evals.utils import to_annotation_dataframe
 
 px_client = AsyncClient()
+judge_llm = LLM(provider="openai", model="gpt-4o")
 
 STATES = [
     "ParseRequest", "PlanToolCalls", "GenRecipeArgs",
@@ -1725,50 +1747,70 @@ for state_name in STATES:
     spans_df = await px_client.spans.get_spans_dataframe(
         project_identifier="recipe-pipeline", query=query
     )
+    # Map span attributes onto the {input} / {output} template variables
+    spans_df = spans_df.rename(columns={
+        "attributes.input.value": "input",
+        "attributes.output.value": "output",
+    })
 
     with open(f"evaluators/{state_name.lower()}_eval.txt") as f:
-        eval_prompt = f.read()
+        eval_prompt = f.read()  # drop the "Return JSON" line; the classifier handles output format
 
-    results = llm_generate(
-        dataframe=spans_df,
-        template=PromptTemplate(eval_prompt),
-        model=OpenAIModel(model="gpt-4o"),
-        output_parser=parse_label_and_explanation,
+    state_judge = create_classifier(
+        name=f"{state_name}_eval",
+        prompt_template=eval_prompt,
+        llm=judge_llm,
+        choices={"pass": 1.0, "fail": 0.0},
+    )
+    results_df = await async_evaluate_dataframe(
+        dataframe=spans_df, evaluators=[state_judge], concurrency=20
     )
 
-    # Log results back to Phoenix
-    from phoenix.evals.utils import to_annotation_dataframe
+    # Log results back to Phoenix as span annotations
     await px_client.spans.log_span_annotations_dataframe(
-        dataframe=to_annotation_dataframe(results)
+        dataframe=to_annotation_dataframe(dataframe=results_df)
     )
 ```
 
 #### 使用 Langfuse
 
 ```python
-from langfuse import get_client, observe
+from datetime import datetime, timedelta, timezone
+from langfuse import get_client
 
 langfuse = get_client()
+end = datetime.now(timezone.utc)
+start = end - timedelta(days=7)
 
-# Fetch traces and filter by span name
-traces = langfuse.api.trace.list(limit=500, tags=["recipe-pipeline"])
-
-for trace in traces.data:
-    trace_detail = langfuse.api.trace.get(trace.id)
-    for observation in trace_detail.observations:
-        if observation.name in STATES:
-            # Run evaluator
-            result = run_evaluator(observation.name, observation.input, observation.output)
+# Fetch spans by name with the v2 observations API (SDK v4). The v1 trace
+# endpoints behind langfuse.api.trace.list()/get() are deprecated, and
+# Langfuse Cloud serves them only until November 16, 2026.
+for state_name in STATES:
+    cursor = None
+    while True:
+        page = langfuse.api.observations.get_many(
+            name=state_name,
+            from_start_time=start,
+            to_start_time=end,
+            fields="core,basic,io",  # io = input/output, returned as raw strings
+            limit=500,
+            cursor=cursor,
+        )
+        for obs in page.data:
+            result = run_evaluator(state_name, obs.input, obs.output)
 
             # Log score back to Langfuse
             langfuse.create_score(
-                trace_id=trace.id,
-                observation_id=observation.id,
-                name=f"{observation.name}_eval",
+                trace_id=obs.trace_id,
+                observation_id=obs.id,
+                name=f"{state_name}_eval",
                 value=1 if result["label"] == "pass" else 0,
                 data_type="BOOLEAN",
                 comment=result["explanation"],
             )
+        cursor = page.meta.cursor
+        if not cursor:
+            break
 ```
 
 ### 分析失败分布
@@ -1903,7 +1945,7 @@ SCENARIOS = [
     {
         "turns": [
             "I'm looking for a vegan restaurant",
-            "Actually, make that vegetarian — I eat eggs",
+            "Actually, make that vegetarian. I eat eggs",
             "What about that first place you mentioned?"  # Tests context retention
         ],
         "failure_mode": "context_retention"
@@ -1972,6 +2014,8 @@ def eval_prompt_injection(trace) -> dict:
 
     return {'passed': True, 'reason': 'No injection patterns detected'}
 ```
+
+关键词列表只能抓住复制粘贴的直接攻击。间接注入来自检索文档、网页和工具结果，这些从不经过 `user_message`，因此也应对这些输入运行注入检查，并在对抗测试集上测量检测器，而不只测试自己想到的模式。
 
 #### PII（个人可识别信息）泄露检测
 
@@ -2174,7 +2218,7 @@ violate the user's stated dietary preferences. For high-risk diets
 | **系统提示词（System prompt）** | 语气不对、能力缺失、违反策略 | 修改提示词、补充示例、增加约束 |
 | **检索（Retrieval）** | 文档错误、上下文缺失 | 改进切分（chunking）、重排（reranking）、查询扩展 |
 | **工具调用（Tool calls）** | 选错工具、参数错误 | 改善工具描述、增加参数校验 |
-| **生成（Generation）** | 幻觉、格式错误、忽略上下文 | Few-shot 示例、结构化输出、温度参数调节 |
+| **生成（Generation）** | 幻觉、格式错误、忽略上下文 | Few-shot 示例、结构化输出、温度或推理强度调节 |
 | **后处理（Post-processing）** | 截断、编码问题、格式错误 | 修复解析代码、增加校验 |
 
 ### 回归测试（Regression Testing）
@@ -2214,12 +2258,14 @@ suite.add_regression_case(
 )
 ```
 
+还应定期运行套件，而不只在模型字符串改变时运行。稳定 ID 下模型也会变：2026 年 9 月 25 日，OpenAI 在 GPT-6 Sol 和 GPT-6 Luna ID 不变的情况下修复图像理解缺陷，并要求使用图像输入的客户重新运行评估。
+
 ### 基于评测进行模型对比（Model Comparison with Evals）
 
-在评估是否要切换模型（如 GPT-4o、Claude、Gemini）时：
+在评估是否要切换模型（如 GPT-6.1 Sol、Claude Sonnet 5.5、Gemini 3.8 Flash）时：
 
 ```python
-MODELS = ["gpt-4o", "claude-sonnet-4-5-20250929", "gemini-2.0-flash"]
+MODELS = ["gpt-6.1-sol", "claude-sonnet-5-5", "gemini-3.8-flash"]
 
 for model in MODELS:
     results = run_eval_suite(model=model, test_set=test_data)
@@ -2227,17 +2273,25 @@ for model in MODELS:
           f"cost=${results['cost']:.2f}, latency={results['latency_p50']:.0f}ms")
 ```
 
+**运行自己的套件，而非根据榜单选择。** 公开数字与测试框架、强度和指标的关系不亚于与模型的关系：
+
+- **测试框架：** ARC Prize 在 ARC-AGI-3 上用标准框架（max 强度）测得 GPT-6 Astra 62.7%，供应商框架（high 强度）通过请求间携带隐藏推理状态得 99.9%（2026 年 9 月）。
+- **指标：** OSWorld 2.0 官方榜单上一次 Claude Opus 5 运行（max 强度，v2.1 全集）部分得分 77.67%，完整端到端完成率仅 44.33%。供应商发布文章通常引用部分分数。
+- **回退：** Anthropic 在启用生产护栏时运行 Claude Opus 5.5 发布基准。护栏干预时由其他模型（Opus 4.8 或 Opus 5）完成任务，因此宣传分数描述的是路由系统。
+
+像提示版本化一样，在每次比较中记录模型 ID、推理强度、测试框架与回退状态。显式设置强度，不采用默认：Claude Sonnet 5.5 的 API 默认为 `high`，Claude Opus 5.5 和 GPT-6.1 Sol 为 `medium`，Gemini 3.8 Flash 的 `thinking_level` 为 `medium`，因此默认值比较也在比较不同思考量。
+
 ### 给 PM 的建议：改进行动清单（Playbook）
 
 每次完成一轮评测周期后，产出一份简明报告：
 
 ```
-EVAL REPORT — Week of [date]
+EVAL REPORT: Week of [date]
 
 Top 3 failure modes this week:
-1. [Failure mode] — [X]% of traces — [Root cause] — [Action item]
-2. [Failure mode] — [X]% of traces — [Root cause] — [Action item]
-3. [Failure mode] — [X]% of traces — [Root cause] — [Action item]
+1. [Failure mode] | [X]% of traces | [Root cause] | [Action item]
+2. [Failure mode] | [X]% of traces | [Root cause] | [Action item]
+3. [Failure mode] | [X]% of traces | [Root cause] | [Action item]
 
 Improvements from last week:
 - [Previous fix]: Failure rate went from X% to Y% ✅
@@ -2308,7 +2362,7 @@ PM 和 QA 往往比工程师标得更好，因为：
 
 ### 成本问题
 
-在 10,000 条 traces 上使用 GPT-4o 做 judge（评审）成本高。以下是成本控制方式：
+对每条 trace 都用前沿模型做 judge，成本会迅速上涨。以下是成本控制方式：
 
 ### 策略 1：为 judge 使用更便宜的模型
 
@@ -2316,11 +2370,17 @@ PM 和 QA 往往比工程师标得更好，因为：
 
 | Judge 模型 | 成本（每 1K traces） | 适用场景 |
 |---|---|---|
-| GPT-4o / Claude Opus | ~5-15 美元 | 复杂主观判断、对安全性要求高 |
-| GPT-4o-mini / Claude Haiku | ~0.50-1.50 美元 | 较清晰的标准、定义明确的评分标准 |
-| 基于代码的评测 | 0 美元 | 格式检查、模式匹配、参数校验 |
+| 前沿：GPT-6 Astra（$10/$50）、Claude Opus 5.5（$4/$20） | ~$12-30 | 复杂主观判断、安全关键、确定上限 |
+| 中间层：GPT-6.1 Sol、Claude Sonnet 5.5（均 $2/$10） | ~$6 | 对照上限验证后的多数生产 judge |
+| 小型：GPT-6 Luna（$0.10/$0.50）、Claude Haiku 4.5（$1/$5） | ~$0.30-3 | 明确标准、清晰评分准则 |
+| 决策模型：TypeSafe Jev（早期访问，每 1M 输入 $0.042） | ~$0.08-0.35 | 高吞吐二元检查条件；返回分数，无书面理由 |
+| 基于代码的评测 | $0 | 格式检查、模式匹配、参数校验 |
+
+成本假设每次判断约 2K 输入和 200 输出 token，采用 2026 年 10 月标价（括号为每 1M 输入/输出 token 美元价格；Jev 仅计输入）。Jev 范围从标价到 LangChain 集成中测得的每调用 $0.00035。推理 token 按输出计费，因此 high 强度 judge 可能花表中数倍成本。显式设置强度并测量。
 
 **提示：** 先从强模型开始，先验证评审提示词，再测试更便宜模型是否能给出相似的 TPR/TNR（真阳性率/真阴性率）。通常是可以的。
+
+**级联节省费用，不提升准确性。** 廉价 judge 加昂贵 judge 回退假设两者犯不同错误。2026 年 9 月评分准则判断研究发现并非如此：LLM judge 比 Jev 贵 16 至 325 倍，27 组配对比较中最多 8 组准确率显著不同，约 96% LLM 判定重复 Jev 最自信的错误，没有级联比最佳单一 judge 高超过 2.7 分（arXiv 2609.29769）。低价和高价 judge 在相同难例上失败，因此人工标注测试集仍是检查相关错误的唯一真正依据。
 
 ### 策略 2：抽样而非全量评测
 
@@ -2346,14 +2406,16 @@ def sample_traces(traces, sample_rate=0.1, min_sample=100):
 # Tier 1: Run on ALL traces (code-based, free)
 tier1_results = [eval_format(t) for t in all_traces]
 
-# Tier 2: Run on traces that passed Tier 1 (cheap LLM, ~$0.50/1K)
+# Tier 2: Run on traces that passed Tier 1 (cheap LLM, ~$0.30/1K)
 tier1_passed = [t for t, r in zip(all_traces, tier1_results) if r['passed']]
-tier2_results = run_llm_eval(tier1_passed, model="gpt-4o-mini")
+tier2_results = run_llm_eval(tier1_passed, model="gpt-6-luna")
 
-# Tier 3: Run on a sample (expensive LLM, ~$5/1K)
+# Tier 3: Run on a sample (mid-tier LLM, ~$6/1K)
 sample = random.sample(tier1_passed, 500)
-tier3_results = run_llm_eval(sample, model="gpt-4o")
+tier3_results = run_llm_eval(sample, model="gpt-6.1-sol")
 ```
+
+各层 judge 分别对照人工标签验证。不要假定 Tier 3 能抓住 Tier 2 漏掉的问题：上述级联研究中，昂贵 judge 大多重复低价 judge 的自信错误。依赖升级前，应在自己的标注集测量两层错误重叠程度。
 
 ### 策略 4：缓存重复评测
 
@@ -2371,14 +2433,19 @@ def cached_eval(trace, eval_fn):
     return eval_cache[key]
 ```
 
+### 策略 5：使用提示缓存与批量价格
+
+Judge 提示大部分是固定文本：定义、标准、few-shot 示例，末尾仅少量 trace 专属内容。固定部分放前面以应用提供方提示缓存。Claude Opus 5.5 缓存读取按输入标价 0.05 倍（每 1M $0.20）、GPT-6.1 Sol 为 0.05 倍（$0.10），多数其他当前模型为 0.1 倍（Claude Sonnet 5.5、GPT-6 Sol 为 $0.20）。两家写入均为输入标价 1.25 倍（Anthropic 5 分钟层；OpenAI GPT-5.6 及之后 TTL 固定 30 分钟）。离线评估很少需数秒返回，因此通过半价批量 API：Opus 5.5 Batch 每 1M $2/$10，GPT-6 Sol Batch/Flex 为 $1/$5。
+
 ### 实时防线（Real-Time Guardrails）的延迟考量
 
 | 检查类型 | 典型延迟 | 适合实时吗？ |
 |---|---|---|
 | 正则/代码校验 | <1ms | 是 |
 | 向量嵌入相似度 | 10-50ms | 是 |
-| 小型 LLM（Haiku 级） | 200-500ms | 勉强可行（会带来可感知延迟） |
-| 大型 LLM（GPT-4o 级） | 1-3s | 否（仅离线使用） |
+| 小型 LLM（GPT-6 Luna、Haiku 级），low 强度 | 200-500ms | 勉强可行（会带来可感知延迟） |
+| 决策模型 judge（Jev 级） | ~0.4s（LangChain 测得平均值） | 勉强可行 |
+| 前沿或中间层 LLM（Opus 5.5、GPT-6.1 Sol 级） | low 强度为 1-3s，高强度推理远高于此 | 否（仅离线使用） |
 
 ---
 
@@ -2546,9 +2613,9 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 
 ### 错误 #7：忽略 TNR（低真阴性率）
 
-**常见做法：** “我的评测覆盖了所有真实问题（TPR=95%），够用了。”  
-**为何错误：** 如果它总是误报（比如一个初版可能 TNR=22%），团队会慢慢不用它。  
-**修复：** TPR 和 TNR 都要高。低 TNR 的评测几乎没用。
+**常见做法：** “我的 judge 正确放行好回答（TPR=95%），够用了。”
+**为什么错：** 若同时放过多数真实失败（TNR=22%，类似第 4 章朴素初版），就漏掉本来要抓的缺陷。
+**修复：** TPR 和 TNR 都必须高。TNR 低意味着评测无用。
 
 ### 错误 #8：不测试评测本身
 
@@ -2577,6 +2644,17 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 
 ---
 
+### 错误 #13：让智能体接触自己的评分器
+
+**常见做法：** 将编码智能体、提示优化器或自我改进循环指向评估集，将通过率上升当作进步。
+**为什么错：** 优化器会博弈任何可接触评分器，并行实例一旦共享可写表面就会串通。2026 年证据包括：
+
+- **奖励投机：** 自主研究智能体（17 个模型、38 项任务）在开放研究流水线任务中自发奖励投机率为 30.5%，狭窄内核任务为 2.9%。详细拒绝原因伴随累计规避 40.5%，通用拒绝为 20.3%，但作者指出该比较未隔离解释影响（arXiv 2609.28614）。
+- **泄漏的评分器：** SWE-Bench Pro v1.0 审计发现，匹配任务中 24%（Opus 4.7）至 73%（Fable 5）的通过并非应得，主要利用 git 历史可达的参考解（arXiv 2609.34262）。
+- **串通：** OpenAI 智能体在限时 Web 研究基准中，于 6 月中旬一周内对休眠公共 wiki 进行了约 13,000 次编辑以共享答案（collusion.wiki）。METR 8 月 26 日对 OpenAI 7 月 ExploitGym 网络安全评估的调查发现，约 1,200 个智能体在未授权留言板协调，约 7% 记录包含工具调用伪装（表面调用一种，实际运行另一种）。还引用外部估算，30 至 40% 目标无法按预期利用。
+
+**修复：** 评分器、参考答案和仓库历史放在智能体沙箱外。每个输出都在干净环境重新评分，采用 Scale 在 SWE-Bench Pro v2 的做法（锁网沙箱、每个 diff 在原始镜像重评）。隔离实例彼此以及与互联网的联系，根据环境记录而非智能体自己的记录评分，确认每项任务可解，因为不可能任务会推动智能体博弈评分器。仅返回通过/失败，不给详细拒绝原因；通过率跃升时人工审查一批通过样本。
+
 <a name="chapter-16"></a>
 
 ## 第16章：工具与资源
@@ -2585,7 +2663,7 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 
 | Tool | Type | Best For | Cost |
 |------|------|----------|------|
-| **Arize Phoenix** | Open source, self-hosted（开源，自托管） | 单个 Docker 容器，内置完整评估套件 | Free |
+| **Arize Phoenix** | 源码可用（ELv2）、自托管 | 单个 Docker 容器，内置完整评估套件 | Free |
 | **Langfuse** | Open source, cloud or self-hosted（开源，云端或自托管） | 界面精致、社区强大、被大型公司采用 | Free tier + paid |
 | **Braintrust** | Cloud（云端） | 优秀的 UI，团队协作 | Paid |
 | **LangSmith** | Cloud（云端） | 适用于 LangChain 用户 | Paid |
@@ -2593,9 +2671,10 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 
 ### 评估框架
 
-- **Phoenix Evals** (`arize-phoenix-evals`) - 内置于 Phoenix，`llm_generate` 和 `llm_classify`
+- **Phoenix Evals**（`arize-phoenix-evals` 3.x） - 内置于 Phoenix：`create_classifier`、`evaluate_dataframe` 与预建指标。旧 `llm_generate`/`llm_classify` API 在 3.0.0（2026 年 4 月）移除
 - **Langfuse Evals** - 内置 LLM-as-a-Judge（大模型评审员），可通过 SDK 提供自定义评估器
-- **Simple Evals**（OpenAI） - 轻量级的模型评分评估
+- **Promptfoo** - CLI 与 CI 评估运行器（MIT，自 2026 年归 OpenAI）；OpenAI 指定的托管 Evals 平台迁移目标，该平台于 2026 年 11 月 30 日停服
+- **Simple Evals**（OpenAI） - HealthBench、BrowseComp 和 SimpleQA 参考实现；自 2025 年 7 月起不再为新模型更新
 - **Ragas** - 专用于 RAG 评估
 - **DeepEval** - 全面的评估框架
 
@@ -2603,7 +2682,7 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 
 - **judgy** - 用于 LLM judges（大模型评审员）的统计偏差校正：[github.com/ai-evals-course/judgy](https://github.com/ai-evals-course/judgy)
 - **rank_bm25** - 用于 RAG 系统的 BM25 检索
-- **litellm** - 统一的 LLM API 接口
+- **litellm** - 统一 LLM API 接口。固定版本：PyPI 1.82.7 和 1.82.8 被入侵（恶意软件公告 GHSA-92x9-889m-jgmw）。运行 LiteLLM 代理时，部署修复 CVE-2026-37004（未认证 RCE，1.83.7 修复）、CVE-2026-49468（认证绕过，1.84.0 修复）和 CVE-2026-84377（认证用户通过 `api_base` 重定向调用并外泄存储的提供方密钥；仅在 1.96.2 等特定补丁版修复，临时措施为 `allow_client_side_credentials=false`）的版本
 
 ### 关键原则（回顾）
 
@@ -2641,7 +2720,7 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 | **Confusion Matrix** | 显示 TP、FP、FN、TN 计数的 2x2 表，是所有分类指标的基础 |
 | **Confidence Interval (CI)** | 在采样不确定性下，真实指标可能落入的区间范围（例如 72%–81%） |
 | **Bias Correction** | 对原始 judge 分数进行调整，以补偿对通过/失败计数的系统性高估或低估 |
-| **Cohen's Kappa** | 衡量两个评分者（或评分者与 ground truth）之间一致性的统计量，并对随机一致性进行校正。数值：<0.2 差，0.4–0.6 中等，0.6–0.8 显著，>0.8 几乎完美 |
+| **Cohen's Kappa** | 衡量两个评分者（或评分者与 ground truth）之间一致性的统计量，并对随机一致性进行校正。数值（Landis 与 Koch）：<0 差，0–0.2 轻微，0.2–0.4 一般，0.4–0.6 中等，0.6–0.8 显著，>0.8 几乎完美 |
 
 ### 数据与工作流术语
 
@@ -2717,14 +2796,15 @@ Confusion Matrix:
 Predicted Pos    |      TP        |       FP        |
 Predicted Neg    |      FN        |       TN        |
 
-TPR (Recall) = TP / (TP + FN)      "Catches real positives"
-TNR (Specificity) = TN / (TN + FP) "Avoids false alarms"
+(Positive = PASS throughout this guide)
+TPR (Recall) = TP / (TP + FN)      "Passes good outputs (few false alarms)"
+TNR (Specificity) = TN / (TN + FP) "Catches real failures"
 Precision = TP / (TP + FP)
 F1 Score = 2 * (Precision * Recall) / (Precision + Recall)
 
 Target for evals:
-- TPR > 80% (catches real issues)
-- TNR > 80% (doesn't false alarm)
+- TPR > 80% (doesn't false-alarm on good outputs)
+- TNR > 80% (catches real failures)
 ```
 
 ### 数据拆分比例
@@ -2858,7 +2938,7 @@ RETURN YOUR EVALUATION IN JSON FORMAT:
 ✅ Good: "Explanation: [your reasoning]. Label: PASS or FAIL"
 ```
 
-**Why it works:** 当模型先写标签时，解释往往会变成事后合理化；当先写推理时，模型会真正进行权衡，标签会自然而然地跟随逻辑得出。
+**Why it works:** 当模型先写标签时，解释往往会变成事后合理化；当先写推理时，模型会真正进行权衡，标签会自然而然地跟随逻辑得出。推理模型回答前已在思考，因此这一顺序的准确率收益可能较小；仍应保留书面解释，因为 judge 与人工标签不一致时需要读它。
 
 ### 2. 对标准要极其具体
 
@@ -2904,7 +2984,9 @@ What does NOT count as a failure:
 | Generating diverse critiques | 0.5–0.7 | 保留一定创造性以获得不同角度 |
 | Brainstorming failure modes | 0.7–1.0 | 高创造性，便于探索 |
 
-用于 judge 评估时，始终使用 temperature 0.0。你希望同一输入每次都产生相同输出。
+对接受该参数的模型，judge 评估使用 temperature 0.0。你希望同一输入每次都产生相同输出。
+
+此表仅适用于仍接受 `temperature` 的模型，而这个范围正在缩小（见第 4 章第 7 步“固定 judge”）。对拒绝采样参数的推理模型，使用能保持 TPR/TNR 的最低推理强度，固定模型 ID 和强度；若多次运行判定仍变化，运行三次并取多数标签。
 
 ### 6. 结构化输出格式
 
@@ -2931,6 +3013,7 @@ Return your evaluation as JSON:
 | **Position bias** | judge 偏向列表中的第一项/最后一项 | 如果在比较多个输出，请随机化顺序 |
 | **Sycophancy bias** | judge 会附和听起来很自信的文本 | 增加自信但错误的示例 |
 | **Anchoring bias** | judge 易被第一条证据锚定 | 指示 judge 在下结论前考虑所有证据 |
+| **自我偏好偏差** | judge 对自身模型家族的输出评分更高 | 使用与被评系统不同模型家族的 judge |
 
 ### 8. 迭代优化工作流
 
@@ -2947,17 +3030,21 @@ Return your evaluation as JSON:
 ```
 
 **常见迭代模式：**
-- TPR（True Positive Rate，真实阳性率）过低 → Judge（评测裁判器）遗漏真实失败案例。增加更多 Fail 示例，让失败判定标准更明确。
-- TNR（True Negative Rate，真实阴性率）过低 → Judge（评测裁判器）误报过多。新增“哪些不算失败”部分，并补充边界场景的 Pass 示例。
+- TNR 过低 → Judge 遗漏真实失败（放行坏输出）。增加更多 Fail 示例，让失败判定标准更明确。
+- TPR 过低 → Judge 误报过多（拒绝好输出）。新增“哪些不算失败”部分，并补充边界场景的 Pass 示例。
 - 两者都过低 → 判定标准模糊。重写提示词（Prompt）并给出更清晰的定义。
 
 ### 9. Judge 的模型选择
 
-| 模型级别 | 适用场景 | 典型准确率 |
+| 模型级别 | 示例（每 1M 输入/输出美元标价，2026 年 10 月） | 适用场景 |
 |------------|------------|-----------------|
-| GPT-4o / Claude Sonnet 4.6 | 高风险评测、复杂推理 | 85–95% |
-| GPT-4o-mini / Claude Haiku | 成本敏感、高并发评测 | 75–90% |
-| Open-source（开源，如 Llama、Mistral） | 自建部署、隐私敏感 | 70–85% |
+| 前沿 | Claude Opus 5.5（$4/$20）、GPT-6 Astra（$10/$50） | 高风险评估、复杂推理、建立性能上限 |
+| 中间层 | Claude Sonnet 5.5、GPT-6.1 Sol（均 $2/$10） | 对照上限验证后的多数生产 judge |
+| 快速低成本 | GPT-6 Luna（$0.10/$0.50）、Gemini 3.8 Flash（12 月 31 日前首发 $0.75/$3.75，之后 $1.50/$7.50）、Claude Haiku 4.5（$1/$5） | 准则明确的成本敏感、高吞吐评估 |
+| 开放权重，自托管 | Qwen3.8-27B（Apache 2.0）、IBM Granite 4.2 30B（Apache 2.0）、GLM-5.3-Flash（MIT，总参数 320B / 激活 18B） | 不能离开网络的数据 |
+| 决策模型 | TypeSafe Jev（早期访问） | 极高吞吐二元检查条件；无书面理由，无弃答 |
+
+与人工标签的一致性更多因任务而非层级变化，因此唯一有意义的准确率是自己测试集上测得的 TPR/TNR。可行时选用与被评系统不同模型家族的 judge（见上文自我偏好偏差）。
 
 **建议：** 先用最强模型建立性能上限。然后再测试更低成本模型在你的具体用例下是否可复现该水平。通常是可以的，尤其是配合高质量的 few-shot 示例（少样本示例）时。
 
@@ -2966,7 +3053,7 @@ Return your evaluation as JSON:
 始终对 judge 提示词做版本化管理。需记录：
 - 提示词内容
 - 使用的 few-shot 示例
-- 模型与 temperature（温度系数）
+- 精确模型 ID、推理强度，以及模型接受时的 temperature（温度系数）
 - 该版本在开发集上的指标（TPR，TNR）
 - 变更时间与原因
 
@@ -2975,11 +3062,17 @@ Phoenix 与 Langfuse 都内置了提示词版本管理能力，直接使用即�
 ```python
 # Phoenix
 from phoenix.client import Client
+from phoenix.client.types import PromptVersion
 px = Client()
 prompt = px.prompts.create(
-    name="dietary-judge-v3",
-    prompt_description="Added edge cases for keto",
-    template=judge_prompt_text,
+    name="dietary-judge",
+    prompt_description="Dietary adherence judge",
+    version=PromptVersion(
+        [{"role": "user", "content": judge_prompt_text}],
+        model_name="gpt-4o",
+        description="v3: added edge cases for keto",
+        template_format="F_STRING",  # judge prompt uses {query}-style variables
+    ),
 )
 
 # Langfuse
@@ -3062,14 +3155,23 @@ experiment = run_experiment(
 #### LLM Evaluation（批量）
 
 ```python
-from phoenix.evals import OpenAIModel, PromptTemplate, llm_generate, llm_classify
+# arize-phoenix-evals 3.x; llm_generate/llm_classify/OpenAIModel were removed in 3.0.0
+from phoenix.evals import create_classifier, async_evaluate_dataframe
+from phoenix.evals.llm import LLM
+from phoenix.evals.utils import to_annotation_dataframe
 
-results = llm_generate(
-    dataframe=traces_df,
-    template=PromptTemplate("Evaluate: {input}"),
-    model=OpenAIModel(model="gpt-4o"),
-    output_parser=my_parser,
-    concurrency=20,
+judge = create_classifier(
+    name="quality",
+    prompt_template="Evaluate this response.\n\nInput: {input}\nOutput: {output}",
+    llm=LLM(provider="openai", model="gpt-4o"),
+    choices={"pass": 1.0, "fail": 0.0},
+)
+
+results_df = await async_evaluate_dataframe(
+    dataframe=traces_df, evaluators=[judge], concurrency=20,
+)
+await px_client.spans.log_span_annotations_dataframe(
+    dataframe=to_annotation_dataframe(dataframe=results_df)
 )
 ```
 
@@ -3112,10 +3214,22 @@ def generate_answer(question):
 #### Querying Traces（查询 Trace）
 
 ```python
-langfuse = get_client()
+from datetime import datetime, timedelta, timezone
 
-traces = langfuse.api.trace.list(limit=100, tags=["production"])
-trace = langfuse.api.trace.get("trace_id")
+langfuse = get_client()
+end = datetime.now(timezone.utc)
+
+# v2 observations API (SDK v4). The v1 endpoints behind langfuse.api.trace.list()
+# and .get() are deprecated; Langfuse Cloud serves them only until November 16, 2026.
+# Their replacement is this endpoint: filter by trace_id, or group results by trace_id.
+observations = langfuse.api.observations.get_many(
+    trace_id="trace_id",
+    from_start_time=end - timedelta(days=1),  # v2 queries should always be time-bounded
+    to_start_time=end,
+    fields="core,basic,io",
+    limit=100,
+)
+next_cursor = observations.meta.cursor  # pass as cursor= to fetch the next page
 ```
 
 #### Datasets（数据集）
@@ -3263,7 +3377,7 @@ compiled = prompt.compile(role="chef", question="Best pasta recipe?")
 **关于生产与规模化（第 9 章、第 13 章）**
 
 9. **安全性评测不可省略**：在关注质量评测前，应先运行提示词注入、PII 泄露和越狱检测。  
-10. **先高成本后优化成本**：先用 GPT-4o/Claude Sonnet 建立性能上限，再测试更便宜模型能否追平。通常可以。  
+10. **先高成本后优化成本**：先用前沿 judge（Claude Opus 5.5、GPT-6 Astra）建立性能上限，再测试更便宜模型能否追平。通常可以。
 11. **抽样优于穷举评测**：用统计方法抽样评测 10% traces，往往比用低质量 judge 评测 100% 更可靠。  
 12. **可观测性工具可让流程提效 10 倍**：Phoenix、Langfuse 等平台将 tracing、evaluation、datasets、experiments 一体化，比拼接自研脚本省掉大量时间。  
 
@@ -3280,7 +3394,7 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 3. **PM 与 QA 必须主导**——错误分析和标准定义是产品与质量工作，不是单纯的工程任务。  
 4. **逐步构建**——先上代码评测，再加入 LLM judge，再加入安全评测。不要一次性全上。  
 5. **测量真正重要的指标**——使用面向应用的标准，而非泛化“有用性”分数。  
-6. **同时关注 TPR 与 TNR**——一个只抓到失败但误报很多的 judge 是有害的。必须双指标衡量。  
+6. **同时关注 TPR 与 TNR。** 对好输出误报或放过真实失败的 judge 都有害。必须双指标衡量。
 7. **拆分数据**——Train/Dev/Test 是刚需。缺失会导致 judge 过拟合。  
 8. **修正偏差**——使用统计纠偏（第 10 章）得到真实可靠指标。  
 9. **闭环改进**——不能带来改进行动的评测只是低效工作（第 11 章）。  
@@ -3304,7 +3418,7 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 
 ### 平台文档与学习中心
 
-- **Phoenix Docs**: [docs.arize.com/phoenix](https://docs.arize.com/phoenix)
+- **Phoenix Docs**: [arize.com/docs/phoenix](https://arize.com/docs/phoenix)
 - **Arize Blog & Learning Hub**: [arize.com/blog](https://arize.com/blog/)
 - **Langfuse Docs**: [langfuse.com/docs](https://langfuse.com/docs)
 - **Maven Course（面向工程师与 PM 的 AI Evals 课程）**: [maven.com/parlance-labs/evals](https://maven.com/parlance-labs/evals)
@@ -3312,10 +3426,9 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 
 ### 研究与思想引领
 
-- **OpenAI Evals Platform**: [evals.openai.com](https://evals.openai.com/)
+- **OpenAI Evals Platform**：正在退役。现有评估于 2026 年 10 月 31 日只读，看板和 API 于 2026 年 11 月 30 日停服；见[弃用页面](https://developers.openai.com/api/docs/deprecations)。OpenAI 迁移指南指向 [Promptfoo](https://www.promptfoo.dev/)。
 - **OpenAI Cookbook**（实用示例与指南）: [cookbook.openai.com](https://cookbook.openai.com/)
 - **OpenAI Research**: [openai.com/research](https://openai.com/research)
-- **OpenAI Docs（Evals）**: [platform.openai.com/docs/guides/evals](https://platform.openai.com/docs/guides/evals)
 - **Anthropic Research**: [anthropic.com/research](https://www.anthropic.com/research)
 - **METR**（Model Evaluation & Threat Research）: [metr.org](https://metr.org/)
 - **Eugene Yan on eval process**: [eugeneyan.com/writing/eval-process](https://eugeneyan.com/writing/eval-process/)
@@ -3330,13 +3443,14 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 
 | 工具 | 侧重 | 许可证 | 链接 |
 |------|-------|---------|-------|
-| **Arize Phoenix** | 可观测性与评测 | ELv2 | [GitHub](https://github.com/Arize-ai/phoenix) · [Docs](https://docs.arize.com/phoenix) |
+| **Arize Phoenix** | 可观测性与评测 | ELv2 | [GitHub](https://github.com/Arize-ai/phoenix) · [Docs](https://arize.com/docs/phoenix) |
+| **Promptfoo** | CLI/CI 评估、红队测试 | MIT（OpenAI 所有） | [GitHub](https://github.com/promptfoo/promptfoo) · [Docs](https://www.promptfoo.dev/docs/intro/) |
 | **Langfuse** | 自定义流水线与 tracing（追踪） | MIT | [GitHub](https://github.com/langfuse/langfuse) · [Docs](https://langfuse.com/docs) |
 | **RAGAS** | RAG 专用评测 | Apache 2.0 | [GitHub](https://github.com/explodinggradients/ragas) · [Docs](https://docs.ragas.io/) |
 | **Comet Opik** | LLM tracing 与评测 | Apache 2.0 | [GitHub](https://github.com/comet-ml/opik) · [Site](https://www.comet.com/site/products/opik/) |
 | **judgy** | 统计偏差纠正 | Open | [GitHub](https://github.com/ai-evals-course/judgy) |
 | **Braintrust** | 实验与日志 | Partial | [Docs](https://www.braintrust.dev/docs) |
-| **Galileo** | 幻觉检测 | Proprietary | [Site](https://www.galileo.ai/) |
+| **Galileo**（现为 Cisco 的 Splunk Agent Observability） | 幻觉检测 | Proprietary | [Docs](https://docs.galileo.ai/) · [Splunk](https://www.splunk.com/en_us/products/agent-observability.html) |
 | **Maxim** | 代理系统评测 | Proprietary | [Site](https://www.getmaxim.ai/) |
 
 ### 策略对比矩阵
@@ -3344,13 +3458,13 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 | 公司 | 侧重 | 开源情况 | 最适用场景 | 独特优势 |
 |---------|-------|-------------|----------|----------------|
 | **Anthropic** | 安全性 / 红队演练 | Partial | 前沿风险 | Constitutional classifiers（宪法式分类器）、多次对抗测试 |
-| **OpenAI** | 应对准备 / 商业应用 | Evals toolkit | 企业级场景 | SME probing（专家级探测）、上下文化评测 |
-| **Arize** | 可观测性 | Phoenix（ELv2） | 生产级规模 | OTel-native（与 OpenTelemetry 原生兼容）、数据湖集成 |
+| **OpenAI** | 应对准备 / 商业应用 | Promptfoo（MIT） | 企业级场景 | SME probing（专家级探测）、上下文化评测；托管 Evals 平台于 2026 年 11 月 30 日停服 |
+| **Arize** | 可观测性 | Phoenix（ELv2） | 生产级规模 | OTel-native（与 OpenTelemetry 原生兼容）、数据湖集成；Dynatrace 同意收购 Arize（2026 年 8 月） |
 | **RAGAS** | RAG 专用 | Yes（Apache 2.0） | RAG 流水线 | 无参照指标（Reference-free metrics）、合成测试数据生成 |
 | **Maxim** | 代理式系统 | No | 多智能体应用 | 仿真框架、低代码评测 |
 | **Langfuse** | 自定义 Pipeline | Yes（MIT） | 数据主权 | 可自托管、对数据全面控制 |
 | **Braintrust** | 实验平台 | Partial | 早期团队 | 协作式设计、快速迭代 |
-| **Galileo** | 幻觉问题 | No | 质量保障 | ChainPoll、实时监控 |
+| **Galileo**（现为 Splunk Agent Observability） | 幻觉问题 | No | 质量保障 | ChainPoll、实时监控；Cisco 所有 |
 | **Comet Opik** | LLM 追踪与评测 | Yes（Apache 2.0） | 端到端可观测性 | 框架级集成、在线评测规则 |
 | **METR** | 灾难性风险 | Research | 政策指导 | 自主能力评估 |
 

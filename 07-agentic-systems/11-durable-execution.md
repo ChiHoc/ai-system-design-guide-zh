@@ -8,6 +8,7 @@ Agent（智能体）运行并不是一个请求/响应处理器。它会调用�
 - [持久化执行模型](#持久化执行模型)
 - [工具](#工具)
 - [将持久化执行映射到 Agent 循环](#将持久化执行映射到-agent-循环)
+- [托管式智能体运行时：租用持久循环](#托管式智能体运行时-租用持久循环)
 - [何时需要它](#何时需要它)
 - [你是否需要持久化执行？](#你是否需要持久化执行)
 - [面试题](#面试题)
@@ -66,6 +67,7 @@ Agent（智能体）是长期运行、具状态、会产生副作用的进程，
 - **Temporal + Google ADK** 仍处于实验阶段，通过活动重新路由 LLM 调用，值得注意的是它只需要极少的代码改动（封装层会检测自己是否运行在 workflow 内部，否则回退到直接执行）。
 - **LangGraph** 通过 **checkpointers（检查点器）** 提供更轻量、框架原生的持久化，在每个 super-step（超步）将图状态保存到持久化存储，并支持可选的持久化模式（退出时、异步，或每一步前同步）。它的指导原则与确定性规则一致：保持 workflow 确定且幂等，并把副作用包裹到 task（任务）中。
 - **DBOS 和 Restate** 在库层面与 agent 框架集成，把 agent 运行和 sub-agent（子智能体）调用封装成持久化 workflow 和 child workflows（子工作流）。
+- **Temporal + Amazon Bedrock AgentCore Runtime** 于 2026 年 9 月 21 日进入预发布阶段：Temporal 工作流运行持久化智能体循环，模型与工具调用作为带重试策略的活动，Strands Agents 提供编程模型，AgentCore Runtime 为 Temporal Serverless Workers 提供计算资源。
 
 这里要诚实说明的张力是：**框架原生 checkpointing（检查点）只能恢复状态；完整的 durable-execution（持久化执行）引擎还额外提供 exactly-once（恰好一次）副作用、durable timers（持久定时器）、signals（信号）以及跨部署的 replay（重放）语义。** 当工具调用具有不可逆的外部效果时，这个差异最关键。对于主要依赖可恢复、幂等工具的 LLM 推理型 agent，框架级 checkpointing 再加上少数非幂等工具上的幂等键，通常就已经足够。
 
@@ -73,9 +75,25 @@ Agent（智能体）是长期运行、具状态、会产生副作用的进程，
 
 ---
 
+## 托管式智能体运行时：租用持久循环
+
+截至 2026 年 9 月，Anthropic 和 OpenAI 都把智能体运行框架本身作为内置持久会话的托管运行时出售（OpenAI 的 Agents API 于 9 月 10 日加入 Claude Managed Agents 的行列）；AWS 还在自有云中提供 OpenAI 的方案。这在“框架检查点”和“自行运行持久执行引擎”之外增加了第三种选择：租用循环。
+
+| 平台 | 状态（2026 年 10 月 1 日） | 持久性与控制功能 | 需核对的限制 |
+|----------|--------------------------|---------------------------------|----------------------|
+| **Claude Managed Agents** | 已发布 | 持久会话；达到 `budget_reached` 后暂停的会话硬预算（8 月 7 日）；通过 cron 定时部署（自 6 月 9 日起）；借助 `ant apply` 和已提交的 `claude-lock.json` 实现 agents-as-code（ant CLI 1.30.0，9 月 3 日）；服务器侧评估的自动权限策略和实时终端接入（9 月 10 日） | 按词元加运行时间每会话小时 $0.08 计费（空闲时间免费）；无 Batch 折扣 |
+| **OpenAI Agents API** | 公开 beta（9 月 10 日） | 托管 Codex 运行框架：持久会话、上下文压缩、恢复、子智能体委派、通过 HTTP 的 MCP 服务器、运行中引导；OpenAI 托管或自托管沙箱；托管浏览器的计算机使用（9 月 29 日） | 发布时仅支持美国数据驻留且无 Zero Data Retention；按模型、工具和容器计费（沙箱每 20 分钟会话 $0.03 至 $0.48） |
+| **Amazon Bedrock Managed Agents**（由 OpenAI 提供支持） | 预览（9 月 29 日） | 在 AWS 内运行的定制 OpenAI Agents API：逐智能体 IAM 角色、CloudTrail 日志、持久会话、重要操作前的人工审批 | 仅支持 us-east-1、us-east-2 和 us-west-2；预览期间不额外收费 |
+| **AWS AgentCore Runtime V2** | 9 月 18 日宣布 | 从已初始化智能体的快照恢复各实例；P75 冷启动约 2 秒，原运行时约 5.4 至 30 秒（AWS 报告） | 通过 `platformVersion` V2 主动启用；费率更高，但 GB 小时数大幅减少 |
+| **Microsoft Foundry Agent Service** | Routines 于 9 月 24 日 GA | 已发布智能体支持周期性、单次定时和事件触发 | 网络出站控制仍处预览 |
+
+租用得到的是无需运维集群的崩溃恢复、上下文压缩、触发器、预算和审批。但它**不能为自有的副作用工具提供恰好一次语义**。托管运行时可以恢复会话，却无法判断你的支付 API 在崩溃前是否已提交，因此非幂等工具仍需要幂等键；多步骤副作用还需要在工具后方由你自己维护持久化工作流。其他成本是运行框架层的锁定（agents-as-code 文件、会话语义和事件格式均为厂商特有），以及数据驻留或保留方面的缺口；对于受监管数据，这些因素可能在技术比较前就排除某个平台。Bedrock Managed Agents 在 AWS 内运行 OpenAI 的框架，最能说明集成单元正从模型端点转向运行框架。
+
+---
+
 ## 何时需要它
 
-Durable execution（持久化执行）正在成为 *production*（生产）级 agent 可靠性的答案，而 2026 年的落地势头是真实存在的：Temporal 以据称数十亿美元估值完成了一轮大额 D 轮融资，多家主要 AI 产品都基于它构建 agent。一个广泛引用的厂商案例描述了一个 deep-research agent（深度研究智能体）在遇到竞态、脆弱的自定义重试逻辑和陈旧状态 bug 后，**从框架原型迁移到了 durable-execution（持久化执行）引擎**；这是厂商发布的说法，因此可以把方向视为真实存在，而把叙事框架视为厂商视角。
+Durable execution（持久化执行）正在成为 *production*（生产）级 agent 可靠性的答案，而 2026 年的落地势头是真实存在的：继较早的 D 轮融资后，Temporal 于 2026 年 9 月 14 日以 $12.55B 估值完成 $550M 的 E 轮融资；据其报告，8 月有 1.9 万亿次计费动作（同比增长超过 350%）、付费客户超过 4,300 家，OpenAI 对 Temporal 的使用量在不到一年内增长 60 倍（均为公司报告数据）。一个广泛引用的厂商案例描述了一个 deep-research agent（深度研究智能体）在遇到竞态、脆弱的自定义重试逻辑和陈旧状态 bug 后，**从框架原型迁移到了 durable-execution（持久化执行）引擎**；这是厂商发布的说法，因此可以把方向视为真实存在，而把叙事框架视为厂商视角。
 
 但这是一种刻意的复杂度权衡。相关约束（确定性、版本管理风险、全新的测试和监控模型）都是真实存在的，而对于主要是只读、短生命周期或单次执行的 agent，**框架原生 checkpointing（检查点）或队列加幂等键通常就已经足够**，而且运维成本低得多。DBOS 和 Restate 相比完整集群显著降低了进入门槛，所以如果你的顾虑是运维开销，那么库加 Postgres 的方式可能能拿到大部分价值。
 
@@ -88,7 +106,7 @@ Durable execution（持久化执行）正在成为 *production*（生产）级 a
 1. **是否有任何工具调用会产生不可逆的外部副作用**（支付、邮件、部署、工单、跨系统写入）？如果没有：框架级 checkpointing（检查点）或重试/队列可能就足够。若有：继续。
 2. **单次运行是否可能超出你的进程或部署周期，或者必须跨重启等待人工审批？** 如果没有：内存状态加完成时 checkpoint 可能就够了。若有：你需要 durable timers（持久定时器）和持久化暂停。
 3. **在崩溃后把整个 agent 重跑一遍，是否会在成本、重复副作用或数小时进度丢失上不可接受？** 如果是：你需要 replay（重放）和 exactly-once（恰好一次），因此 durable execution（持久化执行）是合理的。
-4. **选择哪一档：** 如果副作用主要是写你自己的 Postgres，而且你希望一次部署完成，选 DBOS；如果需要低运维、HTTP-native（HTTP 原生）的有状态会话，选 Restate；如果偏向事件驱动、TS-first（TypeScript 优先）、AI-native 的速率控制，选 Inngest；如果你全栈都在 AWS 上且能接受声明式状态机，选 Step Functions；如果是大规模、复杂的长期运行流程，并且需要最深入的 agent-framework 集成，选 Temporal；或者如果 agent 主要是带可恢复工具的推理，继续使用框架原生持久性（LangGraph checkpointers）并配合幂等键。
+4. **选择哪一档：** 如果副作用主要是写你自己的 Postgres，而且你希望一次部署完成，选 DBOS；如果需要低运维、HTTP-native（HTTP 原生）的有状态会话，选 Restate；如果偏向事件驱动、TS-first（TypeScript 优先）、AI-native 的速率控制，选 Inngest；如果你全栈都在 AWS 上且能接受声明式状态机，选 Step Functions；如果是大规模、复杂的长期运行流程，并且需要最深入的 agent-framework 集成，选 Temporal；如果数据驻留、保留和定价适合，且倾向于租用循环而非自行运行，可选托管式智能体运行时（Claude Managed Agents、OpenAI Agents API、Bedrock Managed Agents）；如果 agent 主要是带可恢复工具的推理，也可以继续使用框架原生持久性（LangGraph checkpointers）并配合幂等键。
 
 对于简单 CRUD、亚毫秒热路径、纯高吞吐流式处理，或者一个小团队且需求已经被“带死信处理器的队列”覆盖，这通常是过度设计。
 
@@ -106,13 +124,20 @@ Durable execution（持久化执行）正在成为 *production*（生产）级 a
 **优秀答案：**
 当 agent 没有不可逆副作用、运行时长足够短，能够装进进程和部署周期之内，并且失败后简单重跑也可以接受，比如只读研究或摘要 agent 搭配幂等工具时，durable execution（持久化执行）就显得过重。此时我会使用像 LangGraph checkpointer（检查点器）这样的框架原生持久化来恢复 state（状态），再给少量非幂等调用加幂等键，并配合带死信处理器的重试队列。像 Temporal 这样的完整引擎带来的确定性约束和版本管理风险是真实成本，所以我只会在 agent 有不可逆影响、必须跨重启等待人工审批，或者长到崩溃后重跑不可接受时才采用它。如果运维开销是主要阻碍，但我仍然需要持久化，那么像 DBOS 这样的库式方案可以利用现有的 Postgres，在不运行集群的前提下拿到大部分收益。
 
+### 问：你会用 Temporal 构建智能体，还是租用 OpenAI Agents API、Claude Managed Agents 这样的托管式运行时？
+
+**优秀答案：**
+我会将智能体循环与副作用分开考虑。租用循环很有吸引力：无需运维集群就能得到持久会话、上下文压缩、触发器、会话支出上限和由策略评估的审批，而且厂商会针对自己的模型调优运行框架。但我会先核对三件事。合规：OpenAI Agents API 发布时只支持美国数据驻留，没有 Zero Data Retention，对受监管数据可能直接构成限制。语义：托管运行时能恢复会话，却不能保证我的支付或工单工具恰好执行一次，因此它们仍需要幂等键，或在工具接口后方拥有自己的持久工作流。锁定：agents-as-code 文件、事件格式和会话语义都是厂商特有的，以后迁移需要重写，模型选择也会与运行框架选择耦合。我通常采用混合方案：主要进行推理并使用幂等工具的智能体租用循环；不可逆的多步骤操作（退款、资源开通）保留在 Temporal 或 DBOS 工作流中，并作为单个工具暴露给智能体，让必须恰好执行一次的部分处于我能控制的位置。
+
 ---
 
 ## 参考资料
 
 - Resonate, ["From where do deterministic constraints come?"](https://journal.resonatehq.io/p/from-where-do-deterministic-constraints)
 - Restate, ["What is durable execution?"](https://www.restate.dev/what-is-durable-execution)
-- Temporal, [OpenAI Agents SDK integration](https://temporal.io/blog/announcing-openai-agents-sdk-integration) 和 [Series D announcement](https://temporal.io/news/temporal-raises-300M-to-make-agentic-ai-real-for-companies)
+- Temporal, [OpenAI Agents SDK integration](https://temporal.io/blog/announcing-openai-agents-sdk-integration)、[Series D announcement](https://temporal.io/news/temporal-raises-300M-to-make-agentic-ai-real-for-companies) 和 [Series E announcement](https://temporal.io/news/temporal-raises-550m-at-a-12-55b-valuation)
+- OpenAI, [Agents API 概览](https://developers.openai.com/api/docs/guides/agents-api/overview)
+- Anthropic, [Claude Platform 发布说明（Managed Agents）](https://platform.claude.com/docs/en/release-notes/overview)
 - Temporal, [prototype to production-ready agentic AI: a Grid Dynamics case study](https://temporal.io/blog/prototype-to-prod-ready-agentic-ai-grid-dynamics)
 - Google ADK, [Temporal integration](https://adk.dev/integrations/temporal/)
 - LangChain, [durable execution in LangGraph](https://docs.langchain.com/oss/python/langgraph/durable-execution)

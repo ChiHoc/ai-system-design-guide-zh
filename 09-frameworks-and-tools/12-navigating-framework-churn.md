@@ -1,6 +1,6 @@
 # 应对框架更迭
 
-AI orchestration framework（AI 编排框架）的变化速度，往往快于其教学内容更新。LlamaIndex 与 LangChain 在 2024 年都对整个包结构进行了重构，并在一年内移除了最初的核心抽象。结果就是：一门一年前录制的课程，常常在第一次 `import` 时就失败。本文讨论这个问题、它为什么发生，以及如何学习和构建，使你的知识与代码都能经受住这种更迭。
+AI orchestration framework（AI 编排框架）的变化速度，往往快于其教学内容更新。LlamaIndex 与 LangChain 在 2024 年都对整个包结构进行了重构，并在一年内移除了最初的核心抽象；Haystack 在 2026 年 7 月发布的 3.0 版本中也做了同样的事。结果就是：一门一年前录制的课程，常常在第一次 `import` 时就失败。本文讨论这个问题、它为什么发生，以及如何学习和构建，使你的知识与代码都能经受住这种更迭。
 
 一句话版本：**frameworks（框架）是你这个季度交付所依赖的东西；primitives（底层原语）才是你长期保留的东西。前者要锁定版本，后者要深入学习。**
 
@@ -8,7 +8,7 @@ AI orchestration framework（AI 编排框架）的变化速度，往往快于其
 
 - [触发点：为什么一个课程在全新安装后会坏掉](#触发点-为什么一个课程在全新安装后会坏掉)
 - [到底发生了什么变化](#到底发生了什么变化)
-  - [2026 年 8 月快照](#_2026-年-8-月快照)
+  - [2026 年 10 月快照](#_2026-年-10-月快照)
 - [为什么课程和教程会过时](#为什么课程和教程会过时)
 - [这个教程还新吗？30 秒检查](#这个教程还新吗-30-秒检查)
 - [在更迭中存活：锁定、冻结、隔离](#在更迭中存活-锁定、冻结、隔离)
@@ -43,20 +43,34 @@ TypeError: Can't instantiate abstract class OpenAI with abstract method _prepare
 
 ## 到底发生了什么变化
 
-### 2026 年 8 月快照
+### 2026 年 10 月快照
 
-版本更迭不只会让教程失效，也会让整套产品能力下线。这个时间窗口内的四项变化值得直接记入日历，而不是等到运行时才发现：
+版本更迭不只会让教程失效，也会让整套产品能力下线，还会在代码不变时改变行为。2026 年 8 月和 9 月的以下两组变化值得直接记入日历，而不是等到运行时才发现。
+
+**退役的产品能力与截止日期**
 
 | 变化 | 日期 | 意味着什么 |
 |---|---|---|
-| **OpenAI Assistants API 停用** | 2026 年 8 月 26 日 | 经过十二个月的弃用期后从 API 中移除。替代方案是 Responses API 加 Conversations API，而且 Threads **没有自动迁移方案**：需要用 Responses 调用重建 assistants，并重新创建 threads。任何仍在使用 Assistants、Threads 和 Runs 的教程、图表或示例，描述的都是已经消失的 API |
-| **OpenAI Evals Platform、Agent Builder 和 Reusable Prompts 关闭** | 2026 年 11 月 30 日 | Evals 将于 10 月 31 日进入只读状态。OpenAI 建议评估用户转向第三方开源工具 Promptfoo，Agent Builder 用户转向 Agents SDK。可以理解为 OpenAI 正在退出托管评估和可视化智能体构建，并向 SDK 收拢 |
-| **Agents SDK 默认模型变更** | 2026 年 8 月 11 日 | Python Agents SDK 0.20.0 将默认模型改成了成本更低的层级。对于从未显式指定模型的用户而言，默认模型变更就是一种无声的行为变化，而这正是代码本身不会发出提醒的更迭类型 |
-| **可观测性整合** | 2026 年 8 月 13 日 | Dynatrace 宣布达成协议，将以约 9.15 亿美元收购 Arize AI。可以预期，开源和供应商评估工具生态还会继续整合；选择工具时应确保数据能够导出 |
+| **OpenAI Assistants API 已关闭** | 2026 年 8 月 26 日（已执行） | OpenAI 和 Azure OpenAI 上的 `/v1/assistants`、threads 与 runs 现已报错。替代方案是 Responses API 加 Conversations API，Threads **没有自动迁移方案**。向量存储仍可用：Responses 的 `file_search` 接收 `vector_store_ids`，因此团队需要重写编排逻辑，而非重建索引。任何仍使用 Assistants、Threads 和 Runs 的教程描述的都是已经消失的 API |
+| **OpenAI Evals、Agent Builder 与 Reusable Prompts** | Evals 于 2026 年 10 月 31 日转为只读；三者于 11 月 30 日关闭 | OpenAI 的迁移指南建议评估用户转向 Promptfoo；OpenAI 已于 2026 年 3 月同意收购该工具（仍采用 MIT 许可，9 月 18 日版本为 0.123.1）。这意味着整合到 OpenAI 拥有的工具，而非退出。Agent Builder 用户可转向 Agents SDK 或 ChatGPT Workspace Agents。值得注意的是，OpenAI 自家迁移指南中 Assistants 的映射目标 Reusable Prompts，也将在 Assistants 关闭约三个月后的 2026 年 11 月 30 日关闭 |
+| **OpenAI 自助微调逐步退出** | 现有客户自 2027 年 1 月 6 日起不能创建新任务 | 在 OpenAI 上“以后再微调闭源模型”已不再是可行计划。定制化转向开放权重模型微调（如通过 Fireworks 或 Baseten 使用 LangSmith Fine-Tuning），或提示与上下文方法 |
+| **模型快照** | OpenAI API 旧模型批次于 2026 年 10 月 23 日退役（4 月 22 日宣布）：`gpt-4o-2024-05-13`、`gpt-4-turbo`、`gpt-4-0613`、`gpt-4-1106-preview`、`gpt-3.5-turbo-0125`、`gpt-4.1-nano`、`o1`、`o1-pro`、`o3-mini`、`o4-mini` 和 `gpt-image-1`。Claude Sonnet 4.5 于 2026 年 11 月 30 日退役（Claude API 与 Foundry）；`gpt-5-2025-08-07`、`o3-2025-04-16` 及同批快照于 12 月 11 日退役 | 锁定 2023 至 2025 年快照的系统在 2026 年底前面临硬截止日期。10 月 23 日的批次还包括裸别名 `gpt-4` 和 `gpt-3.5-turbo`，以及 GPT-3.5 Turbo、GPT-4、GPT-4.1-nano、o4-mini、`babbage-002`、`davinci-002` 的微调版本；OpenAI 列出的替代模型是 `gpt-5.6-sol`、`gpt-5.6-terra` 或 `gpt-5.6-luna`，图像模型则为 `gpt-image-2.5-sunburst` 或 `gpt-image-2.5-flare`。`gpt-5.4-cyber` 已于 10 月 1 日移除，通知期约三周，短于 OpenAI 对专用模型声明的三个月 |
+| **同一模型在不同云上的生命周期** | 持续变化 | Claude Opus 4.1 于 2026 年 8 月 5 日退出 Claude API，但在 Bedrock 上可运行至 2027 年 1 月 8 日（扩展使用价格从 10 月 8 日上调）。2026 年 9 月 7 日起推出的 Bedrock 模型，其最早停用时间与 Legacy 期可能只有 6 个月或 45 天。应按（模型、平台）组合跟踪生命周期，而非只按模型跟踪 |
+| **所有权变化** | Dynatrace 同意收购 Arize（8 月 13 日，9.15 亿美元）；NVIDIA 确认收购 Hugging Face（9 月 3 日，129.3 亿美元，未公布交割日期） | 选择可导出数据的可观测性工具，并镜像所依赖的模型与数据集，不要假设模型社区平台会始终保持中立 |
 
-耐久的经验与本章针对 import 给出的建议相同：**固定你所依赖的版本，并订阅关键路径中每一家供应商的弃用动态**。Assistants 停用提前了整整一年宣布，因此真正会被它打断的，是那些从未阅读通知的团队。
+**无声的行为变化**
 
-两次重构定义了现代的 churn（快速更迭）现象。下面的版本号截至 2026 年 6 月是准确的；请把它们视为一个快照，因为它们还会继续变化。
+| 变化 | 日期 | 代码为何不会提醒你 |
+|---|---|---|
+| **默认模型切换** | 2026 年 8 月 11 日至 9 月 29 日 | OpenAI Agents SDK 0.20.0 将 `gpt-5.6-luna` 设为隐式默认值；Claude Code 将 Opus 5.5（2.1.280）和 Sonnet 5.5（2.1.284）设为默认值；Codex CLI rust-v0.159.1 切换为 GPT-6.1 Sol；Strands harness 包转向 Claude Opus 5。未显式设置模型的调用者都会换用新模型。Azure Foundry 将于 2026 年 12 月 9 日把 `gpt-4o` 2024-05-13 Standard 部署自动升级到 `gpt-5.6-sol` |
+| **提供方 SDK 的传输层切换** | OpenAI Python SDK 3.0.0（8 月 12 日）与 Anthropic Python SDK 1.0.0（8 月 20 日） | 两者都转向 `httpx2`。除非在任何代码导入 `httpx` 之前运行 `httpx2.alias_httpx()`（Anthropic 迁移指南），OpenTelemetry 的 HTTPX 插桩、Sentry、`respx`、`pytest-httpx` 和 `vcrpy` 可能悄悄漏掉 SDK 调用。缺失的 span 和未被 mock 的真实调用不会自动报错 |
+| **采样参数被移除** | Anthropic SDK 1.0（8 月 20 日）、Gemini API（7 月 21 日）、GPT-6 Astra（9 月 3 日） | `temperature`、`top_p`、`top_k` 已从 Anthropic Messages 方法签名中移除（会触发 `TypeError`），在 Gemini API 中被弃用，在 Astra 上不受支持。新的控制面是 effort 或 thinking level |
+| **强制工具选择被拒绝** | Claude Fable 5.1（9 月 1 日）、Opus 5.5（9 月 22 日）、Sonnet 5.5（9 月 28 日） | `tool_choice` 的 `any` 或 `tool` 类型会返回 400；在合作方包修复之前，这会破坏通过强制工具调用实现的框架结构化输出路径（`langchain-anthropic` 1.7.3 与 1.7.5） |
+| **MCP Python SDK 2.0** | 2026 年 7 月 28 日 | `pip install mcp` 现在解析到 2.x，`FastMCP` 改名为 `MCPServer`，框架在数周内跟进（OpenAI Agents SDK 0.20.0、DSPy 3.3.1、LangChain 1.4.0）。完成迁移前可锁定 `mcp<2` |
+
+耐久的经验与本章针对 import 给出的建议相同：**固定你所依赖的版本，包括模型 ID，并订阅关键路径中每一家供应商及云平台的弃用动态**。Assistants 停用提前了整整一年宣布，因此被它打断的是那些从未阅读通知的团队。无声变化更难发现：只有评估框架和遥测检查才能捕捉。
+
+三次重构定义了现代的 churn（快速更迭）现象。下面的版本号附有发布日期；请把它们视为一个快照，因为它们还会继续变化。
 
 ### LlamaIndex
 
@@ -75,17 +89,22 @@ TypeError: Can't instantiate abstract class OpenAI with abstract method _prepare
   Settings.llm = llm
   Settings.embed_model = embed
   ```
-- **Workflows（2025 年 6 月达到 1.0，如今已是 2.x）：新的应用层。** 事件驱动、类型化状态的 agentic orchestration（代理式编排）被拆出为独立的 `llama-index-workflows` 包。注意很多总结里常见的修正错误：达到 1.0 并进入 2.x 的是 *Workflows*；核心框架本身到 2026 年中期仍在 0.x 线（`llama-index` 大约在 0.14.x），并不是“1.x”线。
+- **Workflows（2025 年 6 月达到 1.0，如今已是 2.x）：新的应用层。** 事件驱动、类型化状态的 agentic orchestration（代理式编排）被拆出为独立的 `llama-index-workflows` 包。注意很多总结里常见的修正错误：达到 1.0 并进入 2.x 的是 *Workflows*；核心框架本身仍处于 0.x 版本线（`llama-index` 0.14.25，于 2026 年 9 月 21 日发布），并非“1.x”线。该公司在 2026 年 9 月表示，目前主要投入解析与抽取产品，因此核心框架的发布节奏已放缓。`llama-index-workflows` 2.25.0 于 2026 年 9 月 25 日发布。
 - **Codemod：** `llamaindex-cli upgrade <dir>` 可以自动重写旧 import。
 
 ### LangChain
 
 - **包拆分。** `langchain-core`（Runnables、消息、基础接口，也是唯一带有向后兼容保证的包）、`langchain-community`（第三方集成）、`langchain`（chains 和 agents），以及按厂商划分的 partner packages（`langchain-openai`、`langchain-anthropic` 等）。LCEL，`|` 管道式组合模型，取代了旧的 `Chain` 子类。
 - **v0.3（2024 年 9 月）：Pydantic v1 到 v2。** 传入 Pydantic v1 模型的用户代码会出问题。
-- **v1.0（2025 年 10 月）：agent 运行在 LangGraph 上。** 构建 agent 的推荐方式变成了 `create_agent`，它运行在 LangGraph runtime（运行时）和 middleware（中间件）系统之上。旧版 chains（`LLMChain`、`RetrievalQA`、`AgentExecutor`、`initialize_agent`）被移到了 `langchain-classic`，虽已弃用但没有删除。到 2026 年中期，当前的 `langchain` 大约是 1.3.x，并且要求 Python 3.10+。
+- **v1.0（2025 年 10 月）：agent 运行在 LangGraph 上。** 构建 agent 的推荐方式变成了 `create_agent`，它运行在 LangGraph runtime（运行时）和 middleware（中间件）系统之上。旧版 chains（`LLMChain`、`RetrievalQA`、`AgentExecutor`、`initialize_agent`）被移到了 `langchain-classic`，虽已弃用但没有删除。`langchain` 1.4.3 于 2026 年 9 月 28 日发布，要求 Python 3.10+；1.4.0 于 9 月 3 日将 MCP adapter 移入核心包。LangChain 0.3 和 LangGraph 0.4 仅提供安全与关键问题修复，支持将于 2026 年 12 月结束。
 - **弃用映射：** `LLMChain` 对应 LCEL 管道（`prompt | llm | parser`）；`RetrievalQA` 对应 `create_retrieval_chain`；`AgentExecutor` / `initialize_agent` 对应 `create_agent`；旧版 `Memory` 类对应 LangGraph checkpointers（检查点器）。
 
-每个框架更深层的细节见 [LangChain 深入解析](01-langchain-deep-dive.md) 和 [LlamaIndex 章节](04-llamaindex.md)。这里的重点是这个 *pattern*（模式）：单体拆成 core 加插件，原本方便的抽象被移除，agent 层转向 graph runtime（图运行时）。两大主流框架都大致在相隔一年时走上了这条路。
+### Haystack
+
+- **3.0（2026 年 7 月 20 日）：agent 接管执行。** 独立的 `ToolInvoker` 被移除，工具执行由 `Agent` 端到端负责，并提供生命周期钩子（`before_run`、`before_llm`、`before_tool`、`after_tool`、`on_exit`、`after_run`）、支持渐进式披露的 `SkillToolset`、作为 `ConfirmationHook` 的人在环确认，以及用于卸载大型工具输出的 `ToolResultOffloadHook`。
+- **Pipeline 合并，集成拆分。** `Pipeline` 与 `AsyncPipeline` 合并为一个类，旧版 generators 被移除；Sentence Transformers、Hugging Face、Whisper、OpenTelemetry 和 Datadog tracer 等 30 个组件移至独立发布的集成包。3.3.0 于 2026 年 10 月 1 日发布。
+
+每个框架更深层的细节见 [LangChain 深入解析](01-langchain-deep-dive.md) 和 [LlamaIndex 章节](04-llamaindex.md)。重点在于这一模式：单体拆成 core 加插件，原本方便的抽象被移除，agent 层转向功能更丰富的运行时。三大框架大约相隔一年先后如此演进；实验性 SDK 也在经历同样的快速变化：OpenAI Agents SDK 的 0.x 版本在 2026 年 8 月的八天内先后更改默认模型和客户端接口，DSPy 3.4 则移除了不到八周前才由 3.3 引入的实验性 API。
 
 ---
 
@@ -98,7 +117,7 @@ TypeError: Can't instantiate abstract class OpenAI with abstract method _prepare
 - **Moved imports（导入位置迁移）**（`cannot import name ... from 'llama_index'`）：符号已经迁移到 `.core` 或某个合作方 package。
 - **Removed symbols（符号被移除）**（`ImportError: ServiceContext`，或引用 `LLMChain` / `RetrievalQA`）：抽象被删除了，不只是移动。
 - **Partial-upgrade mismatches（部分升级不一致）**（`Can't instantiate abstract class ...`）：核心包和集成包不同步漂移；通常的修复方式是一起升级整套包（`pip install -U llama-index llama-index-llms-openai`）。
-- **Model-name deprecations（模型名弃用）**（`gpt-3.5-turbo-0301` 不再可用）：教程固定的是一个 provider 之后已经退役的 model ID。这也是同一种更迭，只是更底层一层。
+- **Model-name deprecations（模型名弃用）**（`gpt-3.5-turbo-0301` 不再可用；常见于 2023 年教程的 `gpt-3.5-turbo` 和 `gpt-4` 别名将于 2026 年 10 月 23 日关闭；`claude-sonnet-4-5-20250929` 将于 2026 年 11 月 30 日退役）：教程固定的是 provider 后来已退役的模型 ID。这也是同一种更迭，只是发生在更底层。
 
 大多数教学平台只会把版本约束编码在 bundled lockfile（随包附带的锁文件）或冻结的托管环境里，而不会明显展示“本课程录制于 X 版本”这样的提示。所以在代码报错之前，陈旧性是看不出来的。
 
@@ -191,6 +210,16 @@ TypeError: Can't instantiate abstract class OpenAI with abstract method _prepare
 
 **强回答：**
 我会看这个框架到底在给我带来什么。它最初的价值是平滑不一致的 provider APIs，但工具调用和结构化输出已经在主要 SDK 之间趋同，所以这部分价值在下降。如果我需要大量集成能力，或者需要开箱即用的脚手架来快速推进，那 framework 是值得的。如果我只是做少量模型调用，或者在写库代码，原始 provider SDK 会更稳定，也更容易 debug。生产上我通常会把 SDK 包在自己的一层 thin interface（薄接口）后面，这样框架或模型切换时只会影响一个模块。不管选什么，我都会 pin + lock，并把 framework-specific（框架相关）代码隔离起来，因为我默认这个季度的 blessed API（官方推荐 API）迟早会被弃用。
+
+### Q: 某个 agent 的单任务成本上涨了 40%，语气也一夜之间变了，但你这边没有改代码或依赖。发生了什么？如何确保下次不会漏掉？
+
+**强回答：**
+“我们这边没变”通常只是说我们没有改动**锁定的内容**。我会先检查：是否有 SDK 或 harness 隐式解析了模型、使用了 `-latest` 别名，或云平台自动升级（例如 Foundry 把 `gpt-4o` 2024-05-13 部署切到 `gpt-5.6-sol`）；CI 或开发机上的浮动工具版本是否更新（Claude Code 和 Codex CLI 都在 2026 年 9 月更换过默认模型）；以及提供方是否在服务端把已退役的快照重定向到了其他模型。如果 trace 记录了每次调用实际解析出的模型 ID，就能很快定位，因此我记录提供方返回的模型，而不是仅记录请求的模型。预防要做到三点：显式指定所有模型 ID；锁定每个 SDK 和 agent CLI 的版本，并让升级通过评测门；监控单任务成本、单任务 token 数和缓存命中率，一旦静默切换，当天就会触发异常告警。
+
+### Q: 设计一个能应对不同供应商和云平台退役日历的模型注册表。
+
+**强回答：**
+关键是记录单位：每条生命周期记录对应一个（模型、平台、区域）组合，而不是只对应模型，因为同一模型在供应商 API、Bedrock、Google Cloud 和 Foundry 上可能有不同退役日期（Claude Opus 4.1 于 2026 年 8 月退出 Claude API，但在 Bedrock 上可运行至 2027 年 1 月）。每条记录保存固定 ID、“不早于”下限、已公布的关闭日期、供应商通知政策（OpenAI 对 GA 模型承诺 6 个月、专用变体 3 个月，preview 最短 2 周；Anthropic 为 60 天；2026 年 9 月 7 日起推出的 Bedrock 模型可能只有 6 个月或 45 天），以及经评测批准的替代模型。每日任务抓取弃用页面和 changelog，并与注册表比对；在剩余 90、60、30 天时告警。只有当回退目标不会早于主模型退役时，回退路由才有效。Bedrock 的 Legacy 规则还要求额外检查：模型进入 Legacy 后，已有客户若连续 15 天未使用也可能失去访问权限，因此灾备路由要么对 Legacy 模型发送合成心跳，要么更好地提前替换它。
 
 ---
 

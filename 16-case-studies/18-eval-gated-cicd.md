@@ -6,15 +6,17 @@
 
 一家 AI-first SaaS 公司基于 RAG 流水线加上 agent loop（智能体循环）交付了面向客户的问答机器人。六个月前，团队发布了一个“较小”的提示词（prompt）改动，导致某类合同问题的答案质量下降，客户发现后流失了一笔 400 万美元的续约。事后复盘发现三点：该改动未在该合同类型测试集上评估；点检中使用的 LLM-as-a-judge 指标漂移了 11 分且未被发现；需要 2 天回滚的修复花了 9 天完成，因为没有可安全回退的基线。
 
-来自 2026 年 5 月的约束条件：
+约束条件：
 
 - 4 个团队共 28 名工程师；每周约 50 个 PR 触及 AI surface
 - 监管行业客户不接受其领域查询出现回归
-- 每个 PR 的评估预算：模型支出低于 40 美元；全量运行预算：低于 1200 美元
+- 每个 PR 的评估预算：模型支出低于 40 美元；每月评估总预算约 15,000 美元
 - PR 到合并的 p95 目标（含评估）：低于 90 分钟
 - 每季度对评估方法进行审计签字
 
-2026 年 5 月的现实是，评估门禁（eval-gated）CI 不再是“nice-to-have”。Hamel Husain 的 [eval 博客系列](https://hamel.dev/blog/posts/evals/)、Eugene Yan 的文章（[evals](https://eugeneyan.com/writing/evals/)）以及用于统计修正的 [judgy 库](https://github.com/ai-evaluation/judgy) 已基本收敛成一套作法。Phoenix、Langfuse、Braintrust 和 Galileo 都支持 CI 集成。问题不再是“要不要做”，而是“如何在不把周期时间翻倍的情况下落地”。
+评估门禁（eval-gated）CI 不再是“nice-to-have”。Hamel Husain 的 [eval 博客系列](https://hamel.dev/blog/posts/evals/)、Eugene Yan 的文章（[evals](https://eugeneyan.com/writing/evals/)）以及用于统计修正的 [judgy 库](https://github.com/ai-evals-course/judgy) 已基本收敛成一套作法。Phoenix、Langfuse、Braintrust 和 Galileo（Cisco 收购后现为 Splunk Agent Observability）都支持从 CI 运行评估。问题不再是“要不要做”，而是“如何在不把周期时间翻倍的情况下落地”。
+
+底层工具更迭频繁，因此要自己掌握关键资产。OpenAI 托管的 Evals 将于 2026 年 10 月 31 日变为只读，并于 11 月 30 日关闭（OpenAI 指向其在 3 月同意收购的开源工具 Promptfoo）；Dynatrace 于 8 月同意收购 Phoenix 的开发商 Arize。黄金集、裁决提示词和校准标签都存放在我们的仓库里，使运行器能在一个迭代周期内替换。
 
 ## 架构
 
@@ -53,8 +55,8 @@ flowchart TB
 |-------|------|---------|
 | Golden sets | 仓库内 YAML，每个 surface 1200 到 4000 条用例 | 稳定的测试基线 |
 | 代码评估器 | Pytest + 自定义断言 | 低成本、确定性检查 |
-| LLM judges | Claude Sonnet 4.7 用于裁决 | 主观质量评估 |
-| Statistical correction | [judgy](https://github.com/ai-evaluation/judgy) | 将裁决分数转换为带置信区间（CI）的估计值 |
+| LLM judges | Claude Sonnet 5.5（固定模型 ID 和 effort），以 GPT-6 Sol 作为已校准的备用模型 | 主观质量评估 |
+| Statistical correction | [judgy](https://github.com/ai-evals-course/judgy) | 将裁决分数转换为带置信区间（CI）的估计值 |
 | Pipeline | GitHub Actions + 自定义 runner | CI 编排 |
 | Trace store | Langfuse | PR 级可观测性 |
 | Annotation | Argilla 自托管 | 用于裁决校准的人类重标注 |
@@ -77,7 +79,7 @@ flowchart TB
 
 ### 2. 裁决模型的 train/dev/test 划分
 
-LLM 裁决模型本身也是一个有提示词参数和 few-shot 示例的模型。我们把裁决提示词视为一个模型来做 train/dev/test 纪律：60% 的人工标注用例用于调优裁决提示词，20% 用于选择最佳提示词变体，20% 作为 hold-out 集，仅在重大裁决提示词变更前咨询。这个模式是 [judgy 方法论](https://github.com/ai-evaluation/judgy) 与 Hamel 的 eval 文章的核心。
+LLM 裁决模型本身也是一个有提示词参数和 few-shot 示例的模型。我们把裁决提示词视为一个模型来做 train/dev/test 纪律：60% 的人工标注用例用于调优裁决提示词，20% 用于选择最佳提示词变体，20% 作为 hold-out 集，仅在重大裁决提示词变更前咨询。这个模式是 [judgy 方法论](https://github.com/ai-evals-course/judgy) 与 Hamel 的 eval 文章的核心。
 
 重校准节奏：每 30 天，50 条新用例由 2 位人工重标注（Cohen's kappa 要求高于 0.7）；若 dev 集上的裁决准确率低于 80%，则重新调优。
 
@@ -85,7 +87,7 @@ LLM 裁决模型本身也是一个有提示词参数和 few-shot 示例的模型
 
 在我们领域，主观类别上的原始 LLM-as-a-judge 准确率约在 75% 到 88% 之间。原始裁决分数存在偏差。`judgy` 使用 hold-out 集上的混淆矩阵（confusion matrix）计算真实通过率的修正估计，并返回置信区间。我们以 CI 下界是否落在容忍区间内作为门禁条件。这意味着我们不会因裁决噪声本身就阻塞 PR，也不会因为裁决器漏检而通过真正回归。
 
-计算方式：若裁决器在 hold-out 集上的精确率（precision）为 85%，召回率（recall）为 92%，新构建的裁决报告通过率为 89%，修正后估计约为 87%，95% 置信区间约为 83% 到 91%。当 CI 下界与 `main` 相差不超过 2 分时允许合并。([Reference: judgy README math](https://github.com/ai-evaluation/judgy#statistical-correction))
+计算方式：使用在 hold-out 集上估计的真正率 TPR（让好答案通过）和真负率 TNR（让坏答案失败）：修正值 = (观测值 + TNR - 1) / (TPR + TNR - 1)。若 TPR 为 99%，TNR 仅为 75%（极少误判好答案，却会放行四分之一的坏答案），报告的 89% 通过率修正后约为 86.5%，95% 置信区间约为 82% 到 91%。宽松的裁决器会抬高通过率，修正则会消除这种偏差。当 CI 下界与 `main` 相差不超过 2 分时允许合并。([参考：judgy README 中的数学说明](https://github.com/ai-evals-course/judgy#how-it-works))
 
 ### 4. 故障模式分类作为断言面
 
@@ -100,7 +102,9 @@ LLM 裁决模型本身也是一个有提示词参数和 few-shot 示例的模型
 - 主分支 `main` 每晚定时任务执行 100% 运行，捕获潜在漏网行为
 - 新裁决提示词变更会触发在冻结历史集合上 100% 运行
 
-这将每个 PR 的成本限制在 40 美元以下，每周总成本低于 1200 美元。
+这将每个 PR 的成本限制在 40 美元以下，默认 PR 流量每周约需 1,250 美元（见下文成本模型）。
+
+对于二元评估维度，现在还有更便宜的一层裁决模型：**决策模型**直接返回带概率的类型化是/否或类别，而非生成文本。2026 年 9 月的一项比较（arXiv 2609.29769）发现，LLM 评分准则裁决器的成本是 TypeSafe Jev 决策模型的 16 至 325 倍（Jev 处于早期访问阶段，每 100 万输入 token $0.042）；在 27 组配对比较中，最多 8 组存在显著准确率差异。Jev 在二元清单标准上最强，在有序等级标准上落后；两者级联最多提升 2.7 分。我们正试点将它用于格式违规和拒答两个维度，并沿用所有裁决器都需经过的校准门禁。分级维度以及评审需要书面理由的情形，仍使用 LLM 裁决器。
 
 ### 6. 裁决提示词漂移检测
 
@@ -114,7 +118,7 @@ LLM 裁决模型本身也是一个有提示词参数和 few-shot 示例的模型
 
 ### 7. 缓存评估流水线
 
-典型的 Golden set 用例会产出一个输出后再被裁决。该输出在给定提示词和模型版本下是确定性的。我们以（prompt-hash, model-version）为键缓存到（output, judge-score），使同类评估重跑几乎免费。仅改动编排代码（非 prompt）时，PR 的缓存命中率约为 70%，该类变更的成本下降约 3 倍。
+典型的 Golden set 用例会产出一个输出后再被裁决。该输出并非确定性的（当前 Claude 模型拒绝非默认 temperature，GPT-6 Astra 则完全不接受 temperature），但缓存会把每个键对应的一次已记录输出作为参考。我们以（prompt-hash、模型 ID、effort、供应商 epoch）为键缓存（output、judge-score），使同类评估重跑几乎免费。供应商 epoch 是计数器：当厂商更新日志报告在模型 ID 不变的情况下调整服务行为时，就递增它。2026 年 9 月 25 日，OpenAI 修复了 GPT-6 Sol 和 Luna 的图像编码缺陷，却未改变模型 ID，并要求客户重跑图像评估；仅以模型 ID 为键的缓存会一直返回上线初期故障路径的结果。仅改动编排代码（非 prompt）时，PR 的缓存命中率约为 70%，该类变更的成本下降约 3 倍。
 
 ### 8. PR 级可观测指标
 
@@ -151,7 +155,7 @@ sequenceDiagram
 
 ### F1: 裁决提示词漂移未被发现
 
-模型升级后裁决器逐渐低估幻觉。缓解：每月 hold-out 重放；裁决者一致性跟踪；为受保护分支提供“冻结裁决器（freeze judge）”模式，即使新模型可用也固定裁决模型版本。此前将我们击垮的漂移事件正是如此发生；现在可在一个周期内发现。
+模型升级后裁决器逐渐低估幻觉。缓解：每月 hold-out 重放；裁决者一致性跟踪；为受保护分支提供“冻结裁决器（freeze judge）”模式，即使新模型可用也固定裁决模型版本及 effort。必须明确固定 effort，因为不同版本的默认值会变化（Claude Opus 5 默认 `high`，Opus 5.5 默认 `medium`），默认值静默变化同样属于裁决器变化。此前将我们击垮的漂移事件正是如此发生；现在可在一个周期内发现。
 
 ### F2: 评估集过拟合
 
@@ -163,7 +167,7 @@ sequenceDiagram
 
 ### F4: 意外全量运行导致成本失控
 
-每个 PR 都带 `full-eval` 标签会使成本翻倍。缓解：该标签需要 CODEOWNERS 审批；自动提醒会通知打标签人。我们还设置每月评估支出硬上限为 5000 美元，并拒绝启动会超出上限的任务。
+每个 PR 都带 `full-eval` 标签会使成本翻倍。缓解：该标签需要 CODEOWNERS 审批；自动提醒会通知打标签人。我们还设置每月评估支出硬上限为 17,000 美元（比计划高约 13%），并拒绝启动会超出上限的任务。
 
 ### F5: 阻塞率过高导致开发者选择性忽略
 
@@ -173,9 +177,11 @@ sequenceDiagram
 
 某个 hold-out 案例被当作 few-shot 示例使用。缓解：hold-out 集保存在独立仓库并有独立访问列表；工程师无权读取，仅评估 runner 拥有 deploy key。hold-out 漏检报告中只显示哈希，不暴露原始用例。
 
+一旦被测系统带有工具，泄漏也会反向发生：能够搜索、读文件或运行 git 的智能体可能找到答案。2026 年 9 月对 SWE-Bench Pro v1.0 的审计（arXiv 2609.34262）发现，按模型不同，24% 至 73% 的通过运行并非凭自身能力完成，主要因为能从 git 历史中访问参考解答。我们的评估沙箱向智能体提供的索引和文件系统均不包含评估仓库及其历史。
+
 ### F7: 裁决模型退役
 
-供应商宣布裁决模型停服。缓解：至少并行校准两套裁决模型；当退役发生时，我们有 60 天窗口切换，并保持 kappa 阈值。裁决提示词历史和校准数据使切换变为常规流程。
+供应商宣布裁决模型停服。Anthropic 至少提前 60 天通知；OpenAI 对正式发布模型提前 6 个月通知，但预览模型可能只提前 2 周，因此预览模型绝不用来裁决受保护分支。缓解：至少并行校准来自不同厂商的两套裁决模型；退役发生时切换，并保持 kappa 阈值。裁决提示词历史和校准数据使切换变为常规流程。
 
 ### F8: 评估 runner 队列饱和
 
@@ -202,7 +208,7 @@ sequenceDiagram
 - 全量评估（约每周 8 次）：每次 100 美元；每周 800 美元
 - 夜间定时任务：每次 200 美元；每周 1400 美元
 - 裁决重校准：每月 50 美元
-- 合计：约每月 14K 美元
+- 合计：每周约 3,450 美元，或每月约 15K 美元
 
 这在防止一个回归后即可回本。我们对丢失的 400 万美元续约进行的事后估算表明，即使每年只避免一次，也有明显收益。
 
@@ -242,11 +248,11 @@ sequenceDiagram
 - Hamel Husain, [A field guide to rapidly improving AI products](https://hamel.dev/blog/posts/field-guide/)
 - Eugene Yan, [Evals: Constructed for LLM apps](https://eugeneyan.com/writing/evals/)
 - Eugene Yan, [LLM-as-judge](https://eugeneyan.com/writing/llm-evaluators/)
-- [judgy library](https://github.com/ai-evaluation/judgy)
+- [judgy library](https://github.com/ai-evals-course/judgy)
 - [Phoenix evals](https://docs.arize.com/phoenix/evaluation/concepts-evals)
 - [Langfuse evaluations](https://langfuse.com/docs/scores/overview)
 - [Braintrust](https://www.braintrust.dev/docs)
-- [Galileo evaluate](https://www.rungalileo.io/blog/llm-evaluation)
+- Galileo（现为 Splunk Agent Observability），[在代码中运行实验](https://docs.galileo.ai/sdk-api/experiments/running-experiments)
 - Zheng et al., [Judging LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)
 - [Argilla annotation platform](https://docs.argilla.io/)
 - [pytest-html report integration](https://pytest-html.readthedocs.io/)

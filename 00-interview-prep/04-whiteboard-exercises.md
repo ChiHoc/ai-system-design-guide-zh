@@ -11,8 +11,9 @@
 - [练习 5：实时内容审核](#练习-5-实时内容审核)
 - [练习 6：多租户 AI 平台](#练习-6-多租户-ai-平台)
 - [练习 7：大规模语义搜索](#练习-7-大规模语义搜索)
-- [练习 8：面向生产级 LLM（大语言模型）产品的评估流水线](#练习-8-生产级-llm-产品的评估流水线) ⭐ *NEW*
-- [练习 9：长运行 Agent 的记忆与状态](#练习-9-长运行-agent-的记忆与状态) ⭐ *NEW*
+- [练习 8：面向生产级 LLM（大语言模型）产品的评估流水线](#练习-8-生产级-llm-产品的评估流水线)
+- [练习 9：长运行 Agent 的记忆与状态](#练习-9-长运行-agent-的记忆与状态)
+- [练习 10：单 GPU 上的推理批处理服务](#练习-10-单-gpu-上的推理批处理服务) ⭐ *NEW*
 - [白板题提示](#白板练习提示)
 
 ---
@@ -148,8 +149,17 @@ Each chunk inherits parent document permissions.
 **4. Embedding：**
 ```
 Multilingual requirement suggests:
-- Model: Cohere embed-v3 (multilingual, good quality)
-- Alternative: OpenAI text-embedding-3-large
+- Model: Cohere Embed 5 (embed-v5.0-pro: 100+ languages, 128K
+  context, $0.12/1M text tokens)
+- Alternatives: voyage-4-large ($0.12/1M) or gemini-embedding-2;
+  self-hosted Nemotron 3 Embed 8B (NVIDIA reports #1 on RTEB
+  Multilingual) if text cannot leave the VPC
+- Decide with a bake-off on real Spanish and Mandarin queries,
+  not leaderboard averages
+
+Backfill cost: 50M chunks × ~512 tokens ≈ 26B tokens, about $3K
+at $0.12/1M. Re-embedding is cheap; the re-index time is what
+you plan around.
 
 Batch embedding:
 - Process in batches of 100 chunks
@@ -164,7 +174,10 @@ Pinecone or Qdrant for this scale.
 Selection criteria:
 - Metadata filtering: Critical for permissions
 - Scale: 10M docs × 5 chunks = 50M vectors
-- Hybrid search: Needed for keyword queries
+- Hybrid search: Needed for keyword queries. Pinecone's full-text
+  search (GA September 2026) ranks by one scoring type per query,
+  so run BM25 and vector searches separately and fuse client-side
+  with RRF
 
 Schema:
 - Vector: embedding
@@ -226,9 +239,11 @@ def retrieve(query: str, user_id: str, top_k: int = 20) -> List[Chunk]:
 
 **3. 重排序：**
 ```
-Rerank top-20 to get top-5 with cross-encoder.
-Model: bge-reranker-v2-m3 (multilingual)
-Latency budget: ~100ms
+Rerank top-20 to get top-5 with a cross-encoder.
+Model: a hosted 32K-context reranker (Cohere Rerank 4 Fast, Voyage
+rerank-3) or self-hosted bge-reranker-v2-m3 (multilingual, open
+weights); verify on Spanish and Mandarin queries before choosing
+Latency budget: ~150ms (matches the p95 budget below)
 ```
 
 **4. 生成：**
@@ -249,8 +264,8 @@ QUESTION: {query}
     
     response = llm.generate(
         prompt=prompt,
-        model="gpt-4o",
-        temperature=0.1
+        model="claude-sonnet-5-5",  # pinned ID; the fallback route is another vendor
+        effort="low",               # API default is "high"; unset, it eats the latency budget
     )
     
     return format_with_source_links(response, chunks)
@@ -456,16 +471,29 @@ review_types = [
 
 3. **模型选择：**
 ```
-Primary: Claude Sonnet 4.6 (best price-to-quality for code understanding; Opus 4.8 for the hardest reviews)
-Fallback: GPT-5.5
+Primary: Claude Sonnet 5.5 or GPT-6.1 Sol (both $2/$10 per 1M);
+  pick with a bake-off on a few hundred past PRs whose real
+  review outcomes you know
+Escalation: Claude Opus 5.5 ($4/$20) for large or
+  security-sensitive diffs
+Fallback: the other vendor's mid-tier model, with its own
+  tested prompt
 
 Specialized models:
 - Security scanning: CodeQL + LLM review
 - Style: Linters + LLM explanation
+
+Cost check (50K PRs/day, ~30K input tokens of assembled context
+and ~2K output tokens per PR, $2/$10 model):
+  50K × (30K × $2/1M + 2K × $10/1M) = 50K × $0.08
+  = $4,000/day ≈ $120K/month before caching
+Levers: cache repository conventions and shared files as a
+prefix, skip generated and vendored files, set effort per route
+(thinking tokens bill as output), escalate selectively.
 ```
 
 4. **输出格式：**
-```markdown
+````markdown
 ## Review Summary
 
 ### Critical Issues (must fix)
@@ -481,7 +509,7 @@ Specialized models:
 ### Suggestions (consider fixing)
 - **Line 78-82**: This loop could be simplified using list comprehension
 ...
-```
+````
 
 5. **延迟策略：**
 ```
@@ -493,6 +521,9 @@ Strategy:
 - Stream results as available
 - Cache repository conventions
 ```
+
+6. **审批权限：**
+助手只发表评论；默认不予批准。GitHub 现允许 Copilot 代码审查提交可计入必需审查的批准（自 2026 年 9 月起处于公开预览，默认关闭，由管理员按路径配置）。如果启用类似功能，应仅限低风险路径，绝不让 agent 批准由 agent 编写的 PR，并在每次新推送后撤销该批准。预计还需落实这种职责分离的后续措施。
 
 ---
 
@@ -539,17 +570,23 @@ Confidence threshold: 0.95 for auto-routing
 ```
 Tiered extraction based on document type:
 
-Tier 1: Document AI (Textract/Azure)
+Tier 1: Document AI (Textract, Azure Document Intelligence, or a
+parsing API such as Cohere parse-v5.0 at $1.50 per 1,000 pages)
 - Good for structured forms
 - Fast and cheap
 - Returns confidence scores
 
-Tier 2: Vision LLM (Claude Opus 4.8, GPT-5.5, Gemini 3.1 Pro)
+Tier 2: Vision LLM (Claude Opus 5.5, GPT-6.1 Sol, Gemini 3.8 Flash)
 - Fallback for complex layouts
 - Better for unstructured text
 - More expensive
 
 Combine outputs and cross-validate.
+
+Pin model IDs and re-run the extraction eval on a schedule, not
+only on ID changes: OpenAI fixed an image-encoding bug that had
+degraded image understanding in GPT-6 Sol and GPT-6 Luna on
+September 25, 2026, without changing either ID.
 ```
 
 3. **验证规则：**
@@ -588,6 +625,10 @@ HIPAA/SOC2 requirements:
 - PHI detection and masking
 - Retention policies enforced
 - Access controls with MFA
+- Model-provider retention checked per model, not per vendor:
+  Claude Opus 5.5 and Sonnet 5.5 are available with zero data
+  retention, while Fable 5.1 requires 30-day retention unless
+  Anthropic expressly authorizes ZDR
 ```
 
 ---
@@ -772,6 +813,7 @@ usage_schema = {
     "model": "string",
     "tokens_in": "int",
     "tokens_out": "int",
+    "region": "string",       # residency route; priced higher, see below
     "latency_ms": "int",
     "cost_cents": "decimal"
 }
@@ -787,6 +829,10 @@ async def track_usage(tenant_id: str, operation: Usage):
     # Update real-time counter for rate limiting
     await redis.incr(f"usage:{tenant_id}:{today()}", operation.tokens)
 ```
+
+**区域驻留定价：**
+
+需要区域内处理的企业租户服务成本更高。Anthropic 对 Claude 4.6 及更高版本的仅限美国推理（`inference_geo`）收取 1.1 倍费用；OpenAI 对 2026 年 3 月 5 日后发布模型的数据驻留端点加收 10%；Bedrock 和 Google Cloud 上的区域 Claude 端点也通常比全球端点高约 10%。仅将受驻留要求约束的租户路由到固定区域，在每条使用量记录中保存该路由，并将成本计入对应套餐，避免让全部流量承担溢价。
 
 ---
 
@@ -957,7 +1003,7 @@ Refresh: quarterly, sampled from recent traffic; archive old sets
 **2. 评分设计：**
 
 - 每个维度（忠实度、完整性、语气、安全性）使用二元通过/失败，而不是 1-5 分量表。二元决策可复现；Likert 量表会漂移。
-- 为了规模化使用 LLM-as-judge（以大模型充当评审）：一个廉价模型（Claude Haiku 4.5、GPT-5.5-mini），配合每个维度的 rubric 和 few-shot 锚点示例。
+- 为了规模化使用 LLM-as-judge（以大模型充当评审）：一个廉价模型（GPT-6 Luna、Gemini 3.8 Flash、Claude Haiku 4.5），配合每个维度的 rubric 和 few-shot 锚点示例。
 - judge 校准：每月与人工评分切片做一致性检查。judge-human 一致性本身就是仪表盘指标；低于 85% 一致性时，先修正 judge 提示词，再讨论任何产品结论。
 
 **3. CI 门禁：**
@@ -994,11 +1040,16 @@ Total: well under the 2% budget; the human slice is the
 dominant cost and it is what keeps the judge honest.
 ```
 
+**6. 评估资产留存：**
+
+将数据集、评分量规、评审提示词和门禁阈值保存在自有仓库中，把托管评估平台视为可替换的运行器。OpenAI 托管的 Evals 将于 2026 年 10 月 31 日转为只读，并于 11 月 30 日关闭；OpenAI 建议用户迁移至其在 2026 年 3 月同意收购的 Promptfoo。LangSmith SaaS 自 2026 年 9 月 14 日起最多只保留 180 天的扩展留存追踪数据。要维持跨季度趋势线，必须使用自己可控的存储。
+
 ### 强候选人的区别点
 
 - 他们会先设计数据集，再设计评分器；一个在过时数据集上的优秀 judge 其实什么都测不出来。
 - 他们把 judge 当作一个有自己评估体系的系统组件（与人类的一致性校准），而不是当作真值。
 - 他们会不经提示地指出评估被“刷分”的风险：开发集过拟合、judge 过度迎合、指标收窄、对难例的静默排除。
+- 他们会让被测系统无法接触留出集和参考答案。有工具访问权限的 Agent 会找到答案：2026 年 9 月的一项审计（arXiv 2609.34262）判定，通过的 SWE-Bench Pro v1.0 轨迹中有 24% 至 73% 并非实至名归，比例因模型而异，主要原因是 git 历史暴露了参考解法。
 - 他们会把离线分数和生产结果联系起来，而不是庆祝绿色仪表盘。
 - 他们会量化评估预算，并把昂贵的人工标注放在最有杠杆的地方。
 
@@ -1072,11 +1123,12 @@ Session ends (or hits checkpoint)
 - 每一轮都会基于当前意图构建回忆查询，从 L2 检索 top-k（相似度 + 近期性 + 重要性加权），并从 L3 获取匹配事实。
 - 相关性门控会丢弃弱匹配，而不是硬塞进去；错误记忆对回答的毒害比缺失记忆更严重。
 - 回忆预算：每轮只使用几百 token 的记忆，绝不转储整段转录。
+- 要比较启用记忆与不启用记忆的效果。即使记忆正确且相关，也可能造成伤害：MemTrapBench（arXiv 2608.20202，2026 年 8 月）发现，在其陷阱任务上，测试的每种记忆策略都不如无记忆设置；正确存储的记忆会让 Agent 陷入推理固着，或扭曲其对当前任务的判断。
 
 **4. 遗忘与隐私：**
 
 - 衰减：若未被访问强化，事件性条目的检索权重会随时间降低。
-- 归并：周期性任务会把相关事件合并为摘要（很多“账单问题”事件会变成一条模式笔记）。
+- 归并：周期性任务会把相关事件合并为摘要（很多“账单问题”事件会变成一条模式笔记）。供应商如今将其作为离线“梦境”处理来提供：Anthropic 的 Dreams（研究预览版）以及 Mem0 的 Dream（Pro 和 Enterprise 套餐）。
 - GDPR 删除：到处使用按用户划分的分区键；删除会移除 L2/L3/L4 行并使缓存失效。按用户做硬隔离；记忆绝不会通过相似性在租户间共享。
 
 **5. 规模草图（100 万用户）：**
@@ -1088,7 +1140,8 @@ Storage: ~thousands of L2 entries + hundreds of L3 facts per
 Write path: async after session close; queue + worker pool
 Read path: p95 < 150ms recall (ANN on a per-user slice is small)
 Cost: extraction pass on session close is the main LLM cost;
-  use a cheap model (Haiku 4.5 / V4 Flash) with a strict schema
+  use a cheap model (GPT-6 Luna, Gemini 3.8 Flash, or DeepSeek
+  V4.1-Flash) with a strict schema
 ```
 
 ### 强候选人有何不同
@@ -1097,7 +1150,108 @@ Cost: extraction pass on session close is the main LLM cost;
 - 他们会把更多时间放在写入路径（write path）上，包括抽取（extraction）、去重（dedup）和冲突替代（conflict supersession），而不只是检索（retrieval）。
 - 他们认为错误召回（wrong recall）比没有召回更糟，并据此设计相关性门控（relevance gate）。
 - 他们会把记忆投毒（memory poisoning）视为一个安全攻击面：今天写入、明天被信任的非受信内容需要来源标记（provenance tags）和审查门控（review gates）。
-- 他们会把生产级框架（Mem0、Zep、Letta）作为自建与采购（build-vs-buy）选项来提及，同时仍然能够基于原语进行设计。
+- 他们了解自建与采购选项及其演变，同时仍然能够基于原语进行设计。自 v2.0（2026 年 4 月）以来，Mem0 的开源 SDK 一直只支持 ADD；合并和替代已移至其付费 Dream 功能，因此像上文这样的冲突处理路径仍需保留在你的代码中。Letta 于 2026 年 8 月归档了其 MemGPT 时代的服务器，现在将记忆保存在 Git 支持的 Markdown 文件中，默认没有向量索引。Zep 仍然是一个基于图的选项。
+
+## 练习 10：单 GPU 上的推理批处理服务
+
+### 问题陈述
+
+“为单张 GPU 上的 LLM 推理服务设计批处理层。用户同步等待结果，每个批次最多容纳 100 个序列。说明请求如何准入、分组、调度和返回；然后说明当流量超出该 GPU 承载能力时，设计将如何变化。”
+
+面试准备指南报告称，Anthropic 系统设计面试中存在这一提示词的变体（Aced，原 Exponent，2026 年 9 月；候选人报告，未经公司确认）。它考察的是你是否理解服务引擎内部机制，而不只是会调用 API。
+
+### 应询问的澄清问题
+
+- 这是自回归生成，还是单次前向传播（嵌入、分类、评分）？答案会改变整个设计。
+- 提示词和输出长度的分布如何？以预填充为主的 RAG 提示词和以解码为主的聊天，会对系统造成不同压力。
+- 哪个 SLO 最重要：首 token 时间（TTFT）、token 间延迟，还是端到端延迟？要求哪个百分位？
+- 用户会流式接收，还是等待完整响应？
+- 是否存在优先级类别或租户？客户端能否取消？
+
+### 方案讲解
+
+**1. 两种模式，两类批处理器：**
+
+```
+Single forward pass (embed, classify, score):
+  Dynamic batching. Flush when the batch reaches 100 OR the oldest
+  request has waited max_wait (e.g. 5-10 ms). Added latency is
+  bounded by max_wait; throughput comes from fuller batches.
+
+Autoregressive generation:
+  Static batching wastes the GPU: every slot waits for the longest
+  sequence. Use continuous (iteration-level) batching: after each
+  decode step, finished sequences leave and queued ones join.
+```
+
+**2. 架构：**
+
+```
+Client ──► API (auth, validation, max_tokens cap)
+              │
+              ▼
+        Admission control ── 429 + Retry-After when the queue is full
+              │
+              ▼
+        Request queue (priority, deadline)
+              │
+              ▼
+        Scheduler (runs every step)
+          - admit while slots < 100 AND free KV blocks suffice
+          - chunked prefill: split long prompts so they do not
+            stall in-flight decodes
+          - on KV pressure, preempt the lowest priority sequence
+            (swap to host memory or recompute later)
+              │
+              ▼
+        GPU worker: one forward pass per step over the mixed batch
+              │
+              ▼
+        Detokenize and stream tokens back (SSE); free KV blocks on
+        completion or client disconnect
+```
+
+**3. 约束瓶颈是 KV 内存，而非 100 个槽位的上限：**
+
+```
+Llama 3.1 8B in BF16:
+  2 × 32 layers × 8 KV heads × 128 head_dim × 2 bytes
+  = 128 KiB of KV per token
+80 GB GPU: ~16 GB of weights, leave ~50 GiB for KV ≈ 400K tokens
+
+Average context 2K tokens → ~200 sequences fit: the 100 cap binds
+Average context 8K tokens → ~50 sequences fit: memory binds first
+```
+
+因此，调度器按空闲 KV 块准入（PagedAttention 风格的分页），为输出增长预留余量，并将每批 100 个序列视为上限而非目标。
+
+**4. 同步用户与背压：**
+
+- 流式返回 token，让用户等待的是 TTFT，而非整个生成时长。
+- 按请求数和排队 token 数限制队列，并通过 429 提前卸载负载。无界队列会让流量峰值变成所有人的超时。vLLM 在 v0.29 中正是为此添加了准入控制标志（`--max-num-queued-reqs`、`--max-num-queued-tokens`）。
+- 客户端断开连接时取消请求，以免被放弃的请求继续占用 KV 块。
+- 限制每个请求的 `max_tokens`；一次失控生成可能会长时间占用内存。
+
+**5. 指标：**
+
+p50 和 p99 的 TTFT 与 token 间延迟、队列等待时间、批次占用率、KV 利用率、抢占率，以及 **goodput**：同时满足 TTFT 和 token 间 SLO 的请求速率。即使满批次时每秒 token 数很高，若 p99 TTFT 未达到 SLO，也意义不大。
+
+**6. 超出单 GPU 后：**
+
+- 在前缀和 KV 感知的路由器（llm-d 的 Endpoint Picker、NVIDIA Dynamo 的路由器）后部署副本，使共享系统提示词的请求落到该前缀已被缓存的位置。
+- 当提示词很长时，拆分预填充和解码资源池。KV 交接并非免费（BF16 下，Llama 3.1 70B 的 1 万 token 提示词约为 3 GB；在 400 Gb/s 下约需 65 ms），只有提升 goodput 时才值得。
+- 使用推测解码（EAGLE-3、MTP、如 DFlash 的块扩散草稿模型）降低 token 间延迟；应在真实并发度下进行基准测试，因为随着批次填满，收益会缩小。
+
+### 强候选人有何不同
+
+- 他们在开始绘图前会先问工作负载是生成还是单次前向传播。
+- 他们会用数字估算 KV 内存，并按内存而非槽位数准入。
+- 他们会限制队列，并说明过载时客户端会看到什么。
+- 他们报告的是符合 SLO 时的 goodput，而非峰值吞吐量。
+- 他们会说生产中将运行 vLLM 或 SGLang，因为两者都已实现连续批处理和分页 KV；并通过面试展示自己理解这些引擎在做什么。
+- 他们会将引擎视为命运共同体领域。输入在到达 GPU 前就会经过校验：在修复前，向 vLLM 的嵌入端点发送一个带负 token ID 的未认证请求，会令所有客户端的引擎崩溃，直至重启（CVE-2026-93592，已在 v0.28.0 修复）。共享前缀缓存还是跨租户侧信道，因此应按租户为缓存键加盐（vLLM 的 `cache_salt`），并保持引擎已打补丁（v0.30.0 修复了一条会丢弃该盐值、重新打开前缀缓存成员关系预言机的路径）。
+
+**相关练习提示词**（由准备服务商 Aced，原 Exponent，根据 Anthropic 和 OpenAI 面试流程中的候选人报告整理；未经公司确认）：GPU 积分或配额计费系统、从一个带宽受限源向数千台机器点对点分发大型文件（例如模型权重），以及每秒 100,000 请求的 token 生成服务。采用相同的方法：澄清工作负载，找到瓶颈资源，限制队列，并按 SLO 衡量。
 
 ---
 
@@ -1135,6 +1289,10 @@ Cost: extraction pass on session close is the main LLM cost;
 - 在深入之前先画出完整的高层图景
 - 为可靠性和评估留出时间
 - 与面试官确认重点关注领域
+
+### 与他人模拟、由对方掌控时间
+
+独自练习能发现知识盲区；却无法发现节奏失控、表达冗长，或习惯于为某个选择辩护而非权衡它。至少找一位他人扮演面试官，完整进行一次练习。如果你希望由经验丰富的面试官提供书面反馈，可以在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 预约与 Om 一对一模拟面试。
 
 ---
 

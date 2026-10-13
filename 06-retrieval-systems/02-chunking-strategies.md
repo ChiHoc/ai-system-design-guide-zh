@@ -8,6 +8,7 @@ Chunking（分块）是将文档拆分为离散片段以便检索的过程。生
 - [递归结构切分（Recursive Structure Splitting）](#递归结构切分-recursive-structure-splitting)
 - [语义分块（Semantic Chunking）](#语义分块-semantic-chunking)
 - [分层（父子）分块（Hierarchical (Parent-Child) Chunking）](#分层-父子-分块-hierarchical-parent-child-chunking)
+- [后置分块与上下文化文本块嵌入](#后置分块与上下文化文本块嵌入)
 - [内容特定策略（Code, PDF, Tables）](#内容特定策略-content-specific-strategies)
 - [面试题（Interview Questions）](#面试题-interview-questions)
 - [参考资料（References）](#参考资料-references)
@@ -44,7 +45,7 @@ Chunking（分块）是将文档拆分为离散片段以便检索的过程。生
 2. 只要句子之间的 embedding similarity（向量相似度）高于阈值（例如 0.82），就将它们归为同一块。
 3. 一旦相似度下降，就开始一个新的分块。
 
-**细节**：生产流水线越来越多地使用 **Cross-Encoder Segmenters（交叉编码器分段器）**。一个小型模型扫描文本，并在每个语义断点处预测一个“Separator token”（分隔符标记）。这比基于余弦相似度阈值的切分（cosine-similarity thresholding）准确 10 倍。
+**细节**：有些流水线用**学习型分段器**替代阈值：小型模型扫描文本，预测每个语义断点的分隔位置。这样就不必针对每套语料库手工调整余弦相似度阈值，但已发表的分块基准对固定大小、递归和语义策略给出的结果差异很大，因此在承担额外模型成本前，应先在自己的文档上测量召回率。
 
 ---
 
@@ -61,6 +62,17 @@ Chunking（分块）是将文档拆分为离散片段以便检索的过程。生
 
 ---
 
+## 后置分块与上下文化文本块嵌入
+
+分层分块在*读取*时补足上下文。另一种方案是在*嵌入*时补足，使每个文本块向量预先知道自己来自哪份文档。
+
+- **后置分块**（Jina，2024）：先用长上下文嵌入模型处理整篇文档，再按文本块的跨度汇集 token 嵌入。每个块的向量都以完整文档为条件，无需额外的 LLM 调用。
+- **上下文化文本块嵌入模型**将这一过程封装为 API。**voyage-context-4**（2026 年 6 月 29 日正式发布；每 1M token 为 $0.12，32K 窗口，内建自动分块）为每块返回一个感知整篇文档的向量；Voyage 报告称，相比 voyage-context-3，文本块级检索提升 +2.08%，文档级提升 +1.4%（供应商自报）。Perplexity 的 **pplx-embed-v2-context-9b-preview**（2026 年 9 月 25 日）会一起编码文档中的文本块，但它明确属于预览版，生成的向量不能与后续版本混用。
+
+与 Anthropic 式上下文前缀相比，嵌入模型侧的上下文无需为每块调用 LLM，却只能改善稠密检索。BM25 仍只看到原始块文本，因此稀疏索引仍应给每块前置标题。完整的成本比较见[上下文检索](10-contextual-retrieval.md)。
+
+---
+
 ## 内容特定策略（Content-Specific Strategies）
 
 ### 1. Code Chunking
@@ -72,8 +84,9 @@ Chunking（分块）是将文档拆分为离散片段以便检索的过程。生
 - **现代模式**：“Summarized Tables”（摘要表）。在向量数据库中存储表格的自然语言摘要，但向 LLM 返回完整的 Markdown 表格。
 
 ### 3. PDF/Layout Chunking
-- **策略**：使用 **Vision-Language Model (VLM，视觉-语言模型)** 进行预处理（例如 ColPali）。
-- **细节**：与其只存文本，不如存储表示页面 *positional layout*（位置布局）的 embedding，确保图表和侧边栏不会被混入正文。
+- **策略 A，解析后分块**：使用感知布局的解析器（Docling、MinerU、Cohere Parse 或开源解析 VLM），按阅读顺序输出块，将表格、图形和侧边栏作为不同类型的元素。在这些块的边界处分块，使图表和侧边栏不会混入正文。
+- **策略 B，跳过文本分块**：使用后期交互模型（ColPali 系列）直接嵌入每页图像。页面*本身*就是单位，因此布局得以保留。参见[多模态 RAG](12-multimodal-rag.md)。
+- **面向智能体的模式**：对于智能体式 RAG，可以考虑给智能体稳定的块定位符，而非预先切好的文本块。MinerU 4.0（2026 年 9 月 16 日）返回形如 `doc:{id}/tier:{tier}/page:{page}/block:{block}` 的定位符，并渐进式读取长文档（先读前 10 页，再继续），让智能体自行浏览文档，引用也能指向可核验的块。
 
 ---
 
@@ -87,15 +100,21 @@ Chunking（分块）是将文档拆分为离散片段以便检索的过程。生
 ### Q: 什么是“Contextual Retrieval”（Anthropic 模式）？
 
 **强答案：**
-Contextual Retrieval（上下文检索）是在 embedding 之前，为每个分块前置一个 1 句的全局上下文。例如，如果某个分块讲的是“battery life”（电池续航），但它来自一本“2025 Model X Drone”（2025 年 Model X 无人机）手册，那么会向该分块添加文本 `[Drone_Model_X_Manual]:`。这可以确保“battery life”的向量受到“Drone”上下文的影响，避免它被错误检索到“phone battery”（手机电池）查询中。
+Contextual Retrieval（上下文检索）是在嵌入和 BM25 索引前，为每个文本块前置由 LLM 撰写的简短上下文。例如，如果某块讲的是“battery life”（电池续航），但来自“2025 Model X Drone”（2025 年 Model X 无人机）手册，可以在块前加入 `This chunk is from the Model X drone manual, battery section:`。这样“battery life”的向量就会受到“Drone”上下文影响，不易在查询“phone battery”（手机电池）时误命中。Anthropic 测得，仅使用上下文化嵌入，top-20 检索失败率降低 35%；再加入上下文化 BM25 后降低 49%；进一步重排序后降低 67%。
+
+代价是在摄取时为每个文本块调用一次 LLM（可通过缓存源文档提示词降低费用）。2026 年的替代方案是 voyage-context-4 等上下文化文本块嵌入模型，无需 LLM 调用即可生成感知文档的向量，但不能改善 BM25。我的默认方案是：为两类索引都前置标题；稠密索引使用嵌入模型侧上下文；仅对黄金测试集上仍表现不佳的文档类型使用 LLM 上下文化。
 
 ---
 
 ## 参考资料（References）
-- Anthropic. "Contextual Retrieval: Improving RAG Accuracy" (2024)
-- LlamaIndex. "Advanced Chunking Strategies for RAG" (2025)
-- LangChain. "RecursiveCharacterTextSplitter Benchmarks" (2024)
+- [Anthropic.《Introducing Contextual Retrieval》（2024 年 9 月）](https://www.anthropic.com/news/contextual-retrieval)
+- [Günther 等人，《Late Chunking: Contextual Chunk Embeddings Using Long-Context Embedding Models》（2024）](https://arxiv.org/abs/2409.04701)
+- [Voyage AI.《voyage-context-4》（2026 年 6 月）](https://blog.voyageai.com/2026/06/29/voyage-context-4/)
+- [MinerU 4.0 发布说明（2026 年 9 月）](https://github.com/opendatalab/MinerU/releases/tag/mineru-4.0.0-released)
+- [Smith 与 Troynikov，《Evaluating Chunking Strategies for Retrieval》（Chroma，2024 年 7 月）](https://www.trychroma.com/research/evaluating-chunking)
+- [LangChain.《Text splitter integrations》（文档）](https://docs.langchain.com/oss/python/integrations/splitters)
+- [LlamaIndex.《Node Parser Modules》（文档，语义与分层解析器）](https://developers.llamaindex.ai/python/framework/module_guides/loading/node_parsers/modules/)
 
 ---
 
-*Next: [Embedding Models](03-embedding-models.md)*
+*上一篇：[RAG 基础知识](01-rag-fundamentals.md) | 下一篇：[嵌入模型](03-embedding-models.md)*

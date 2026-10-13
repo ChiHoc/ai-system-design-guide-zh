@@ -11,6 +11,7 @@
 - [回退与可靠性](#回退与可靠性)
 - [2026 工具版图](#_2026-工具版图)
 - [架构模式](#架构模式)
+- [保护网关](#保护网关)
 - [你现在需要网关吗？](#你现在需要网关吗)
 - [面试题](#面试题)
 - [参考资料](#参考资料)
@@ -53,6 +54,7 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 | 语义 | 对请求做嵌入并匹配到某条路由 | 意图分发、难度混合 | ~5-50ms | 嵌入漂移；尾部模糊；阈值调优 |
 | LLM-as-router | 由一个小 LLM 进行分类并选择 | 嵌入难以覆盖的模糊尾部 | ~50-100ms | 引入一次额外 LLM 调用及其自身成本和故障面 |
 | 级联 | 先用便宜模型，置信度低时升级 | 大规模成本-质量平衡 | 串行 | 升级请求产生双重支出；置信度噪声 |
+| KV cache 感知（自托管） | 选择已在 KV cache 中持有提示词前缀的副本 | 共享前缀和多轮 agent 的自托管集群 | 低 | 热门前缀导致热点；缓存索引过期 |
 
 实践中有两点很重要。**语义路由**是通过嵌入相似度来选路由，不调用 LLM；生产里常见的模式是一个两阶段混合方案：用语义方式处理有把握的大多数，把模糊尾部交给 LLM-as-router。**级联**是最有杠杆效应的降本手段：RouteLLM（UC Berkeley / LMSYS，ICLR 2025）报告称，它只把一小部分调用路由到前沿模型，却能达到其约 ~95% 的质量，成本降低处在 45-85% 的范围。这个范围应当理解为特定基准下的上限，而不是保证；升级比例才是实时成本变量，而如果一个级联把大多数流量都升级了，那就省不了多少。
 
@@ -69,6 +71,17 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 **正确的重试**遵循三条规则：指数退避（每次失败都等得更久）、抖动（随机化等待时间，避免客户端同步重试形成加剧故障的惊群效应），以及遵守 `Retry-After`（OpenAI 和 Anthropic 都会在 429 上返回它；应使用 `max(retry_after, computed_backoff)`）。忽略 `Retry-After` 是最常见的退避 bug。
 
 **熔断器**会全局跟踪端点健康状况，并在失败率超过阈值时打开，这样你就不会在每个请求上都去猛击一个已经死掉或被限流的提供商。再配合冷却机制，把失败的部署在自动恢复前先停放一个固定窗口。
+
+```mermaid
+flowchart TD
+    A[提供商响应] --> B{分类}
+    B -->|200 且 stop_reason 为 refusal| C[重试经批准的回退模型]
+    B -->|429 slow_down 或存在 Retry-After| D[加入抖动退避，同时把新流量转到其他密钥或提供商]
+    B -->|429 支出上限且无 Retry-After| E[切换到其他厂商并通知负责人]
+    B -->|5xx、503 过载、首个 token 到达前超时| F[切换到链中的其他厂商后端]
+    B -->|已输出 token 后失败| G[显示错误，或从头重放]
+    B -->|其他 400 类错误| H[不要重试：修复请求]
+```
 
 **负载均衡**跨多个密钥、区域和提供商分散流量，会放大你有效的限流余量，这是缓解容量故障最直接的结构性修复。
 
@@ -88,6 +101,10 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 - **Envoy AI Gateway**（开源、CNCF 生态）提供基础设施级的基于优先级回退、重试和超时，原生适配 Kubernetes。
 - **云原生**路由器（AWS Bedrock 智能提示路由、Google Vertex）与各自云环境紧密集成；但严格的账户级限流仍然让多提供商层变得有用。
 
+上游更新至 `2026` 年 `10` 月：OpenRouter 已覆盖 `400+` 个模型，Stripe 于 `8` 月 `19` 日宣布收购，并在企业计划中增加美国区域路由；其 Batch API 的 `70+` 个模型通常优惠 `50%`，自动路由依据最近 `7` 天的市场支出，其 Batch API 于 `9` 月 `22` 日上线。Envoy AI Gateway 于 `6` 月 `23` 日发布 v`1.0.0`、`8` 月 `21` 日发布 v`1.1.0`，加入 token 计数、逐请求凭据覆盖、首 token 到达前的流空闲回退、默认拒绝的 MCP 路由和 OpenTelemetry GenAI 语义约定，并于 `9` 月加入 Agentic AI Foundation。Anthropic 在 `8` 月 `16` 日至 `9` 月 `29` 日记录了至少 `12` 起重大或严重事故；OpenAI 于 `9` 月 `29` 日发生约 `5` 小时 `20` 分钟的全平台降级。跨云生命周期也不同：Claude Opus `4.1` 于 `8` 月 `5` 日退出 Claude API，但 Bedrock 支持到 `2027` 年 `1` 月 `8` 日，延长访问价格自 `10` 月 `8` 日上调；Grok `4` 于 `5` 月 `15` 日退出 xAI API，`grok-4` 别名现解析为 `grok-4.3`，Azure Foundry 仍列为 GA。固定模型 ID 也可能改变行为：OpenAI 于 `9` 月 `25` 日修复 `gpt-6-sol` 和 `gpt-6-luna` 的图像编码问题。GitHub 于 `9` 月 `30` 日预览 HydraFusion 级联路由。Envoy AI Gateway `1.1` 的 `streamIdleTimeout` 只在首 token 前可将请求切到下一后端；已有 token 输出后只能从头重放或返回错误。路由注册表应以“模型 + 平台”为键，并记录每次响应实际返回的模型 ID，定期对固定 ID 重跑评测。
+
+还有三项会直接影响策略的边界：vLLM Semantic Router v`0.4.0` 于 `9` 月 `27` 日加入语义路由实现；Anthropic Fable `5.1`、Opus `4.8`／`5.5` 和 Sonnet `5.5` 的 thinking block 绑定模型与会话，切换提供商时可能被静默丢弃；新账户在 `8` 月 `31` 日后若修改 thinking block 前缀，会收到 `400`。`9` 月 `2` 日起，OpenAI 对突增流量以 `429 slow_down` 限流、临时模型过载返回 `503`；Anthropic 月度支出上限也会返回 `429`，错误码为 `enforced_spend_limit_reached` 且不附 `Retry-After`，此时必须切换提供商并告警，而非重试。级联价格差也很大：GPT-`6` Luna 每 `1M` token 为 `$0.10/$0.50`，Sol 为 `$2/$10`；回退会导致强模型缓存冷启动，升级请求应按完整未缓存上下文计费。
+
 **自托管 vs 托管**的核心取舍：自托管（LiteLLM、Kong、Envoy）把数据留在你的边界内，给予你完整控制，并且在严格合规场景下是必须的，但*你*必须让代理高可用，否则它就会变成单点故障。托管（OpenRouter、Portkey、Cloudflare）几乎零运维、上手很快，但数据会经过第三方，并且你要把它们的可用性当成硬依赖来接受。
 
 ---
@@ -99,6 +116,26 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 - **不要让网关变成单点故障：** 这是核心架构风险。应在负载均衡器后运行多个无状态副本，把共享状态外置（Redis 存放限流与使用计数，数据库存放密钥和支出），并对副本做健康检查。一个把一切都集中起来、但只运行单实例的网关，不过是把单点故障从别处搬到了这里。
 - **多区域：** 按区域部署副本，按区域本地路由，并使用跨区域 / 跨提供商回退，这样区域级故障就可以切换到别处。
 - **缓存与可观测性：** 对完全相同的提示做精确匹配缓存，对近似重复做语义缓存，并使用 OpenTelemetry span 传递用户 / 密钥、尝试过的模型、失败原因、最终获胜的回退、每一步延迟以及精确成本。这正是让限流故障模式从“神秘莫测”变成“可见可诊断”的关键。见 [可观测性](../14-evaluation-and-observability/02-observability.md)。
+
+---
+
+## 保护网关
+
+网关把每个供应商密钥、提示词和响应集中到同一进程，因此成为 AI 技术栈中价值最高的攻击目标。LiteLLM 2026 年的安全通告展示了这种模式：
+
+| 安全通告 | 经过 | 修复版本 |
+|----------|---------------|----------|
+| CVE-2026-37004（严重，CVSS 9.8） | `/prompts/test` 端点未经身份认证的模板注入可执行操作系统命令 | 1.83.7 |
+| CVE-2026-49468（严重） | Host-header 身份认证绕过 | 1.84.0 |
+| CVE-2026-84377（中等，CVSS 6.5） | 任意经过认证的代理用户都可把 `api_base`、`base_url`、`model_list` 或回退目标指向自己的主机，使代理向那里发送运营者保存的供应商密钥（也构成 SSRF） | 各版本分支的补丁为 1.88.6 至 1.96.2；临时措施为 `general_settings.allow_client_side_credentials=false` |
+| GHSA-92x9-889m-jgmw | PyPI 上 litellm 1.82.7 和 1.82.8 版本遭入侵 | 不要安装这些版本；按哈希固定依赖 |
+
+由此得出的设计规则：
+
+- **绝不让调用方决定凭据发往哪里。** 以允许列表限定上游主机，并在入口剥离客户端提供的路由参数（`api_base`、fallbacks）。这与[访问控制](../12-security-and-access/02-access-control.md#智能体与工具授权)中 MCP OAuth 混淆修复所要求的签发方绑定是同一原则。
+- **尽可能不在代理中保存长期密钥。** 从保险库按请求注入凭据（Envoy 的 `credentialOverride`）；在可用时使用工作负载身份而非静态供应商密钥（OpenAI 于 2026 年 8 月 29 日正式提供 mTLS 和 X.509 工作负载身份联合）；其余密钥设置短有效期（OpenAI 于 9 月 10 日增加密钥到期功能）。
+- **把网关当作供应链环节。** 固定版本与哈希、从镜像索引安装、订阅安全通告，并且不要将管理或测试端点暴露到互联网。
+- **假设网关会被攻破并限制影响范围：**按信任区分别部署网关，为每个部署分配独立且受限的供应商密钥，并按密钥设置支出上限，让失窃凭据造成的损失有上限。
 
 ---
 
@@ -126,6 +163,16 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 **强回答：**
 对于单一提供商或原型，网关是过度设计；它会为你暂时不需要的能力增加一次网络跳转和高可用（HA，high availability）负担。我会采用一个薄的应用内抽象：在我自己的一个小接口后面依赖提供商 SDK（软件开发工具包，software development kit），并带上基础的回退链和退避（backoff）机制。一旦我进入多提供商、多个团队都需要预算和支出归因，或者反复遇到速率限制（rate-limit）问题，我就会采用真正的网关，这大致也是 retry（重试）和 key-management（密钥管理）逻辑开始在各个服务之间被复制粘贴的时候。即便如此，我也会先以影子模式（shadow mode）上线，并在它成为负载关键路径之前把它做成高可用。
 
+### Q: 你的网关保存着所有供应商密钥。如何保护它？
+
+**强回答：**
+我会把它视作皇冠上的明珠，因为一个漏洞就可能一次性暴露所有密钥。LiteLLM 曾出现未认证远程代码执行漏洞（CVE-2026-37004，CVSS 9.8），也出现过允许任意已认证用户将请求连同运营者保存的密钥重定向到其自有主机的漏洞（CVE-2026-84377）。首先，调用方不能选择目的地：我会把上游主机加入允许列表，并在边缘层剥离 `api_base` 一类参数。其次，尽量减少长期有效的密钥：支持时使用工作负载身份或 mTLS；其他情况由保险库按请求注入凭据、缩短密钥有效期；并为每个网关部署使用独立密钥和支出上限，限制泄漏造成的损失。第三，管好供应链：从镜像索引安装固定版本和哈希（PyPI 上曾有两个 LiteLLM 版本遭恶意篡改），跟踪安全通告并设定修补时限，管理端点只放在私有网络。最后，记录每个上游目的地，并对允许列表外的主机告警，以便及时发现重定向攻击。
+
+### Q: 如何把一个长时间运行的 agent 对话故障转移到另一家供应商？
+
+**强回答：**
+要谨慎处理，因为 agent 状态不像单次请求那样可移植。我会在轮次边界故障转移，而不是在生成过程中切换：首个 token 到达前发生流空闲超时，可以干净地转到下一个后端；开始输出 token 后失败，则从头重放，或向用户显示错误。最新 Claude 模型中的推理状态与模型绑定：其他模型无法读取的 thinking block 会被丢弃，前缀变化在新账户上也可能触发 400。因此回退模型拿到的是可见对话记录和工具结果，不包括隐藏推理；对话记录保持只追加。请求格式也有差异（最新 Claude 模型会拒绝强制 `tool_choice`），所以网关要按目标模型转换请求，不能原样透传参数。我会把回退路径作为独立配置评测，跨供应商配置以避免单次故障同时影响两条路径，并让模型注册表按模型和平台建立索引，确保故障转移不会落到已退役或已改价的部署上。
+
 ---
 
 ## 参考资料
@@ -133,9 +180,14 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 - Datadog，[AI 工程现状 2026](https://www.datadoghq.com/state-of-ai-engineering/) 以及[新闻稿](https://www.datadoghq.com/about/latest-news/press-releases/datadog-state-of-ai-engineering-report-2026/)
 - [LiteLLM 路由文档](https://docs.litellm.ai/docs/routing) 和[负载均衡](https://docs.litellm.ai/docs/proxy/load_balancing)
 - RouteLLM，[LMSYS 博客](https://www.lmsys.org/blog/2024-07-01-routellm/) 和[GitHub](https://github.com/lm-sys/routellm)
-- [Envoy AI Gateway：提供商回退](https://aigateway.envoyproxy.io/docs/0.5/capabilities/traffic/provider-fallback/)
+- [Envoy AI Gateway v1.1.0 发布说明](https://github.com/envoyproxy/ai-gateway/releases/tag/v1.1.0)
 - [Kong AI Gateway 文档](https://developer.konghq.com/ai-gateway/)
 - [OpenRouter BYOK 文档](https://openrouter.ai/docs/guides/overview/auth/byok)
+- [OpenRouter 加入 Stripe](https://openrouter.ai/blog/announcements/openrouter-is-joining-stripe/)
+- LiteLLM 安全通告 [GHSA-6wvf-77m9-58rm](https://github.com/advisories/GHSA-6wvf-77m9-58rm)（CVE-2026-37004）和 [GHSA-3cv6-jpf6-8222](https://github.com/advisories/GHSA-3cv6-jpf6-8222)（CVE-2026-84377）
+- [Gateway API Inference Extension v1.6.0](https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/tag/v1.6.0)
+- Anthropic：[拒绝与回退](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) 和[速率限制](https://platform.claude.com/docs/en/api/rate-limits)
+- OpenAI：[API 更新日志](https://developers.openai.com/api/docs/changelog)
 
 ---
 

@@ -1,6 +1,6 @@
 # Pydantic AI 与 Mastra：类型化 Agent 框架（2026）
 
-到 2026 年 5 月，Agent 框架之争已经不再是“LangGraph 还是 LlamaIndex”。对于优先考虑类型安全而非生态广度的团队来说，两个较新的进入者现在已经占据了有意义的生产份额：Python 世界中的 **Pydantic AI** 和 TypeScript 世界中的 **Mastra**。两者都拒绝旧框架所接受的“字符串输入，字符串输出”表面接口，并且都押注于：一个完全类型化的 Agent，比一个聪明但无类型的 Agent 更容易测试、评估和运维。
+Agent 框架之争已经不再是“LangGraph 还是 LlamaIndex”。对于优先考虑类型安全而非生态广度的团队来说，两个较新的进入者已经占据了有意义的生产份额：Python 世界中的 **Pydantic AI**（截至 2026 年 10 月 1 日的一个月内，PyPI 下载量约 530 万次）和 TypeScript 世界中的 **Mastra**（2026 年 8 月 31 日至 9 月 29 日，`@mastra/core` 的 npm 下载量约 690 万次）。两者都拒绝旧框架所接受的“字符串输入，字符串输出”表面接口，并且都押注于：一个完全类型化的 Agent，比一个聪明但无类型的 Agent 更容易测试、评估和运维。
 
 ## 目录
 
@@ -32,12 +32,20 @@ Pydantic AI 和 Mastra 都源于对框架锁定和无类型提示词拼接的不
 
 ### 当前状态
 
-[Pydantic AI](https://ai.pydantic.dev/) 于 2025 年 9 月发布 v1.0，在 2026 年 4 月将 1.x 系列稳定在 **v1.85.1**，并于 **2026 年 5 月 21 日进入 v2.0 beta 周期**（[PyPI 发布历史](https://pypi.org/project/pydantic-ai/#history)）。该库由 Pydantic 背后的团队构建，该团队也运营 [Pydantic Logfire](https://pydantic.dev/logfire)。它以 MIT 许可证开源。
+[Pydantic AI](https://ai.pydantic.dev/) 于 2025 年 9 月发布 v1.0，在经过七个 beta 版本后于 **2026 年 6 月 23 日发布稳定版 v2.0.0**（v2 beta 从 v1.100.0 分支而来）；2026 年 9 月 30 日已达到 **2.52.0**，1.x 补丁版本仍在更新（同日发布 1.107.7）（[PyPI 发布历史](https://pypi.org/project/pydantic-ai/#history)）。该库由 Pydantic 背后的团队构建，该团队也运营 [Pydantic Logfire](https://pydantic.dev/logfire)。它以 MIT 许可证开源。
+
+V2 **以 harness 为中心**：*capability* 是可组合的单元，将工具、生命周期钩子、指令和模型设置打包；第一方 Pydantic AI Harness 库提供更多此类单元，包括用于保存和恢复的 `StepPersistence`。从 1.x 升级时需检查以下破坏性和行为变化：
+
+- `openai:` 模型字符串现在使用 **Responses API**；如需保留 Chat Completions，应使用 `openai-chat:`。
+- `end_strategy` 默认值变为 `'graceful'`，基础安装附带的供应商扩展更少。
+- `builtin_tools` 重命名为 `native_tools`，`grok:` 前缀改为 `xai:`。
+- Outlines 集成和 FastMCP 向后兼容垫片被移除，`vertexai` 扩展消失（Vertex AI 通过 `google` 扩展提供），A2A 支持上移至 `fasta2a` 包。
+- 默认埋点改为 v5，包含 `gen_ai.aggregated_usage` 属性，因此依赖旧属性名的仪表盘需更新。
 
 关键表面积：
 
 - `Agent` 类，由输出类型和类型化工具列表参数化。
-- Anthropic、OpenAI、Google、Mistral、Groq、Cohere、Ollama 以及任何 OpenAI 兼容端点的 Provider adapter（提供商适配器）。
+- Anthropic、OpenAI、Google、xAI、Mistral、Groq、Cohere、Ollama 以及任何 OpenAI 兼容端点的 Provider adapter（提供商适配器）。
 - 原生 OpenTelemetry tracing（追踪），可导出到 Logfire 或任何 OTLP collector（收集器）。
 - `pydantic_evals`，用于带有 LLM-judge（大语言模型裁判）和代码评分器的声明式 eval suite（评估套件）。
 - 当简单的 `Agent` 循环不够用时，可使用 `Graph` API 来构建显式状态机。
@@ -45,6 +53,7 @@ Pydantic AI 和 Mastra 都源于对框架锁定和无类型提示词拼接的不
 ### 团队为什么选择它
 
 ```python
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 
@@ -53,18 +62,23 @@ class RefundDecision(BaseModel):
     amount_cents: int = Field(ge=0)
     reason: str
 
+@dataclass
+class Deps:
+    orders: OrdersRepo  # your data-access layer
+
 agent = Agent(
-    "anthropic:claude-opus-4-7",
+    "anthropic:claude-sonnet-5-5",
+    deps_type=Deps,
     output_type=RefundDecision,
-    system_prompt="You are a refund analyst. Approve only if policy allows.",
+    instructions="You are a refund analyst. Approve only if policy allows.",
 )
 
 @agent.tool
-async def lookup_order(ctx: RunContext, order_id: str) -> dict:
+async def lookup_order(ctx: RunContext[Deps], order_id: str) -> dict:
     """Look up an order by id."""
     return await ctx.deps.orders.get(order_id)
 
-result = await agent.run("Refund order 1234", deps=DepContainer(orders=db))
+result = await agent.run("Refund order 1234", deps=Deps(orders=db))
 assert isinstance(result.output, RefundDecision)
 ```
 
@@ -76,6 +90,8 @@ assert isinstance(result.output, RefundDecision)
 
 [Pydantic AI evals 文档](https://ai.pydantic.dev/evals/)描述了一种典型循环：生产 schema 使用的同一个 Pydantic model（模型），也会同时用于 LLM 输出类型和 eval scorer（评估评分器）的 `expected_output`。
 
+**最新模型上的结构化输出**：Claude Fable 5.1、Opus 5.5 和 Sonnet 5.5 拒绝强制工具选择，GPT-6 Astra 使用工具时需要 Responses API。任何依靠强制工具调用实现的框架输出模式都必须适配，因此升级模型后要检查框架版本使用的输出模式。Pydantic AI 2.52.0 将这些 Claude 模型标记为 `supports_forced_tool_choice=False`：在上述示例这种通过输出工具推断的强制调用会回退至 `auto`，而显式指定 `tool_choice='required'` 则会引发 `UserError`。Pydantic AI 的 `NativeOutput` 标记要求使用供应商原生的 JSON Schema 输出，而非工具调用。
+
 ### 什么时候 Pydantic AI 是正确选择
 
 - 服务是 **Python**，并且已经使用 Pydantic 做 HTTP 校验（FastAPI 是典型场景）。
@@ -85,7 +101,7 @@ assert isinstance(result.output, RefundDecision)
 
 ### 什么时候不适合
 
-- 你想要一个用于多 Agent 协调、带有 supervisor（监督者）模式的**声明式图**。`Graph` API 存在，但比 LangGraph 更基础。
+- 你想要一个用于多 Agent 协调、带有 supervisor（监督者）模式的**声明式图**。`Graph` API 存在，但比 LangGraph 更基础。（对于长时间运行的单个 Agent，v2 的 `StepPersistence` 缩小了差距。）
 - 你想要带有“从任意节点分支”语义的**时间旅行调试**。
 - 你需要 LangChain 集成生态的广度（向量存储、文档加载器等）。
 
@@ -95,7 +111,9 @@ assert isinstance(result.output, RefundDecision)
 
 ### 当前状态
 
-[Mastra](https://mastra.ai/) 由 Gatsby 背后的团队创立（YC W25 毕业），在 2025 年 10 月宣布由 Lightspeed 领投的 **13M 美元种子轮融资**（[TechCrunch 报道](https://techcrunch.com/2025/10/16/mastra-typescript-agent-framework-seed/)），并在 **2026 年 1 月发布 v1.0**。到 2026 年 5 月，GitHub 仓库已经超过 **22.3K stars（星标）**，并拥有 **300K+ 每周 npm 下载量**（[mastra-ai/mastra](https://github.com/mastra-ai/mastra)）。Mastra 以 Elastic License v2 开源。
+[Mastra](https://mastra.ai/) 由 Gatsby 背后的团队创立（YC W25 毕业），于 2025 年 10 月 8 日宣布获得 Y Combinator、Paul Graham、Gradient 和其他 120 多位投资者提供的 **1,300 万美元种子轮融资**（[Mastra 公告](https://mastra.ai/blog/seed-round)），并于 **2026 年 1 月 20 日发布 v1.0**。`@mastra/core` 于 2026 年 10 月 1 日达到 **1.74.0**；GitHub 约有 **28.5K 星标**，2026 年 8 月 31 日至 9 月 29 日约有 **690 万次 npm 下载**（[mastra-ai/mastra](https://github.com/mastra-ai/mastra)）。
+
+**许可证**：Mastra 于 2025 年 7 月 9 日从 Elastic License v2 改用 **Apache 2.0**。`ee/` 目录之外的内容均采用 Apache 2.0；`ee/` 目录中的代码则使用源码可见的 Mastra Enterprise Edition License。将 Mastra 嵌入商业产品前，应检查导入了哪些包。
 
 关键表面积：
 
@@ -118,12 +136,12 @@ const lookupOrder = createTool({
   description: "Look up an order by id",
   inputSchema: z.object({ orderId: z.string() }),
   outputSchema: z.object({ status: z.string(), totalCents: z.number() }),
-  execute: async ({ context }) => ordersDb.get(context.orderId),
+  execute: async ({ orderId }) => ordersDb.get(orderId),
 });
 
 export const refundAgent = new Agent({
   name: "refund-agent",
-  model: anthropic("claude-opus-4-7"),
+  model: anthropic("claude-sonnet-5-5"),
   instructions: "You are a refund analyst. Approve only if policy allows.",
   tools: { lookupOrder },
 });
@@ -131,7 +149,7 @@ export const refundAgent = new Agent({
 
 三个特性让它有吸引力：
 
-1. **端到端推断类型。** Zod schemas（模式）驱动工具的运行时校验、面向 LLM 的 JSON Schema，以及 `execute` 内部 `context` 的 TypeScript 类型。单一事实来源。
+1. **端到端推断类型。** Zod schemas（模式）驱动工具的运行时校验、面向 LLM 的 JSON Schema，以及 `execute` 所接收输入的 TypeScript 类型。单一事实来源。（Mastra 1.x 将验证后的输入作为第一个参数传入；0.x 教程则解构 `{ context }`，照搬旧例容易出错。）
 2. **`mastra dev` 是杀手级功能。** 它会启动一个本地 UI，让你无需编写前端即可调用任何 Agent、重放任何 trace（追踪）、运行任何 eval（评估），并检查任何工具输入/输出。
 3. **一等 workflow（工作流）。** `createWorkflow` 定义由步骤组成的类型化图（每个步骤都是一个 Mastra 工具或 Agent），支持 branching（分支）、suspend / resume（挂起 / 恢复）和人在回路，并且全部经过类型检查。
 
@@ -154,15 +172,15 @@ export const refundAgent = new Agent({
 
 ## 与 LangGraph 的比较
 
-| 维度 | Pydantic AI v1.85 | Mastra（5 月 2026） | LangGraph 1.x |
+| 维度 | Pydantic AI 2.x | Mastra 1.x | LangGraph 1.x |
 |-----------|-------------------|---------------------|----------------|
 | 语言 | Python | TypeScript | Python 和 TypeScript |
-| 许可证 | MIT | Elastic License v2 | MIT |
-| 主要单元 | 带 `output_type` 的类型化 `Agent` | 类型化 `Agent` 和 `Workflow` | 基于类型化状态的节点图 |
+| 许可证 | MIT | Apache 2.0（`ee/` 目录为源码可见许可） | MIT |
+| 主要单元 | 由 capability 组合、带 `output_type` 的类型化 `Agent` | 类型化 `Agent` 和 `Workflow` | 基于类型化状态的节点图 |
 | Schema 来源 | Pydantic v2 | Zod | JSON Schema（Pydantic、Zod、Valibot、ArkType） |
 | Provider neutrality（提供商中立性） | 内置适配器 | 通过 Vercel AI SDK | 通过 LangChain 合作伙伴包 |
 | 多代理 | 手动或 `Graph` API | `Workflow` + 作为工具的代理 | `create_supervisor`、swarm、自定义图 |
-| 状态持久化 | 手动或 `pydantic_graph` checkpoint（检查点） | 工作流快照 + 存储适配器 | 一等 checkpoint store（Postgres、Redis、SQLite、内存） |
+| 状态持久化 | `pydantic_graph` 检查点；Harness `StepPersistence`（v2） | 工作流快照 + 存储适配器 | 一等 checkpoint store（Postgres、Redis、SQLite、内存） |
 | Time-travel debugging（时间旅行调试） | 否 | 在本地 playground 中重放 | 是，可从任意 checkpoint 分支 |
 | Eval framework（评估框架） | `pydantic_evals` | Mastra evals（内置） | LangSmith 或外部工具 |
 | Tracing（追踪） | OTLP / Logfire | OTLP / Mastra Cloud | LangSmith 或 OTLP |
@@ -171,10 +189,10 @@ export const refundAgent = new Agent({
 
 ```mermaid
 flowchart TD
-    A[Picking an agent framework, May 2026] --> B{Primary language?}
+    A[Picking an agent framework] --> B{Primary language?}
     B -->|Python| C{Do you need a complex multi-agent graph with time-travel?}
     B -->|TypeScript| D{Do you want a managed dev playground and Vercel-style deploy?}
-    B -->|Mixed| E[Keep agent code in one language; expose via HTTP/MCP to the other]
+    B -->|Mixed| E["Keep agent code in one language, expose via HTTP/MCP to the other"]
 
     C -->|Yes| F[LangGraph]
     C -->|No, single agent with strict types| G[Pydantic AI]
@@ -205,16 +223,13 @@ flowchart TD
 
 ## 生产参考
 
-以下是截至 5 月 2026 各框架被严肃使用的公开参考：
+以下是截至 2026 年 10 月初的采用信号及公开案例：
 
 - **Pydantic AI**
-  - [Pydantic Logfire dashboards](https://pydantic.dev/logfire) 本身使用 Pydantic AI 作为其内部分诊代理。
-  - [Sourcegraph Cody](https://sourcegraph.com/cody) 团队曾[撰文介绍使用 Pydantic AI](https://ai.pydantic.dev/) 在其服务端工作流中构建类型化代码操作代理。
-  - 许多 FastAPI 团队采用它，因为同一个 Pydantic 模型可以同时服务于 HTTP 边界和 LLM 输出类型。
+  - 截至 2026 年 10 月 1 日的一个月内，PyPI 下载量约 530 万次，与 DSPy 大致相当，约为 CrewAI 的两倍（CI 与间接安装会抬高下载量，应将其视为相对信号）。
+  - 常见采用路径是 FastAPI 团队，因为同一个 Pydantic 模型可以同时服务于 HTTP 边界和 LLM 输出类型。
 - **Mastra**
-  - [Stripe](https://stripe.com/) 的开发者体验原型（[mastra.ai](https://mastra.ai/)）。
-  - [Resend](https://resend.com/)、[Liveblocks](https://liveblocks.io/) 和 [Vercel](https://vercel.com/) 的演示应用。
-  - 种子轮公告（[TechCrunch](https://techcrunch.com/2025/10/16/mastra-typescript-agent-framework-seed/)）列出了 fintech（金融科技）和开发者工具领域的生产用户。
+  - 2026 年 8 月 31 日至 9 月 29 日，`@mastra/core` 的 npm 下载量约 690 万次，接近 `@openai/agents` 的 730 万次，远低于 Mastra 所依赖的 Vercel AI SDK 本身（`ai`，1.046 亿次）。
 - **LangGraph**（供参考）
   - [LinkedIn 的 SQL Bot](https://www.linkedin.com/blog/engineering/ai/practical-text-to-sql-for-data-analytics)、[Uber 的编码助手](https://www.uber.com/en-IN/blog/genie-uber-genai-on-call-copilot/)、[Klarna](https://www.klarna.com/)、[Elastic](https://www.elastic.co/) AI Assistant、[Replit](https://replit.com/)，以及 [LangChain customer page](https://www.langchain.com/built-with-langgraph) 上的更多案例。
 
@@ -230,7 +245,12 @@ flowchart TD
 ### 问：Mastra 是 Vercel AI SDK 的替代品吗？
 
 **优秀回答：**
-不是。Mastra 构建在 Vercel AI SDK 之上，用于实际的提供商调用和流式输出。Mastra 增加的是 **agent abstraction（代理抽象）**、**workflow engine（工作流引擎）**、**memory（记忆）**、**RAG（检索增强生成）**、**evals（评估）**，以及 **`mastra dev` playground（演练场）**。如果你只需要在 Next.js 应用中以流式方式调用 LLM 并进行工具调用，单独使用 AI SDK 就足够了。如果你想要带工作流、暂停 / 恢复、记忆和本地 playground 的类型化代理，Mastra 就是在不强迫你自己编写这些能力的情况下添加这些能力的一层。
+不是，虽然两者的重叠已经增加。Mastra 构建在 Vercel AI SDK 之上，用于实际的提供商调用和流式输出。AI SDK 本身如今也提供 Agent：AI SDK 6 增加了 `ToolLoopAgent` 和工具审批，AI SDK 7（2026 年 6 月 25 日）增加了可跨重启、部署和延迟审批持续运行的 `WorkflowAgent`，以及通过统一 API 运行 Claude Code 或 Codex 的实验性 `HarnessAgent`。Mastra 仍提供**记忆**、**RAG**、**评估**、支持暂停 / 恢复的类型化**工作流**，以及 **`mastra dev` 演练场**。若只需 Next.js 应用中的持久工具循环，单用 AI SDK 如今就够了；若想要这些内置能力和本地演练场，且不愿自行编写，Mastra 才是提供它们的那一层。
+
+### 问：Pydantic AI 2.0 改变了 `openai:` 模型前缀的含义。为什么资深工程师应在意这样一行默认值？
+
+**优秀回答：**
+因为我的代码没有变化，但线上协议变了。在 v2 中，`openai:gpt-6.1-sol` 走 Responses API，而非 Chat Completions（`openai-chat:` 保留旧路径）。这可能改变工具调用格式、推理项与缓存的行为、可接受的参数以及追踪记录的内容；v2 还将默认埋点迁移至新的 `gen_ai` 属性，使仪表盘可能悄然变空。它与 SDK 更改默认模型属于同一类破坏。防护办法也一样：固定框架版本，每次升级都运行评估套件并检查追踪结构，显式设置决定行为的选项，而非继承默认值。
 
 ### 问：“类型化代理框架”在生产中到底带来什么？
 
@@ -241,16 +261,18 @@ flowchart TD
 
 ## 参考资料
 
-- Pydantic AI v1.85 发布说明：https://github.com/pydantic/pydantic-ai/releases
+- Pydantic AI v2.0.0 发布说明（2026 年 6 月 23 日）：https://github.com/pydantic/pydantic-ai/releases/tag/v2.0.0
 - Pydantic AI 文档：https://ai.pydantic.dev/
 - Pydantic AI evals（评估）：https://ai.pydantic.dev/evals/
 - Mastra 仓库：https://github.com/mastra-ai/mastra
+- Mastra 博客，许可证从 ELv2 改为 Apache 2.0（2025 年 7 月）：https://mastra.ai/blog/apache-license
 - Mastra 文档：https://mastra.ai/
-- TechCrunch，《Mastra 为 TypeScript agent framework（智能体框架）获得 13M seed（种子轮融资）》（2025 月）：https://techcrunch.com/2025/10/16/mastra-typescript-agent-framework-seed/
+- Mastra，“Announcing our $13m seed round from YC, pg, Gradient, Amjad, Guillermo, Balaji, and 120+ others”（2025 年 10 月 8 日）：https://mastra.ai/blog/seed-round
 - Generative.inc Mastra 指南：https://generative.inc/blog/mastra-typescript-agent-framework
 - LangGraph 1.x 文档：https://docs.langchain.com/oss/python/langgraph/
 - LangChain“Built with LangGraph（使用 LangGraph 构建）”客户列表：https://www.langchain.com/built-with-langgraph
 - Vercel AI SDK（AI 软件开发工具包）：https://ai-sdk.dev/
+- Vercel，“AI SDK 7”（2026 年 6 月）：https://vercel.com/blog/ai-sdk-7
 - AIMultiple《Agentic AI frameworks compared（智能体 AI 框架对比）》（2026）：https://research.aimultiple.com/agentic-ai-frameworks/
 
 ---

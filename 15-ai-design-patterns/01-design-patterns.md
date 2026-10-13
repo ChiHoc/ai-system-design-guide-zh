@@ -331,10 +331,11 @@ class ManagerAgent:
 ```python
 class ModelCascade:
     def __init__(self):
+        # (model, input USD per 1M tokens at list price, October 2026)
         self.models = [
-            ("gpt-4o-mini", 0.15),     # Cheapest
-            ("gpt-4o", 2.50),           # Mid-tier
-            ("claude-3.5-sonnet", 3.00) # Most capable
+            ("gpt-6-luna", 0.10),         # Cheapest
+            ("claude-sonnet-5-5", 2.00),  # Mid-tier
+            ("claude-opus-5-5", 4.00)     # Most capable
         ]
     
     async def generate(self, query: str) -> str:
@@ -342,17 +343,19 @@ class ModelCascade:
         complexity = await self.classify_complexity(query)
         
         if complexity == "simple":
-            return await self.call_model("gpt-4o-mini", query)
+            return await self.call_model("gpt-6-luna", query)
         elif complexity == "medium":
-            return await self.call_model("gpt-4o", query)
+            return await self.call_model("claude-sonnet-5-5", query)
         else:
-            return await self.call_model("claude-3.5-sonnet", query)
+            return await self.call_model("claude-opus-5-5", query)
 ```
 
 **使用场景：**
 - 高查询量
 - 查询复杂度变化大
 - 成本优化优先
+
+**路由与级联的区别。** 上面的代码通过分类器预先路由。真正的级联会先运行低成本模型，仅当校验器或置信度检查失败时才升级；当大多数请求简单且失败可检测时，这样才划算。如今还有两个复杂因素：每个档位都应固定推理 effort，因为默认值可能随版本改变（Claude Opus 5 默认 `high`，Opus 5.5 默认 `medium`）；价格变化时应重新划分档位，因为价格已不能代表能力。Opus 5.5 每 100 万输入/输出 token 为 $4/$20，在 Artificial Analysis Intelligence Index v4.3.2 上得分 58，高于 $10/$50 的 Claude Fable 5.1 的 53 分（两者均采用最高 effort，并启用安全回退）。
 
 ---
 
@@ -362,7 +365,7 @@ class ModelCascade:
 
 ```python
 class SpeculativeExecution:
-    async def generate(self, prompt: str, n_tokens: int = 5) -> str:
+    async def generate(self, prompt: str, n_tokens: int = 5, max_tokens: int = 512) -> str:
         output = []
         
         while len(output) < max_tokens:
@@ -391,6 +394,8 @@ class SpeculativeExecution:
 - 延迟敏感型应用
 - 拥有对齐能力的草稿模型
 - 生成模式可预测
+
+生产环境中通常无需自己编写这一循环；推理引擎会负责运行。vLLM 和 SGLang 支持 EAGLE-3、原生多 token 预测（MTP）头和 DFlash 块扩散草稿器（Inco AI 报告 DFlash 2 在 Qwen3.8-27B 上将吞吐提高 2.7 到 3.4 倍）；vLLM 还运行与模型检查点一起发布的 DeepSeek DSpark 模块。批量大小增加时，加速收益会收缩，因此要在生产并发度下测量；vLLM 称其自适应验证在并发度高达 256 时仍能让推测解码带来收益。托管 API 对应的杠杆是付费加速档位：OpenAI Fast 为标准价的 2 倍，Ultrafast 为 6 倍（GPT-6 Astra 已正式上线），Anthropic 的 Opus 5.5 fast mode 为 2 倍（研究预览，仅限 Claude API）。参见[推测解码](../04-inference-optimization/03-speculative-decoding.md)。
 
 ---
 
@@ -430,6 +435,8 @@ class CachingLLM:
 - 成本降低优先
 - 可容忍一定的数据过期（staleness）
 
+**还应在这两层之下使用供应商的提示词缓存。** 精确匹配和语义缓存仅在整道问题重复时才有用。提示词（前缀）缓存则帮助每个共享稳定前缀的请求；在智能体循环中，几乎每次调用都符合这一条件：Anthropic 报告 Claude Code 流量中每 1 个输出 token 对应 324 个输入 token。多数模型的缓存读取按输入价格的 0.1 倍计费，Claude Opus 5.5 和 GPT-6.1 Sol 为 0.05 倍，Claude Fable 5.1 为 0.025 倍；写入则为 1.25 倍（Anthropic 一小时缓存为 2 倍；OpenAI GPT-5.6 及更新模型采用固定 30 分钟 TTL）。把稳定部分（系统提示、工具定义、持久文档）放在前面，将缓存命中率视为 SLO；OpenAI 和 Anthropic 都在 2026 年 9 月正式开放了缓存未命中诊断。
+
 ---
 
 ## 可靠性模式
@@ -438,24 +445,36 @@ class CachingLLM:
 
 ```python
 class RetryWithFallback:
-    async def generate(self, query: str) -> str:
+    async def generate(self, query: str) -> LLMResponse:
         providers = [
-            ("openai", "gpt-4o"),
-            ("anthropic", "claude-3.5-sonnet"),
-            ("google", "gemini-1.5-pro")
+            ("openai", "gpt-6-sol"),
+            ("anthropic", "claude-sonnet-5-5"),
+            ("google", "gemini-3.8-flash")
         ]
         
         for provider, model in providers:
             try:
-                return await self.call(provider, model, query)
-            except RateLimitError:
+                response = await self.call(provider, model, query)
+            except (RateLimitError, ServiceError, TimeoutError):
                 continue
-            except ServiceError:
-                continue
+
+            # A safety refusal is an outcome, not an outage: Claude returns it
+            # as HTTP 200 with stop_reason "refusal". Handle it deliberately
+            # (the provider's own fallback, a user message, or a human), not by
+            # shopping the request to another vendor.
+            if response.stop_reason == "refusal":
+                return self.handle_refusal(response)
+            return response
         
         # All providers failed
         raise AllProvidersUnavailable()
 ```
+
+有三个因素让回退比这个循环看起来更复杂：
+
+- **回退必须跨厂商。** 2026 年 8 月 16 日至 9 月 29 日，Anthropic 记录了至少 12 次重大或严重故障；OpenAI 在 9 月 29 日的一次故障同时影响 API、ChatGPT 和 Codex，持续约 5 小时 20 分钟。同厂商另一模型仍处于相同故障域。
+- **回退会改变行为。** Claude 的思考块绑定生成它们的模型与对话，中途切换时必须丢弃这些块，并从可见消息重建上下文。请求格式也不同：最新 Claude 模型对强制 `tool_choice` 返回 400，GPT-6 Astra 拒绝自定义 `temperature`。应以厂商无关格式保存对话状态，并对链中每个模型运行评估集。
+- **拒绝不是错误。** 应根据 `stop_reason` 而非 HTTP 状态路由；还要从 2026 年 9 月 24 日起将拒绝计入预算：Anthropic 对 `bio`、`frontier_llm` 和 `reasoning_extraction` 类别的输出前拒绝收费。
 
 ---
 
@@ -544,21 +563,30 @@ class TokenBudget:
 def track_cost(model: str):
     def decorator(func):
         async def wrapper(*args, **kwargs):
-            start_tokens = get_token_count()
-            result = await func(*args, **kwargs)
-            end_tokens = get_token_count()
+            response = await func(*args, **kwargs)
             
-            cost = calculate_cost(model, end_tokens - start_tokens)
+            # Read usage from the response itself; a global token counter is
+            # wrong under concurrency. Field names vary by provider.
+            u = response.usage
+            cost = calculate_cost(
+                model,
+                uncached_input=u.input_tokens,
+                cache_writes=u.cache_write_tokens,  # 1.25x input (2x for a 1-hour cache)
+                cache_reads=u.cache_read_tokens,    # 0.025x to 0.1x input
+                output=u.output_tokens,             # includes reasoning tokens
+            )
             metrics.record("llm_cost", cost, tags={"model": model})
             
-            return result
+            return response
         return wrapper
     return decorator
 
-@track_cost("gpt-4o")
+@track_cost("gpt-6-sol")
 async def generate_response(query: str):
     return await llm.generate(query)
 ```
+
+各类 token 应分别计价，否则仪表盘可能偏差数倍：缓存读写费率不同，推理 token 按输出计费，OpenAI 在输入超过 272K token 时按长上下文价格计算整个请求，服务档位（Batch、Fast）和数据驻留还会进一步乘上相应系数。完整公式见[价格与成本](../02-model-landscape/03-pricing-and-costs.md)。
 
 ---
 
@@ -586,7 +614,7 @@ async def generate_response(query: str):
 
 **Retry with exponential backoff（指数退避重试）** 用于处理瞬时故障。LLM API 常见速率限制和临时错误。
 
-**Multi-provider fallback（多供应商回退）**，这样当 OpenAI 出现问题时，可以自动切换到 Anthropic 或 Google。这需要对 LLM 接口进行抽象。
+**Multi-provider fallback（多供应商回退）**，这样当 OpenAI 出现问题时，可以自动切换到 Anthropic 或 Google。这需要对 LLM 接口进行抽象，以厂商无关格式保存对话状态（Claude 思考块不能重放给其他模型），并对链中每个模型运行评估集，避免回退悄然改变质量。安全拒绝应另行处理：它会作为带拒绝停止原因的成功响应返回，因此要根据停止原因而非 HTTP 状态路由。
 
 **Circuit breaker（熔断器）** 用于避免反复打爆故障中的服务。连续 N 次失败后，我会打开熔断并立即路由到 fallback，让主服务有时间恢复。
 

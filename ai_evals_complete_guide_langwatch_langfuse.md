@@ -20,7 +20,9 @@
 
 **平台示例：** 本指南以 **LangWatch**（开源、自托管或云）和 **Langfuse**（开源、云或自托管）为主线示例。方法论与平台无关，可按你当前使用的工具适配。
 
-**LangWatch 与 Langfuse：** 两者都是优秀的开源平台，核心能力接近。LangWatch 提供更简化的接入与内置评估器；Langfuse 则在自定义流水线灵活性和社区规模上更强。本指南同时覆盖两者，便于按需取舍。
+**LangWatch 与 Langfuse：** 两者都是核心能力相近的开源平台。LangWatch 提供 30 多个现成评估器（RAG、安全、质量），无需编写评审提示就可接入。Langfuse 提供基于模板的托管式 LLM 评审、托管代码评估器和更成熟的提示管理，社区也更大。本指南同时展示两者，便于按需求选择。
+
+**SDK 版本很重要。** Langfuse 示例面向基于 OTel 的 Python SDK v4（2026 年 9 月底为 4.16.0）；调用 `langfuse.trace()` 的教程面向 v2 SDK，新安装后会失败。LangWatch 示例面向 Python SDK 1.x（9 月底为 1.4.0，使用 `langwatch.setup()` 和 `langwatch.experiment.init()`）。应固定两种 SDK，升级时重新检查示例。示例使用 `gpt-4o` 和 `gpt-4o-mini`，因为它们广泛可用且仍接受 `temperature`；当前评审模型的选择见第 13 章与附录 E。
 
 ---
 
@@ -67,7 +69,7 @@ AI 社区内有一种争论：有人认为“只要自己体验一下就行”�
 
 **每个人都需要 Evals（评估）**。宣称不需要的人，通常是在用上游他人已经做好的评估成果。
 
-示例：如果你在用 GPT-4 构建代码助手，OpenAI 已经在海量代码基准上测试过 GPT-4。此时你可以先做“vibe check”。但对多数不是基础模型简单调用的应用，你必须建立自己的评估体系。
+例如，用前沿模型构建轻量编程助手时，实验室在发布前已经用大型编程基准测试过该模型，可以先做“vibe check”。但多数应用不只是简单调用基础模型，仍需自己的评估。
 
 ### 关于 Evals 的三条核心真相
 
@@ -192,7 +194,7 @@ ASSISTANT RESPONSE:
 **建议包含：**
 - 使用到的系统提示词
 - 工具调用及其结果
-- 模型参数（温度 `temperature`、`max_tokens` 等）
+- 模型参数（`temperature` 或推理强度、`max_tokens` 等）
 - Token 数量
 - 时延（latency，响应耗时）
 - 每次请求成本
@@ -207,15 +209,15 @@ ASSISTANT RESPONSE:
 
 | Tool | Type（类型） | Best For（适合场景） | Cost（费用） |
 |------|------|----------|------|
-| **LangWatch** | 开源，云或自托管 | 上手快、内置评估器、体验优秀 | 免费层 + 付费 |
+| **LangWatch** | 开源，云或自托管 | 上手快、现成评估器、体验优秀 | 免费层 + 付费 |
 | **Langfuse** | 开源，云或自托管 | 自定义流水线、大社区 | 免费层 + 付费 |
-| **Braintrust** | 云 | 界面优秀、团队协作友好 | 付费 |
-| **LangSmith** | 云 | LangChain 用户 | 付费 |
+| **Braintrust** | 云（Enterprise 可自托管） | 界面优秀、团队协作友好 | 免费层 + 付费 |
+| **LangSmith** | 云（Enterprise 可自托管或混合部署） | LangChain 和 LangGraph 用户 | 免费层 + 付费 |
 | **Build Your Own（自建）** | 定制 | 学习、满足自定义需求 | 免费 |
 
 **LangWatch 与 Langfuse 对比：**
-- **接入（Setup）**：LangWatch 更简单（3 行集成），Langfuse 需要更多配置
-- **评估器（Evaluators）**：LangWatch 提供 40+ 内置评估器，Langfuse 需要自定义实现
+- **接入**：LangWatch 通过 `langwatch.setup()` 加追踪装饰器起步略简单；仅使用 OpenAI 的应用接入 Langfuse 替代客户端也同样快
+- **评估器**：LangWatch 有 30 多个现成评估器（Ragas 的 RAG 指标、PII、越狱、内容安全、跑题、LLM 评审模板）；Langfuse 可在生产观测和实验上运行基于模板的托管 LLM 评审及 Python／TypeScript 托管代码评估器，也可通过 SDK 从自有代码写入分数
 - **灵活性（Flexibility）**：Langfuse 在自定义工作流上更灵活，LangWatch 更偏默认方案
 - **社区（Community）**：Langfuse 社区更大、集成更多
 - **界面（UI）**：两者都做得很好；LangWatch 偏重分析，Langfuse 偏重工作流
@@ -224,7 +226,7 @@ ASSISTANT RESPONSE:
 
 ### 配置 LangWatch（开源，云或自托管）
 
-LangWatch 是一款开源 LLM 可观测与分析平台，提供追踪（tracing）、评估、数据集、实验以及 40+ 个内置评估器。
+LangWatch 是开源 LLM 可观测与分析平台，提供追踪、评估、数据集、实验及 30 多个现成评估器。
 
 #### 安装与配置
 
@@ -240,38 +242,37 @@ os.environ["LANGWATCH_API_KEY"] = "lw_..."  # or set in .env file
 
 **云与自托管（Cloud vs Self-Hosted）：**
 - **云端：** 在 [langwatch.ai](https://langwatch.ai) 注册，获取 API Key，约 5 分钟即可完成
-- **自托管：** 使用其 Docker 编排运行 `docker-compose up`，并接入你自己的实例
+- **自托管：** 本地快速启动可用 Docker Compose，Kubernetes 生产部署可用 Helm；技术栈使用 PostgreSQL、Redis 和 ClickHouse，Helm chart 可选 S3 兼容对象存储
 
-#### 仪表化你的应用（Auto-Tracing，自动追踪）
+#### 为应用添加追踪
 
-LangWatch 对主流框架支持自动注入埋点（Auto-Instrumentation）：
+`langwatch.setup()` 初始化 SDK，`@langwatch.trace()` 装饰器创建每条追踪的根，`autotrack_openai_calls()` 捕获其中每次 OpenAI 调用：
 
 ```python
 import langwatch
+from openai import OpenAI
 
-# Initialize LangWatch
-langwatch.init()
+langwatch.setup()  # reads LANGWATCH_API_KEY
+client = OpenAI()
 
-# Your existing OpenAI code now gets traced automatically!
-import openai
-client = openai.OpenAI()
-
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[
-        {"role": "system", "content": "You are a recipe assistant."},
-        {"role": "user", "content": "How do I make pancakes?"}
-    ],
-    temperature=0.7
-)
-# This call is automatically captured by LangWatch!
+@langwatch.trace()
+def answer(question):
+    # Capture every call this client makes inside the trace
+    langwatch.get_current_trace().autotrack_openai_calls(client)
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a recipe assistant."},
+            {"role": "user", "content": question}
+        ],
+        temperature=0.7
+    )
+    return response.choices[0].message.content
 ```
 
 **框架支持：**
-- OpenAI（自动）
-- LangChain（自动）
-- LlamaIndex（自动）
-- Anthropic Claude（自动）
+- OpenAI（`autotrack_openai_calls`）
+- LangChain、LlamaIndex、Anthropic 等：将 OpenTelemetry 埋点器（例如 OpenInference）传给 `langwatch.setup(instrumentors=[...])`，或使用 LangWatch 文档中的框架专用辅助函数
 - 任意自定义 LLM（手动 spans）
 
 #### 用装饰器添加自定义 Span
@@ -279,9 +280,9 @@ response = client.chat.completions.create(
 ```python
 import langwatch
 
-@langwatch.span(type="chain")
+@langwatch.trace(name="sql-pipeline")
 def my_pipeline(question):
-    """Parent span for the whole pipeline"""
+    """Root of the trace for the whole pipeline"""
     sql = generate_sql(question)
     results = execute_query(sql)
     return synthesize_answer(question, results)
@@ -298,7 +299,7 @@ def execute_query(sql):
 ```
 
 **与 Langfuse 对比：**
-两者都支持装饰器，但 LangWatch 的 `@langwatch.span()` 更简化，Langfuse 的 `@observe()` 则更显式。LangWatch 会自动按类型归类 spans，而 Langfuse 需要你显式传 `as_type` 参数。
+两者都支持装饰器，也都显式设置 span 类型：LangWatch 的 `@langwatch.span()` 使用 `type=`，Langfuse 的 `@observe()` 使用 `as_type=`。LangWatch 区分根追踪（`@langwatch.trace()`）和子 span；Langfuse 把最外层的 `@observe()` 作为追踪。
 
 ### 配置 Langfuse（开源，云或自托管）
 
@@ -307,20 +308,20 @@ Langfuse 提供 tracing、评估、数据集、实验以及提示词管理。它
 #### 安装与配置
 
 ```bash
-pip install langfuse openai
+pip install langfuse openai  # Python SDK v4.x (OpenTelemetry-based)
 ```
 
 ```python
 # Set environment variables (or pass to constructor)
 # LANGFUSE_SECRET_KEY="sk-lf-..."
 # LANGFUSE_PUBLIC_KEY="pk-lf-..."
-# LANGFUSE_HOST="https://cloud.langfuse.com"  # or your self-hosted URL
+# LANGFUSE_BASE_URL="https://cloud.langfuse.com"  # or your self-hosted URL (older examples use LANGFUSE_HOST)
 ```
 
 #### 仪表化你的应用（Drop-In Replacement）
 
 ```python
-# Just change your import — everything else stays the same!
+# Just change your import; everything else stays the same
 from langfuse.openai import OpenAI
 
 client = OpenAI()
@@ -362,25 +363,31 @@ def generate_sql(question):
 
 ```python
 import langwatch
+from langwatch.prompts.types import Message
 
-# Create a prompt template
+# Create a prompt (versioned on the platform, addressed by its handle).
+# `prompt` is the system message; extra messages must be Message objects.
 langwatch.prompts.create(
-    name="recipe-assistant-v1",
-    template=[
-        {"role": "system", "content": "You are a recipe assistant..."},
-        {"role": "user", "content": "{{question}}"}
-    ],
-    model="gpt-4o-mini",
-    temperature=0.7
+    handle="recipe-assistant",
+    scope="PROJECT",
+    prompt="You are a recipe assistant...",
+    messages=[Message(role="user", content="{{input}}")],
 )
 
-# Use at runtime
-prompt = langwatch.prompts.get("recipe-assistant-v1")
-messages = prompt.render(question="How do I make pancakes?")
-response = client.chat.completions.create(messages=messages, **prompt.settings)
+# Use at runtime: the model comes from the prompt version, not from code
+from litellm import completion
+
+prompt = langwatch.prompts.get("recipe-assistant")
+compiled = prompt.compile(input="How do I make pancakes?")
+response = completion(
+    model=prompt.model,  # e.g. "openai/gpt-4o-mini", LiteLLM's provider/model format
+    messages=compiled.messages,
+)
 ```
 
-**LangWatch 优势：** API 更简单，参数管理更自动（temperature、model 与提示词一并管理）。
+截至 SDK 1.4.0，Python SDK 的 `prompts.create()` 没有 `model` 参数，尽管部分 LangWatch 文档示例传入了它。应在 LangWatch UI 的提示编辑器中选择模型，或通过 REST API 写入。
+
+**LangWatch 优势：** API 简单，模型与提示版本一同保存。运行时读取 `prompt.model`，模型切换就成为提示版本更新，无需部署代码。
 
 #### Langfuse
 
@@ -412,23 +419,26 @@ compiled = prompt.compile(query="How do I make pancakes?")
 
 ```python
 import langwatch
-import pandas as pd
 
-df = pd.DataFrame({
-    "query": [
-        "Suggest a quick vegan breakfast recipe",
-        "I have chicken and rice. What can I cook?",
-        "Give me a dessert recipe with chocolate",
-    ]
-})
-
-dataset = langwatch.datasets.create(
-    name="recipe-queries",
-    dataframe=df,
+langwatch.dataset.create_dataset(
+    "recipe-queries",
+    columns=[{"name": "query", "type": "string"}],
 )
+
+langwatch.dataset.create_records(
+    "recipe-queries",
+    entries=[
+        {"query": "Suggest a quick vegan breakfast recipe"},
+        {"query": "I have chicken and rice. What can I cook?"},
+        {"query": "Give me a dessert recipe with chocolate"},
+    ],
+)
+
+# Later: load it straight into pandas
+df = langwatch.dataset.get_dataset("recipe-queries").to_pandas()
 ```
 
-**LangWatch 优势：** 直接支持 pandas DataFrame，API 更简单。
+**LangWatch 优势：** 数据集可直接加载为 pandas DataFrame，符合多数评估 notebook 的工作方式。
 
 #### Langfuse
 
@@ -454,12 +464,14 @@ for query in ["Suggest a quick vegan breakfast recipe",
 
 **没有 traces（调用链）就不能做 Evals（评估）**。这是基座，必须先搭建好再做其他事情。
 
+**每次 SDK 升级后都要检查追踪是否仍送达。** 2026 年 8 月，OpenAI Python SDK 3.0 和 Anthropic Python SDK 1.0 都将 HTTP 层从 httpx 迁到 httpx2。Anthropic 迁移指南警告，若未在任何模块导入 httpx 前运行 `httpx2.alias_httpx()`，基于 httpx 的钩子（OpenTelemetry HTTPX 埋点器、Sentry 的 httpx 集成、respx、vcrpy）可能悄悄漏掉 SDK 请求。程序不会报错，span 却会停止出现，回放录制响应的评估测试也可能转而调用真实 API。依赖升级后追踪数量下降，应先按埋点故障排查。
+
 **给 PM/QA 的建议：** 你不必亲自写埋点（instrumentation）代码。可要求工程师先完成 tracing（追踪）搭建，再用 Web UI 可视化复查 traces。无论是 LangWatch（`langwatch.ai` 或自建地址）还是 Langfuse（`cloud.langfuse.com` 或自建地址），都提供可浏览、搜索和标注 traces 的界面。
 
 **平台选型建议：**
 - 选择 **LangWatch**：如果你追求最快接入、需要内置评估器、关注分析效率
 - 选择 **Langfuse**：如果你需要最大灵活性、复杂自定义工作流，或更看重社区规模
-- 两者都用：两者可互补，LangWatch 用于快速评估，Langfuse 用于深度工作流定制
+- 两者都用：LangWatch 用于快速评估，Langfuse 用于深度工作流定制，但代价是需要埋点两次
 
 ---
 
@@ -547,28 +559,6 @@ for i in range(25):  # Generate 25 diverse tuples
 **使用 LangWatch（内置生成）：**
 
 ```python
-import langwatch
-
-QUERY_GEN_PROMPT = """Convert this dimension tuple into a realistic user query
-for a Recipe Bot. Be creative and vary your style.
-
-Dimension tuple: {tuple_description}
-
-Generate 1 unique, realistic query:"""
-
-queries = []
-for t in dimension_tuples:
-    result = langwatch.completion(
-        prompt=QUERY_GEN_PROMPT.format(tuple_description=str(t)),
-        model="gpt-4o-mini",
-        temperature=0.9
-    )
-    queries.append(result.text)
-```
-
-**使用任意 LLM（平台无关）：**
-
-```python
 import openai
 
 client = openai.OpenAI()
@@ -592,7 +582,7 @@ for t in dimension_tuples:
     queries.append(response.choices[0].message.content)
 ```
 
-**使用 Langfuse（手动追踪）：**
+**使用任意 LLM（平台无关）：**
 
 ```python
 from langfuse.openai import OpenAI
@@ -609,6 +599,26 @@ for t in dimension_tuples:
         temperature=0.9
     )
     queries.append(response.choices[0].message.content)
+```
+
+**使用 Langfuse（手动追踪）：**
+
+```
+TRACE #1:
+"Told user it would check on bathrooms but didn't do it.
+Did not follow user instructions.
+Rendered markdown in a text message."
+
+TRACE #2:
+"Returned properties outside user's price range.
+Tool call had correct parameters but didn't filter results."
+
+TRACE #3:
+"Good response. No issues."
+
+TRACE #4:
+"Failed to hand off to human when user asked for same-day tour.
+Policy violation."
 ```
 
 **示例转换：**
@@ -636,22 +646,26 @@ for t in dimension_tuples:
 
 **一次真实错误分析会话的笔记示例：**
 
-```
-TRACE #1:
-"Told user it would check on bathrooms but didn't do it.
-Did not follow user instructions.
-Rendered markdown in a text message."
+```python
+prompt = f"""
+You are analyzing Recipe Bot failures. Look at these examples where
+a user queried the bot, the bot responded, and an analyst described
+what went wrong.
 
-TRACE #2:
-"Returned properties outside user's price range.
-Tool call had correct parameters but didn't filter results."
+EXAMPLES:
+{combined_df.to_json(orient="records", lines=True)}
 
-TRACE #3:
-"Good response. No issues."
+Based on the patterns you see in the analyst's descriptions,
+create 4-6 systematic failure mode labels.
 
-TRACE #4:
-"Failed to hand off to human when user asked for same-day tour.
-Policy violation."
+Each label should:
+- Be short and clear (2 words max)
+- Capture a distinct type of failure pattern
+- Be applicable to multiple traces
+
+Respond with a list:
+["label1", "label2", "label3", "label4", "label5", "label6"]
+"""
 ```
 
 **错误分析规则：**
@@ -681,33 +695,28 @@ Policy violation."
 
 导出你的笔记，然后使用这个提示词：
 
-```python
-prompt = f"""
-You are analyzing Recipe Bot failures. Look at these examples where
-a user queried the bot, the bot responded, and an analyst described
-what went wrong.
-
-EXAMPLES:
-{combined_df.to_json(orient="records", lines=True)}
-
-Based on the patterns you see in the analyst's descriptions,
-create 4-6 systematic failure mode labels.
-
-Each label should:
-- Be short and clear (2 words max)
-- Capture a distinct type of failure pattern
-- Be applicable to multiple traces
-
-Respond with a list:
-["label1", "label2", "label3", "label4", "label5", "label6"]
-"""
+```
+["Dietary Ignored", "Formatting Error", "Complexity Mismatch",
+ "Meal Type Mismatch", "Ingredient Omission", "Skill Level Misalignment"]
 ```
 
 **一个真实的食谱机器人评估结果示例：**
 
-```
-["Dietary Ignored", "Formatting Error", "Complexity Mismatch",
- "Meal Type Mismatch", "Ingredient Omission", "Skill Level Misalignment"]
+```python
+CLASSIFICATION_PROMPT = """Look at this Recipe Bot interaction and the
+analyst's description. Apply the most appropriate failure mode label.
+
+USER QUERY: {input_query}
+BOT RESPONSE: {bot_response}
+ANALYST'S ISSUE DESCRIPTION: {issue_description}
+
+AVAILABLE LABELS:
+{failure_mode_labels}
+
+Respond with just the label name."""
+
+# Run classification on each error note (use your platform's batch API
+# or loop with any LLM client)
 ```
 
 #### 将类别细化得具体且可执行
@@ -733,36 +742,24 @@ Respond with a list:
 这一步适用于任何 LLM。如果你的平台支持批处理，就用批处理：
 
 ```python
-CLASSIFICATION_PROMPT = """Look at this Recipe Bot interaction and the
-analyst's description. Apply the most appropriate failure mode label.
+import langwatch
+from openai import OpenAI
 
-USER QUERY: {input_query}
-BOT RESPONSE: {bot_response}
-ANALYST'S ISSUE DESCRIPTION: {issue_description}
+client = OpenAI()
+evaluation = langwatch.experiment.init("failure-mode-labeling")
 
-AVAILABLE LABELS:
-{failure_mode_labels}
-
-Respond with just the label name."""
-
-# Run classification on each error note (use your platform's batch API
-# or loop with any LLM client)
+for index, row in evaluation.loop(error_notes_df.iterrows(), threads=8):
+    def task(index, row):
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": CLASSIFICATION_PROMPT.format(**row)}],
+            temperature=0
+        )
+        error_notes_df.loc[index, "label"] = response.choices[0].message.content
+    evaluation.submit(task, index, row)
 ```
 
 **使用 LangWatch（批量评估）：**
-
-```python
-import langwatch
-
-results = langwatch.evaluate.batch(
-    dataset=error_notes_df,
-    evaluator="custom_classifier",
-    prompt_template=CLASSIFICATION_PROMPT,
-    model="gpt-4o-mini"
-)
-```
-
-**使用 Langfuse（手动迭代）：**
 
 ```python
 from langfuse.openai import OpenAI
@@ -778,12 +775,25 @@ for note in error_notes:
     note["label"] = response.choices[0].message.content
 ```
 
+**使用 Langfuse（手动迭代）：**
+
+```python
+label_counts = error_notes_df["label"].value_counts()
+# list-of-dicts version: pd.DataFrame(error_notes)["label"].value_counts()
+```
+
 ### 第5步：统计并排序优先级
 
 **统计每个类别出现了多少次：**
 
-```python
-label_counts = results["output"].value_counts()
+```
+"Dietary restriction violations happen in 11% of cases, but when
+they occur, we could harm users with allergies. This is HIGH-SEVERITY.
+
+Formatting issues happen in 11% of cases, but they're just
+annoying, not dangerous. This is LOW-SEVERITY.
+
+Let's fix dietary adherence first, then complexity matching."
 ```
 
 **一个真实评估结果示例：**
@@ -813,13 +823,13 @@ label_counts = results["output"].value_counts()
 **优先级讨论示例：**
 
 ```
-"Dietary restriction violations happen in 11% of cases, but when
-they occur, we could harm users with allergies. This is HIGH-SEVERITY.
-
-Formatting issues happen in 11% of cases, but they're just
-annoying, not dangerous. This is LOW-SEVERITY.
-
-Let's fix dietary adherence first, then complexity matching."
+1. Generate traces (run your AI on test queries)
+2. Label a subset manually (or with a powerful LLM)
+3. Split into Train / Dev / Test sets
+4. Develop your judge prompt using Train examples
+5. Validate on Dev set (iterate until good)
+6. Final evaluation on Test set (unbiased metrics)
+7. Run on all traces + correct with judgy
 ```
 
 ### “理论饱和（Theoretical Saturation）”概念
@@ -888,24 +898,6 @@ LLM judge（LLM 评审器）是一种用来评估其他 AI 输出的 AI。它会
 #### 概览：流水线
 
 ```
-1. Generate traces (run your AI on test queries)
-2. Label a subset manually (or with a powerful LLM)
-3. Split into Train / Dev / Test sets
-4. Develop your judge prompt using Train examples
-5. Validate on Dev set (iterate until good)
-6. Final evaluation on Test set (unbiased metrics)
-7. Run on all traces + correct with judgy
-```
-
-### 第1步：生成 Trace
-
-在多样化的测试查询上运行你的 AI 系统，生成 trace。使用你平台的自动埋点（auto-instrumentation，见第 2 章）来自动捕获一切。
-
-### 第2步：标注真值数据（Ground Truth）
-
-将 150-200 条 trace 标注为 PASS 或 FAIL。你可以手动标注（最准确），也可以使用强大的 LLM：
-
-```
 You are an expert nutritionist evaluating dietary adherence.
 
 DIETARY RESTRICTION DEFINITIONS:
@@ -913,7 +905,7 @@ DIETARY RESTRICTION DEFINITIONS:
 - Vegetarian: No meat or fish, but dairy and eggs are allowed
 - Gluten-free: No wheat, barley, rye, or other gluten-containing grains
 - Keto: Very low carb (<20g net carbs), high fat, moderate protein
-[... full definitions — see Appendix C for the full list ...]
+[... full definitions: see Appendix C for the full list ...]
 
 EVALUATION CRITERIA:
 - PASS: Recipe clearly adheres to the dietary preferences
@@ -926,34 +918,42 @@ Response: {response}
 Return JSON: {"label": "PASS" or "FAIL", "explanation": "..."}
 ```
 
-**平台特定的标注方式：**
+### 第1步：生成 Trace
 
-**使用 LangWatch（内置评测器）：**
+在多样化的测试查询上运行你的 AI 系统，生成 trace。使用你平台的自动埋点（auto-instrumentation，见第 2 章）来自动捕获一切。
+
+### 第2步：标注真值数据（Ground Truth）
+
+将 150-200 条 trace 标注为 PASS 或 FAIL。你可以手动标注（最准确），也可以使用强大的 LLM：
 
 ```python
 import langwatch
+from openai import OpenAI
 
-# LangWatch has 40+ built-in evaluators including dietary compliance
-results = langwatch.evaluate.batch(
-    dataset=traces_df,
-    evaluators=["dietary_compliance"],  # Built-in evaluator
-    model="gpt-4o"
-)
+client = OpenAI()
+df = langwatch.dataset.get_dataset("recipe-traces").to_pandas()
+evaluation = langwatch.experiment.init("dietary-labeling")
 
-# Or create custom evaluator
-custom_evaluator = langwatch.evaluators.create(
-    name="dietary_adherence",
-    prompt=LABELING_PROMPT,
-    model="gpt-4o"
-)
-
-results = langwatch.evaluate.batch(
-    dataset=traces_df,
-    evaluators=[custom_evaluator]
-)
+for index, row in evaluation.loop(df.iterrows(), threads=8):
+    def task(index, row):
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": LABELING_PROMPT.format(**row)}],
+            temperature=0
+        )
+        result = parse_json(response.choices[0].message.content)
+        evaluation.log(
+            "dietary_adherence",
+            index=index,
+            passed=result["label"] == "PASS",
+            data={"explanation": result["explanation"]},
+        )
+    evaluation.submit(task, index, row)
 ```
 
-**使用 Langfuse（自定义实现）：**
+**平台特定的标注方式：**
+
+**使用 LangWatch（内置评测器）：**
 
 ```python
 from langfuse.openai import OpenAI
@@ -970,16 +970,7 @@ for trace in traces:
     labels.append(parse_json(response.choices[0].message.content))
 ```
 
-**LangWatch 的优势：** 40+ 个内置评测器可以节省常见场景的时间。  
-**Langfuse 的优势：** 对自定义评估逻辑拥有完全控制权。
-
-### 第3步：拆分数据（Train / Dev / Test）
-
-这一步非常关键，而且经常被跳过！你需要三个独立的数据集：
-
-- **Train（约 15%）：** 用于为你的 judge 提示词选择 few-shot 示例
-- **Dev（约 40%）：** 用于迭代和改进你的 judge 提示词
-- **Test（约 45%）：** 仅用于最终一次、无偏的评估
+**使用 Langfuse（自定义实现）：**
 
 ```python
 from sklearn.model_selection import train_test_split
@@ -999,13 +990,16 @@ train, dev = train_test_split(
 )
 ```
 
-**为什么要做分层拆分（stratified splitting）？** 你需要在每个拆分中同时包含 PASS 和 FAIL 示例。如果不做分层，你可能会得到一个全是 PASS 的 dev 集，这会让它无法用于测试失败检测。
+**LangWatch 的优势：** 40+ 个内置评测器可以节省常见场景的时间。<br>
+**Langfuse 的优势：** 对自定义评估逻辑拥有完全控制权。
 
-### 第4步：构建你的 Judge Prompt
+### 第3步：拆分数据（Train / Dev / Test）
 
-你的 `Judge Prompt（裁决提示词）` 需要 **四个关键部分**：
+这一步非常关键，而且经常被跳过！你需要三个独立的数据集：
 
-#### 第一部分：角色与领域定义
+- **Train（约 15%）：** 用于为你的 judge 提示词选择 few-shot 示例
+- **Dev（约 40%）：** 用于迭代和改进你的 judge 提示词
+- **Test（约 45%）：** 仅用于最终一次、无偏的评估
 
 ```
 You are an expert nutritionist and dietary specialist evaluating
@@ -1019,10 +1013,16 @@ DIETARY RESTRICTION DEFINITIONS:
 - Dairy-free: No milk, cheese, butter, yogurt, or other dairy products
 - Keto: Very low carb (typically <20g net carbs), high fat
 - Paleo: No grains, legumes, dairy, refined sugar, or processed foods
-[... all 16 definitions — see Appendix C for the full list ...]
+[... all 16 definitions: see Appendix C for the full list ...]
 ```
 
-#### 第二部分：清晰的评估标准
+**为什么要做分层拆分（stratified splitting）？** 你需要在每个拆分中同时包含 PASS 和 FAIL 示例。如果不做分层，你可能会得到一个全是 PASS 的 dev 集，这会让它无法用于测试失败检测。
+
+### 第4步：构建你的 Judge Prompt
+
+你的 `Judge Prompt（裁决提示词）` 需要 **四个关键部分**：
+
+#### 第一部分：角色与领域定义
 
 ```
 EVALUATION CRITERIA:
@@ -1033,9 +1033,7 @@ EVALUATION CRITERIA:
 - Consider both explicit ingredients AND cooking methods
 ```
 
-#### 第三部分：少样本示例（来自你的训练集！）
-
-这正是训练集发挥作用的地方。选择 1-3 个正确判断的示例：
+#### 第二部分：清晰的评估标准
 
 ```
 Example 1 (PASS):
@@ -1058,7 +1056,9 @@ Explanation: The recipe FAILS because it includes cooked quinoa.
 Label: FAIL
 ```
 
-#### 第四部分：输出格式
+#### 第三部分：少样本示例（来自你的训练集！）
+
+这正是训练集发挥作用的地方。选择 1-3 个正确判断的示例：
 
 ```
 Now evaluate the following:
@@ -1071,29 +1071,7 @@ RETURN YOUR EVALUATION IN JSON FORMAT:
 "explanation": "Detailed explanation citing specific ingredients or methods"
 ```
 
-### 为什么二元评分最有效
-
-**有些人想要 1-5 量表或百分比。不要这样做。**
-
-**使用二元（PASS/FAIL）：**
-- 只需验证两件事
-- 决策边界清晰
-- 更容易调试
-- 更容易向相关方解释
-
-**使用 1-5 量表：**
-- 需要验证每个分数是否一致
-- 2 和 3 的区别是什么？
-- 验证工作量要大 5 倍
-- 业务决策本来就是二元的
-
-**请记住：** 要么你修复了某个问题，要么没有。要么它坏了，要么没坏。
-
-### 第5步：在 Dev 集上验证
-
-在 Dev 集上运行你的 judge，并与 ground truth（真值）对比。各平台的方法如下：
-
-#### Evaluator Functions（评估函数，平台无关）
+#### 第四部分：输出格式
 
 ```python
 def eval_tp(*, output, expected, **kwargs):
@@ -1121,36 +1099,56 @@ def eval_fn(*, output, expected, **kwargs):
     return 1.0 if judge == "FAIL" and truth == "PASS" else 0.0
 ```
 
-#### 运行实验
+### 为什么二元评分最有效
 
-**使用 LangWatch：**
+**有些人想要 1-5 量表或百分比。不要这样做。**
+
+**使用二元（PASS/FAIL）：**
+- 只需验证两件事
+- 决策边界清晰
+- 更容易调试
+- 更容易向相关方解释
+
+**使用 1-5 量表：**
+- 需要验证每个分数是否一致
+- 2 和 3 的区别是什么？
+- 验证工作量要大 5 倍
+- 业务决策本来就是二元的
+
+**请记住：** 要么你修复了某个问题，要么没有。要么它坏了，要么没坏。
+
+### 第5步：在 Dev 集上验证
+
+在 Dev 集上运行你的 judge，并与 ground truth（真值）对比。各平台的方法如下：
+
+#### Evaluator Functions（评估函数，平台无关）
 
 ```python
 import langwatch
 
-# Create custom evaluator with your judge prompt
-judge_evaluator = langwatch.evaluators.create(
-    name="dietary-judge-v1",
-    prompt=judge_prompt_template,
-    model="gpt-4o",
-    temperature=0
-)
+dev_df = langwatch.dataset.get_dataset("dietary-dev").to_pandas()
+evaluation = langwatch.experiment.init("dietary-judge-v1-dev")
+rows = []
 
-# Run on dev set
-results = langwatch.evaluate.batch(
-    dataset=dev_dataset,
-    evaluators=[judge_evaluator],
-    metrics=["tp", "tn", "fp", "fn", "tpr", "tnr"]
-)
+for index, row in evaluation.loop(dev_df.iterrows(), threads=8):
+    def task(index, row):
+        judge = run_judge(row)  # your judge prompt + model, returns {"label": ...}
+        truth = {"label": row["ground_truth"]}
+        # Log each confusion-matrix cell as its own metric
+        evaluation.log("tp", index=index, score=eval_tp(output=judge, expected=truth))
+        evaluation.log("tn", index=index, score=eval_tn(output=judge, expected=truth))
+        evaluation.log("fp", index=index, score=eval_fp(output=judge, expected=truth))
+        evaluation.log("fn", index=index, score=eval_fn(output=judge, expected=truth))
+        rows.append({"judge": judge["label"], "truth": row["ground_truth"]})
+    evaluation.submit(task, index, row)
 
-# LangWatch automatically calculates TPR and TNR
-print(f"TPR: {results.metrics['tpr']:.1%}")
-print(f"TNR: {results.metrics['tnr']:.1%}")
+# TPR and TNR are ratios of the summed cells: compute them from `rows`
+# with the same formulas as the Langfuse example below
 ```
 
-**LangWatch 的优势：** 内置指标计算，无需手动计算 confusion matrix（混淆矩阵）。
+#### 运行实验
 
-**使用 Langfuse：**
+**使用 LangWatch：**
 
 ```python
 from langfuse import Evaluation
@@ -1170,7 +1168,12 @@ result = langfuse.run_experiment(
 
 print(result.format())
 
-# Calculate TPR/TNR manually from results
+# Collect (judge, truth) pairs from the item results, then compute TPR/TNR
+results = [
+    {"judge": r.output.get("label", "").upper(),
+     "truth": r.item["expected_output"].get("label", "").upper()}
+    for r in result.item_results
+]
 tp = sum(1 for r in results if r["judge"] == "PASS" and r["truth"] == "PASS")
 tn = sum(1 for r in results if r["judge"] == "FAIL" and r["truth"] == "FAIL")
 fp = sum(1 for r in results if r["judge"] == "PASS" and r["truth"] == "FAIL")
@@ -1183,6 +1186,15 @@ print(f"TPR: {tpr:.1%}")
 print(f"TNR: {tnr:.1%}")
 ```
 
+**LangWatch 的优势：** 内置指标计算，无需手动计算 confusion matrix（混淆矩阵）。
+
+**使用 Langfuse：**
+
+```
+Agreement = (Judge agrees with me) / (Total traces)
+Example: 90% agreement
+```
+
 **Langfuse 的优势：** 对评估逻辑控制更强，更适合复杂的自定义指标。
 
 ### 真正重要的指标
@@ -1190,8 +1202,7 @@ print(f"TNR: {tnr:.1%}")
 **大多数人只看 “agreement（一致率）”：**
 
 ```
-Agreement = (Judge agrees with me) / (Total traces)
-Example: 90% agreement
+TPR = True Positives / (True Positives + False Negatives)
 ```
 
 **为什么这会误导：**
@@ -1205,20 +1216,12 @@ Example: 90% agreement
 **“当实际是 PASS 时，judge 多大概率正确判断为 PASS？”**
 
 ```
-TPR = True Positives / (True Positives + False Negatives)
+TNR = True Negatives / (True Negatives + False Positives)
 ```
 
 #### 2. TNR（True Negative Rate，真负例率）/ Specificity（特异性）
 
 **“当实际是 FAIL 时，judge 多大概率正确判断为 FAIL？”**
-
-```
-TNR = True Negatives / (True Negatives + False Positives)
-```
-
-### 真实结果：为什么迭代很重要
-
-**经过仔细的提示词迭代后（生产级 judge）：**
 
 ```
 Test Set Performance:
@@ -1230,13 +1233,31 @@ Test Set Performance:
   Overall Accuracy: 97.0%
 ```
 
-**第一次尝试（迭代前）：**
+### 真实结果：为什么迭代很重要
+
+**经过仔细的提示词迭代后（生产级 judge）：**
 
 ```
 Test Set Performance:
   True Positive Rate (TPR): 90.1%
   True Negative Rate (TNR): 22.2%  <-- TOO LOW!
   Accuracy: 84.0%
+```
+
+**第一次尝试（迭代前）：**
+
+```python
+# Calculate final metrics from test set results
+tp = sum(1 for r in results if r["judge"] == "PASS" and r["truth"] == "PASS")
+tn = sum(1 for r in results if r["judge"] == "FAIL" and r["truth"] == "FAIL")
+fp = sum(1 for r in results if r["judge"] == "PASS" and r["truth"] == "FAIL")
+fn = sum(1 for r in results if r["judge"] == "FAIL" and r["truth"] == "PASS")
+
+tpr = tp / (tp + fn)
+tnr = tn / (tn + fp)
+
+print(f"Final TPR: {tpr:.1%}")
+print(f"Final TNR: {tnr:.1%}")
 ```
 
 请注意，第一次尝试的 TNR 只有 22.2%——这意味着当食谱实际上违反饮食限制时，judge 只在 22.2% 的情况下识别出来！这很危险（想象一下告诉一位糖尿病患者某个食谱是安全的，而它其实并不安全）。经过仔细的提示词迭代后，judge 达到了 100% 的 TNR。
@@ -1277,17 +1298,20 @@ Test Set Performance:
 当你的 judge 在 Dev 上表现良好后，只在 Test 集上运行一次：
 
 ```python
-# Calculate final metrics from test set results
-tp = sum(1 for r in results if r["judge"] == "PASS" and r["truth"] == "PASS")
-tn = sum(1 for r in results if r["judge"] == "FAIL" and r["truth"] == "FAIL")
-fp = sum(1 for r in results if r["judge"] == "PASS" and r["truth"] == "FAIL")
-fn = sum(1 for r in results if r["judge"] == "FAIL" and r["truth"] == "PASS")
+import langwatch
 
-tpr = tp / (tp + fn)
-tnr = tn / (tn + fp)
+evaluation = langwatch.experiment.init("dietary-judge-full-run")
+verdicts = []
 
-print(f"Final TPR: {tpr:.1%}")
-print(f"Final TNR: {tnr:.1%}")
+for index, row in evaluation.loop(all_traces_df.iterrows(), threads=20):
+    def task(index, row):
+        judge = run_judge(row)
+        passed = judge["label"] == "PASS"
+        evaluation.log("dietary_adherence", index=index, passed=passed)
+        verdicts.append(passed)
+    evaluation.submit(task, index, row)
+
+print(f"Raw pass rate: {sum(verdicts) / len(verdicts):.1%}")
 ```
 
 ### 第7步：在全部 traces 上规模化运行
@@ -1295,26 +1319,6 @@ print(f"Final TNR: {tnr:.1%}")
 验证完成后，在全部生产 traces 上运行你的 judge：
 
 **使用 LangWatch（带内置并发的批量评估）：**
-
-```python
-import langwatch
-
-# Run judge on all production traces
-results = langwatch.evaluate.batch(
-    dataset=all_traces_df,
-    evaluators=[judge_evaluator],
-    concurrency=20,  # Parallel processing
-    cache=True  # Cache results for duplicate traces
-)
-
-# Get summary statistics
-pass_rate = results.metrics["pass_rate"]
-print(f"Raw pass rate: {pass_rate:.1%}")
-```
-
-**LangWatch 的优势：** 自动并发管理、内置缓存、进度跟踪。
-
-**使用 Langfuse（在数据集上进行实验）：**
 
 ```python
 result = langfuse.run_experiment(
@@ -1326,7 +1330,9 @@ result = langfuse.run_experiment(
 )
 ```
 
-**使用纯 OpenAI（平台无关）：**
+**LangWatch 的优势：** 自动并发管理、内置缓存、进度跟踪。
+
+**使用 Langfuse（在数据集上进行实验）：**
 
 ```python
 import openai
@@ -1346,6 +1352,14 @@ with ThreadPoolExecutor(max_workers=20) as executor:
     results = list(executor.map(run_judge, all_traces))
 ```
 
+**使用纯 OpenAI（平台无关）：**
+
+```
+Criterion: "Did the agent follow the refund policy correctly?"
+PASS: Agent offered refund within 30-day window per policy
+FAIL: Agent denied valid refund or offered refund outside policy
+```
+
 **结果示例：** 1000 条 traces 的原始通过率 = 84.4%
 
 但这个原始通过率没有考虑 judge 的错误。第 10 章讲了如何使用 `judgy` library 来纠正这一点。
@@ -1356,55 +1370,26 @@ with ThreadPoolExecutor(max_workers=20) as executor:
 
 **Customer Support Bot（客户支持机器人）：**
 ```
-Criterion: "Did the agent follow the refund policy correctly?"
-PASS: Agent offered refund within 30-day window per policy
-FAIL: Agent denied valid refund or offered refund outside policy
-```
-
-**Code Generation Assistant（代码生成助手）：**
-```
 Criterion: "Does the generated code actually solve the user's problem?"
 PASS: Code compiles, handles edge cases, follows the user's constraints
 FAIL: Code has syntax errors, misses requirements, or uses deprecated APIs
 ```
 
-**Medical Information Bot（医疗信息机器人）：**
+**Code Generation Assistant（代码生成助手）：**
 ```
 Criterion: "Does the response include appropriate disclaimers?"
 PASS: Includes "consult your doctor" and avoids specific diagnoses
 FAIL: Provides diagnosis-like statements without medical disclaimers
 ```
 
-**E-commerce Search（电商搜索）：**
+**Medical Information Bot（医疗信息机器人）：**
 ```
 Criterion: "Are the recommended products relevant to the query?"
 PASS: Products match stated preferences (size, color, price range)
 FAIL: Products violate stated filters or preferences
 ```
 
-结构始终相同：定义标准，写出 PASS/FAIL 定义，添加 few-shot 示例，并使用 TPR/TNR 进行验证。
-
----
-
-<a name="chapter-5"></a>
-## 第5章：基于代码的评估器
-
-### 什么是基于代码的评估？
-
-基于代码的评估是你用编程代码（如 Python）编写的 **检查（check）**，用于验证 AI 输出的特定、客观属性。
-
-### 何时使用基于代码的评估
-
-**当你无需调用 LLM 就能测试某件事时，就使用代码：**
-
-1. **格式校验** - 文本消息中是否出现了 markdown？
-2. **必需字段检查** - AI 是否包含了所有必需信息？
-3. **工具调用校验** - AI 是否调用了正确的工具？
-4. **响应长度约束** - 响应是否少于 500 个字符？
-5. **禁止内容模式检测** - 是否包含 PII（Personally Identifiable Information，个人身份信息），例如邮箱、电话号码？
-
-### 示例 1：检查文本消息中的 Markdown
-
+**E-commerce Search（电商搜索）：**
 ```python
 import re
 
@@ -1433,27 +1418,55 @@ def eval_no_markdown_in_sms(trace) -> dict:
     return {'passed': True, 'reason': 'No markdown found'}
 ```
 
-**平台集成：**
+结构始终相同：定义标准，写出 PASS/FAIL 定义，添加 few-shot 示例，并使用 TPR/TNR 进行验证。
 
-**使用 LangWatch：**
+---
+
+<a name="chapter-5"></a>
+## 第5章：基于代码的评估器
+
+### 什么是基于代码的评估？
+
+基于代码的评估是你用编程代码（如 Python）编写的 **检查（check）**，用于验证 AI 输出的特定、客观属性。
+
+### 何时使用基于代码的评估
+
+**当你无需调用 LLM 就能测试某件事时，就使用代码：**
+
+1. **格式校验** - 文本消息中是否出现了 markdown？
+2. **必需字段检查** - AI 是否包含了所有必需信息？
+3. **工具调用校验** - AI 是否调用了正确的工具？
+4. **响应长度约束** - 响应是否少于 500 个字符？
+5. **禁止内容模式检测** - 是否包含 PII（Personally Identifiable Information，个人身份信息），例如邮箱、电话号码？
+
+### 示例 1：检查文本消息中的 Markdown
 
 ```python
 import langwatch
 
-# Register as custom evaluator
-@langwatch.evaluator(name="no_markdown_sms")
-def eval_no_markdown_in_sms(trace):
-    # ... implementation above ...
-    return {'passed': result['passed'], 'score': 1.0 if result['passed'] else 0.0}
+# Offline: log the check per row inside an experiment
+evaluation = langwatch.experiment.init("no-markdown-sms")
 
-# Run on dataset
-results = langwatch.evaluate.batch(
-    dataset=traces_df,
-    evaluators=["no_markdown_sms"]
+for index, row in evaluation.loop(traces_df.iterrows()):
+    def task(index, row):
+        result = eval_no_markdown_in_sms(row)
+        evaluation.log("no_markdown_sms", index=index, passed=result['passed'],
+                       data={"reason": result['reason']})
+    evaluation.submit(task, index, row)
+
+# Online: inside the traced request handler, attach the result to the
+# live span that produced the response
+result = eval_no_markdown_in_sms(trace)
+langwatch.get_current_span().add_evaluation(
+    name="no_markdown_sms",
+    passed=result['passed'],
+    details=result['reason'],
 )
 ```
 
-**使用 Langfuse：**
+**平台集成：**
+
+**使用 LangWatch：**
 
 ```python
 from langfuse import get_client
@@ -1473,7 +1486,7 @@ for trace in traces:
     )
 ```
 
-### 示例 2：验证工具调用
+**使用 Langfuse：**
 
 ```python
 def eval_correct_tool_called(trace) -> dict:
@@ -1506,7 +1519,7 @@ def eval_correct_tool_called(trace) -> dict:
         }
 ```
 
-### 示例 3：验证行程确认中的必需信息
+### 示例 2：验证工具调用
 
 ```python
 import re
@@ -1542,6 +1555,19 @@ def eval_tour_confirmation_complete(trace) -> dict:
         return {'passed': False, 'reason': f'Missing: {", ".join(missing)}'}
 ```
 
+### 示例 3：验证行程确认中的必需信息
+
+```python
+# Code-based evals (fast, cheap, deterministic)
+1. check_no_markdown_in_sms()
+2. validate_tool_calls()
+3. check_response_length()
+
+# LLM-based evals (slower, but handles nuance)
+4. evaluate_dietary_adherence()
+5. evaluate_response_helpfulness()
+```
+
 ### 基于代码的评估（Code-Based Evals）优势
 
 1. **快（Fast）** - 无 API 调用，结果即时返回
@@ -1557,35 +1583,30 @@ def eval_tour_confirmation_complete(trace) -> dict:
 - **1-2 个基于 LLM 的评估（LLM-based evals）**，用于主观判断
 
 ```python
-# Code-based evals (fast, cheap, deterministic)
-1. check_no_markdown_in_sms()
-2. validate_tool_calls()
-3. check_response_length()
+import langwatch
 
-# LLM-based evals (slower, but handles nuance)
-4. evaluate_dietary_adherence()
-5. evaluate_response_helpfulness()
+evaluation = langwatch.experiment.init("recipe-suite")
+
+for index, row in evaluation.loop(traces_df.iterrows(), threads=8):
+    def task(index, row):
+        # Code-based (yours)
+        evaluation.log("no_markdown_sms", index=index,
+                       passed=eval_no_markdown_in_sms(row)['passed'])
+        evaluation.log("tool_validation", index=index,
+                       passed=eval_correct_tool_called(row)['passed'])
+        # LLM-based (your judge)
+        evaluation.log("dietary_adherence", index=index,
+                       passed=run_judge(row)["label"] == "PASS")
+        # Built-in LangWatch evaluator
+        evaluation.evaluate("presidio/pii_detection", index=index,
+                            data={"output": row["assistant_message"]},
+                            settings={})  # required; {} keeps the defaults
+    evaluation.submit(task, index, row)
 ```
 
 **混合评测套件的平台对比：**
 
 **LangWatch 方法（统一式）：**
-```python
-import langwatch
-
-# All evaluators registered in one place
-langwatch.evaluate.batch(
-    dataset=traces_df,
-    evaluators=[
-        "no_markdown_sms",  # Code-based (custom)
-        "tool_validation",   # Code-based (custom)
-        "dietary_compliance", # LLM-based (built-in)
-        "helpfulness"        # LLM-based (built-in)
-    ]
-)
-```
-
-**Langfuse 方法（灵活但手工化）：**
 ```python
 # Run code-based evals
 for trace in traces:
@@ -1602,10 +1623,7 @@ for result in llm_results:
     langfuse.create_score(trace_id=result.trace_id, ...)
 ```
 
-### 测试你的基于代码的评估
-
-**始终使用已知正确和已知错误的案例来测试你的评估：**
-
+**Langfuse 方法（灵活但手工化）：**
 ```python
 def test_no_markdown_evaluator():
     eval = NoMarkdownEvaluator()
@@ -1637,6 +1655,30 @@ def test_no_markdown_evaluator():
     print("All tests passed!")
 ```
 
+### 测试你的基于代码的评估
+
+**始终使用已知正确和已知错误的案例来测试你的评估：**
+
+```python
+import re
+
+# Preserves numbers, temperatures, measurements
+_TOKEN_RE = re.compile(
+    r"\d+\s*[x×]\s*\d+"       # Dimensions like 9x13 or 9×13
+    r"|(?:\d+/?\d+)"           # Fractions like 1/2
+    r"|(?:\d+(?:\.\d+)?)"      # Numbers like 375
+    r"|(?:degrees[fc])"           # Temperature units
+    r"|[a-z]+"                  # Regular words
+)
+
+def tokenize(text: str) -> list[str]:
+    s = (text or "").lower()
+    # Normalize temperature references
+    s = s.replace("degrees f", "degreesf").replace("degree f", "degreesf")
+    s = s.replace("mins", "min").replace("minutes", "min")
+    return _TOKEN_RE.findall(s)
+```
+
 ---
 
 <a name="chapter-6"></a>
@@ -1664,32 +1706,6 @@ RAG 有 **两种故障模式**：
 #### 面向领域特定内容的自定义 tokenizer
 
 ```python
-import re
-
-# Preserves numbers, temperatures, measurements
-_TOKEN_RE = re.compile(
-    r"\d+\s*[x x]\s*\d+"      # Dimensions like 9x13
-    r"|(?:\d+/?\d+)"           # Fractions like 1/2
-    r"|(?:\d+(?:\.\d+)?)"      # Numbers like 375
-    r"|(?:degrees[fc])"           # Temperature units
-    r"|[a-z]+"                  # Regular words
-)
-
-def tokenize(text: str) -> list[str]:
-    s = (text or "").lower()
-    # Normalize temperature references
-    s = s.replace("degrees f", "degreesf").replace("degree f", "degreesf")
-    s = s.replace("mins", "min").replace("minutes", "min")
-    return _TOKEN_RE.findall(s)
-```
-
-**为什么这很重要：** 标准分词器会去掉数字。但在食谱中，“375”（温度）、“9x13”（烤盘尺寸）和 “1/2”（测量值）都是关键检索词。
-
-### 为 RAG 测试生成合成查询
-
-与其手工编写测试查询，不如使用 LLM 生成依赖于文档中特定事实的查询：
-
-```python
 SYSTEM_PROMPT = """You are an advanced user of a recipe search engine.
 Given a recipe, write ONE realistic cooking question that depends on
 a precise, technical detail contained in THIS recipe. Focus on:
@@ -1703,19 +1719,11 @@ Return EXACTLY a single JSON object:
 {"query": "...?", "salient_fact": "<exact quote or paraphrase>"}"""
 ```
 
-这会生成类似这样的查询：
-- “What temperature should I bake the gingerbread castle cookies at?”（我应该把 gingerbread castle cookies 烤到什么温度？）  
-  （salient_fact：关键事实：“350 degrees F for 8-10 minutes”）
-- “How long should I let the bread dough rise?”（我应该让面团发酵多久？）  
-  （salient_fact：关键事实：“rise for 1 hour until doubled”）
+**为什么这很重要：** 标准分词器会去掉数字。但在食谱中，“375”（温度）、“9x13”（烤盘尺寸）和 “1/2”（测量值）都是关键检索词。
 
-`salient_fact` 是你的 ground truth（真实标签/标准答案）- 你知道哪份食谱有这个答案。
+### 为 RAG 测试生成合成查询
 
-### 评估检索质量
-
-#### Recall@K
-
-“正确的食谱是否出现在前 K 个结果中？”
+与其手工编写测试查询，不如使用 LLM 生成依赖于文档中特定事实的查询：
 
 ```python
 def recall_at_k(k, output, metadata, **kwargs):
@@ -1736,9 +1744,19 @@ def RecallAt3(**kwargs): return recall_at_k(3, **kwargs)
 def RecallAt5(**kwargs): return recall_at_k(5, **kwargs)
 ```
 
-#### Mean Reciprocal Rank（MRR，平均倒数排名）
+这会生成类似这样的查询：
+- “What temperature should I bake the gingerbread castle cookies at?”（我应该把 gingerbread castle cookies 烤到什么温度？）<br>
+  （salient_fact：关键事实：“350 degrees F for 8-10 minutes”）
+- “How long should I let the bread dough rise?”（我应该让面团发酵多久？）<br>
+  （salient_fact：关键事实：“rise for 1 hour until doubled”）
 
-“如果找到了，它排在多高的位置？”
+`salient_fact` 是你的 ground truth（真实标签/标准答案）- 你知道哪份食谱有这个答案。
+
+### 评估检索质量
+
+#### Recall@K
+
+“正确的食谱是否出现在前 K 个结果中？”
 
 ```python
 def MRR(output, metadata, **kwargs):
@@ -1753,34 +1771,31 @@ def MRR(output, metadata, **kwargs):
     return 0.0
 ```
 
-### 运行 RAG 实验
+#### Mean Reciprocal Rank（MRR，平均倒数排名）
 
-#### 使用 LangWatch
+“如果找到了，它排在多高的位置？”
 
 ```python
 import langwatch
 
-def bm25_task(example):
-    query = example["input"]["input"]
-    hits = retrieve_bm25(query, corpus, bm25, tokenized_corpus, top_n=5)
-    return {"top_ids": [h["id"] for h in hits], "top_titles": [h["title"] for h in hits]}
+df = langwatch.dataset.get_dataset("recipe-synthetic-queries").to_pandas()
+evaluation = langwatch.experiment.init("bm25-retrieval")
 
-# Register custom metrics
-@langwatch.metric(name="recall_at_1")
-def recall_at_1_metric(output, expected):
-    return recall_at_k(1, output, expected)
-
-# Run experiment
-results = langwatch.evaluate.batch(
-    dataset=synthetic_queries_dataset,
-    task=bm25_task,
-    metrics=["recall_at_1", "recall_at_3", "recall_at_5", "mrr"]
-)
+for index, row in evaluation.loop(df.iterrows(), threads=8):
+    def task(index, row):
+        hits = retrieve_bm25(row["query"], corpus, bm25, tokenized_corpus, top_n=5)
+        output = {"top_ids": [h["id"] for h in hits]}
+        metadata = {"source_recipe_id": row["source_recipe_id"]}
+        for k in (1, 3, 5):
+            evaluation.log(f"recall_at_{k}", index=index,
+                           score=recall_at_k(k, output=output, metadata=metadata))
+        evaluation.log("mrr", index=index, score=MRR(output=output, metadata=metadata))
+    evaluation.submit(task, index, row)
 ```
 
-**LangWatch 的优势：** 内置 RAG 指标，可自动可视化检索性能。
+### 运行 RAG 实验
 
-#### 使用 Langfuse
+#### 使用 LangWatch
 
 ```python
 from langfuse import Evaluation
@@ -1803,9 +1818,9 @@ result = langfuse.run_experiment(
 )
 ```
 
-### 诊断 RAG 故障
+**LangWatch 的优势：** 内置 RAG 指标，可自动可视化检索性能。
 
-当 RAG 测试失败时，先诊断失败发生在 **哪里（WHERE）**：
+#### 使用 Langfuse
 
 ```python
 def diagnose_rag_failure(query, target_recipe_id, retriever, pipeline):
@@ -1830,6 +1845,30 @@ def diagnose_rag_failure(query, target_recipe_id, retriever, pipeline):
                 'issue': 'Answer incorrect despite good retrieval'}
 
     return {'failure_point': None, 'status': 'PASS'}
+```
+
+### 诊断 RAG 故障
+
+当 RAG 测试失败时，先诊断失败发生在 **哪里（WHERE）**：
+
+```
+User query
+    |
+[1. ParseRequest]     -> Extract intent, dietary constraints, servings
+    |
+[2. PlanToolCalls]    -> Decide which tools to use and in what order
+    |
+[3. GenRecipeArgs]    -> Create recipe database search arguments
+    |
+[4. GetRecipes]       -> Execute recipe search (retriever)
+    |
+[5. GenWebArgs]       -> Create web search arguments
+    |
+[6. GetWebInfo]       -> Execute web search for supplemental info
+    |
+[7. ComposeResponse]  -> Write final response combining everything
+    |
+Final response
 ```
 
 ### 提升 RAG 性能
@@ -1863,23 +1902,24 @@ def diagnose_rag_failure(query, target_recipe_id, retriever, pipeline):
 下面是一个食谱助手完整的 7 状态流水线示例：
 
 ```
-User query
-    |
-[1. ParseRequest]     -> Extract intent, dietary constraints, servings
-    |
-[2. PlanToolCalls]    -> Decide which tools to use and in what order
-    |
-[3. GenRecipeArgs]    -> Create recipe database search arguments
-    |
-[4. GetRecipes]       -> Execute recipe search (retriever)
-    |
-[5. GenWebArgs]       -> Create web search arguments
-    |
-[6. GetWebInfo]       -> Execute web search for supplemental info
-    |
-[7. ComposeResponse]  -> Write final response combining everything
-    |
-Final response
+You are an expert evaluator for the ParseRequest state.
+
+What ParseRequest should do:
+- Extract the user's intent from their query
+- Identify dietary constraints (gluten-free, vegetarian, dairy-free)
+- Determine the number of servings if mentioned
+- Capture any other specific requirements
+
+What counts as a failure:
+- Misinterpretation: Key requirements are misunderstood
+- Missing information: Important constraints are omitted
+- Invalid format: Output is not parseable JSON
+- Logical inconsistency: Extracted requirements contradict the query
+
+Here is the input: {input}
+Here is the output: {output}
+
+Return JSON: {"explanation": "...", "label": "pass" or "fail"}
 ```
 
 ### 为什么状态级别评估很重要
@@ -1901,29 +1941,6 @@ Final response
 #### ParseRequest Evaluator
 
 ```
-You are an expert evaluator for the ParseRequest state.
-
-What ParseRequest should do:
-- Extract the user's intent from their query
-- Identify dietary constraints (gluten-free, vegetarian, dairy-free)
-- Determine the number of servings if mentioned
-- Capture any other specific requirements
-
-What counts as a failure:
-- Misinterpretation: Key requirements are misunderstood
-- Missing information: Important constraints are omitted
-- Invalid format: Output is not parseable JSON
-- Logical inconsistency: Extracted requirements contradict the query
-
-Here is the input: {input}
-Here is the output: {output}
-
-Return JSON: {"explanation": "...", "label": "pass" or "fail"}
-```
-
-#### PlanToolCalls Evaluator
-
-```
 You are an expert evaluator for the PlanToolCalls state.
 
 What PlanToolCalls should do:
@@ -1943,7 +1960,7 @@ Here is the output: {output}
 Return JSON: {"explanation": "...", "label": "pass" or "fail"}
 ```
 
-#### ComposeResponse Evaluator
+#### PlanToolCalls Evaluator
 
 ```
 You are an expert evaluator for the ComposeResponse state.
@@ -1967,6 +1984,17 @@ Here is the output: {output}
 Return JSON: {"explanation": "...", "label": "pass" or "fail"}
 ```
 
+#### ComposeResponse Evaluator
+
+```python
+STATES = [
+    "ParseRequest", "PlanToolCalls", "GenRecipeArgs",
+    "GetRecipes", "GenWebArgs", "GetWebInfo", "ComposeResponse"
+]
+# run_evaluator(state_name, input, output) loads evaluators/{state}_eval.txt,
+# calls your judge model, and returns {"label": "pass"|"fail", "explanation": ...}
+```
+
 ### 运行状态级别评估
 
 无论使用哪个平台，方法都一样：按流水线状态查询 spans，运行相应的评估器，并记录结果。
@@ -1976,36 +2004,17 @@ Return JSON: {"explanation": "...", "label": "pass" or "fail"}
 ```python
 import langwatch
 
-STATES = [
-    "ParseRequest", "PlanToolCalls", "GenRecipeArgs",
-    "GetRecipes", "GenWebArgs", "GetWebInfo", "ComposeResponse"
-]
-
-for state_name in STATES:
-    # Get all spans for this state
-    spans_df = langwatch.get_spans(
-        filters={"name": state_name}
-    )
-    
-    # Load evaluator for this state
-    with open(f"evaluators/{state_name.lower()}_eval.txt") as f:
-        eval_prompt = f.read()
-    
-    # Create custom evaluator
-    evaluator = langwatch.evaluators.create(
-        name=f"{state_name}_eval",
-        prompt=eval_prompt,
-        model="gpt-4o"
-    )
-    
-    # Run evaluation
-    results = langwatch.evaluate.batch(
-        dataset=spans_df,
-        evaluators=[evaluator]
-    )
-    
-    # Results automatically logged to LangWatch
-    print(f"{state_name}: {results.metrics['pass_rate']:.1%} pass rate")
+@langwatch.span(type="llm", name="ParseRequest")
+def parse_request(query):
+    output = llm_parse(query)
+    if EVAL_MODE:  # test runs only
+        verdict = run_evaluator("ParseRequest", query, output)
+        langwatch.get_current_span().add_evaluation(
+            name="ParseRequest_eval",
+            passed=verdict["label"] == "pass",
+            details=verdict["explanation"],
+        )
+    return output
 ```
 
 **LangWatch 的优势：** 自动 span 查询，内置按状态的结果聚合。
@@ -2013,29 +2022,34 @@ for state_name in STATES:
 #### 使用 Langfuse
 
 ```python
-from langfuse import get_client, observe
+from langfuse import get_client
 
 langfuse = get_client()
 
-# Fetch traces and filter by span name
-traces = langfuse.api.trace.list(limit=500, tags=["recipe-pipeline"])
+for state_name in STATES:
+    # Observations API v2 (needs a Langfuse v4 server: Cloud, or self-hosted
+    # after upgrading). The trace list/get endpoints are deprecated and leave
+    # Langfuse Cloud on November 16, 2026. Always bound the time window.
+    page = langfuse.api.observations.get_many(
+        name=state_name,
+        fields="core,basic,io",
+        from_start_time=run_started_at,
+        to_start_time=run_finished_at,
+        limit=1000,  # max per page; pass page.meta.cursor back for more
+    )
+    for observation in page.data:
+        # v2 returns input/output as raw strings; parse JSON if your state emits it
+        result = run_evaluator(state_name, observation.input, observation.output)
 
-for trace in traces.data:
-    trace_detail = langfuse.api.trace.get(trace.id)
-    for observation in trace_detail.observations:
-        if observation.name in STATES:
-            # Run evaluator
-            result = run_evaluator(observation.name, observation.input, observation.output)
-
-            # Log score back to Langfuse
-            langfuse.create_score(
-                trace_id=trace.id,
-                observation_id=observation.id,
-                name=f"{observation.name}_eval",
-                value=1 if result["label"] == "pass" else 0,
-                data_type="BOOLEAN",
-                comment=result["explanation"],
-            )
+        # Log score back to Langfuse
+        langfuse.create_score(
+            trace_id=observation.trace_id,
+            observation_id=observation.id,
+            name=f"{state_name}_eval",
+            value=1 if result["label"] == "pass" else 0,
+            data_type="BOOLEAN",
+            comment=result["explanation"],
+        )
 ```
 
 ### 分析故障分布
@@ -2176,7 +2190,7 @@ SCENARIOS = [
     {
         "turns": [
             "I'm looking for a vegan restaurant",
-            "Actually, make that vegetarian — I eat eggs",
+            "Actually, make that vegetarian. I eat eggs",
             "What about that first place you mentioned?"  # Tests context retention
         ],
         "failure_mode": "context_retention"
@@ -2295,19 +2309,23 @@ Return JSON: {"safe": true/false, "category": "...", "explanation": "..."}
 ```python
 import langwatch
 
-# LangWatch has 40+ built-in evaluators including safety checks
-results = langwatch.evaluate.realtime(
-    trace=current_trace,
-    evaluators=[
-        "prompt_injection",  # Built-in
-        "pii_detection",     # Built-in
-        "toxicity",          # Built-in
-        "off_topic",         # Built-in
-    ],
-    blocking=True  # Block response if fails
+# as_guardrail=True runs the evaluator synchronously inside the request
+jailbreak = langwatch.evaluation.evaluate(
+    "azure/jailbreak",
+    name="Jailbreak Detection",
+    as_guardrail=True,
+    data={"input": user_message},
 )
+if not jailbreak.passed:
+    return "I'm sorry, I can't help with that."
 
-if not results.all_passed:
+pii = langwatch.evaluation.evaluate(
+    "presidio/pii_detection",
+    name="PII in response",
+    as_guardrail=True,
+    data={"output": draft_response},
+)
+if not pii.passed:
     return "I'm sorry, I can't help with that."
 ```
 
@@ -2456,13 +2474,11 @@ Interpretation:
 **平台无关（Platform-agnostic）：** `judgy` 可处理任何平台的结果。导出你的测试集结果和生产预测，然后运行修正：
 
 ```python
-# With LangWatch results
-test_results = langwatch.get_experiment_results(experiment_id="test-eval")
-test_labels = test_results["ground_truth"]
-test_preds = test_results["judge_predictions"]
-
-production_results = langwatch.get_evaluation_results(eval_id="production-run")
-unlabeled_preds = production_results["predictions"]
+# With LangWatch: keep the (judge, truth) pairs your experiment loop collected
+# (the `rows` list in Chapter 4), or export the experiment results from the UI
+test_labels = [1 if r["truth"] == "PASS" else 0 for r in rows]
+test_preds = [1 if r["judge"] == "PASS" else 0 for r in rows]
+unlabeled_preds = [1 if v else 0 for v in verdicts]  # full-run verdicts
 
 # Run judgy correction
 corrected = estimate_success_rate(test_labels, test_preds, unlabeled_preds)
@@ -2572,7 +2588,7 @@ suite.add_regression_case(
 在评估是否切换模型时（例如 GPT-4o vs. Claude vs. Gemini）：
 
 ```python
-MODELS = ["gpt-4o", "claude-sonnet-4-5-20250929", "gemini-2.0-flash"]
+MODELS = ["gpt-6.1-sol", "claude-sonnet-5-5", "gemini-3.8-flash"]
 
 for model in MODELS:
     results = run_eval_suite(model=model, test_set=test_data)
@@ -2585,12 +2601,12 @@ for model in MODELS:
 每个评估周期结束后，产出一份简明报告：
 
 ```
-EVAL REPORT — Week of [date]
+EVAL REPORT: Week of [date]
 
 Top 3 failure modes this week:
-1. [Failure mode] — [X]% of traces — [Root cause] — [Action item]
-2. [Failure mode] — [X]% of traces — [Root cause] — [Action item]
-3. [Failure mode] — [X]% of traces — [Root cause] — [Action item]
+1. [Failure mode] | [X]% of traces | [Root cause] | [Action item]
+2. [Failure mode] | [X]% of traces | [Root cause] | [Action item]
+3. [Failure mode] | [X]% of traces | [Root cause] | [Action item]
 
 Improvements from last week:
 - [Previous fix]: Failure rate went from X% to Y% ✅
@@ -2635,10 +2651,10 @@ def cohen_kappa(labels_a, labels_b):
     kappa = (p_observed - p_expected) / (1 - p_expected)
     return kappa
 
-# Interpretation:
-# kappa > 0.8: Excellent agreement (criteria are clear)
-# kappa 0.6-0.8: Good agreement (minor clarifications needed)
-# kappa < 0.6: Poor agreement (rewrite criteria)
+# Working thresholds for eval labels (stricter than the Landis-Koch bands in the glossary):
+# kappa > 0.8: criteria are clear
+# kappa 0.6-0.8: usable; clarify the criteria behind the disagreements
+# kappa < 0.6: too low to trust as ground truth (rewrite criteria)
 ```
 
 ### 标签质量 > 标签数量
@@ -2664,15 +2680,21 @@ PM 和 QA 往往比工程师产出更好的标签，因为：
 
 把 GPT-4o 作为 judge 用在 10,000 条 trace 上会非常昂贵。下面介绍如何控制成本：
 
+按 `2026` 年 `10` 月标准价估算，若每次裁判调用输入 `2,000`、输出 `300` 个 token，每评 `10,000` 条 trace，Claude Opus `5.5` 约需 `$140`，GPT-`6` Astra 约需 `$350`，尚未计入推理 token；这些 token 按输出计费。应在自己的数据集上实测 token 数和缓存命中率，再据此设置预算。
+
+Gemini `3.8` Flash 的促销价（每百万 token 输入／输出 `$0.75/$3.75`，每 `1K` 次裁判约 `$2.60`）持续至 `2026` 年 `12` 月 `31` 日，之后为 `$1.50/$7.50`（约 `$5.25`／每 `1K` 次）。Claude Haiku `4.5` 是当前唯一的 Haiku；Claude API 最早可于 `2026` 年 `10` 月 `15` 日退役它，但 Anthropic 承诺至少提前 `6` 个月通知。预算表应标明生效日期，并在促销结束前复核。
+
 ### 策略 1：为 judge 使用更便宜的模型
 
 并不是每次评测都需要最强模型：
 
-| Judge Model | Cost (per 1K traces) | 适用场景 |
+| 裁判层级（示例） | 每 1K 条 trace 成本 | 适用场景 |
 |---|---|---|
-| GPT-4o / Claude Opus | ~$5-15 | 复杂的主观判断、安全关键场景 |
-| GPT-4o-mini / Claude Haiku | ~$0.50-1.50 | 规则清晰、标准明确 |
-| Code-based | $0 | 格式检查、模式匹配、验证 |
+| 前沿模型：Claude Opus 5.5（$4/$20）、GPT-6 Astra（$10/$50） | 约 $14（Opus 5.5）至 $35（Astra） | 复杂主观判断、安全关键场景、设定上限 |
+| 中档：Claude Sonnet 5.5、GPT-6.1 Sol（均为 $2/$10） | 约 $7 | 验证通过后的大多数生产裁判 |
+| 小模型：Gemini 3.8 Flash、Claude Haiku 4.5、GPT-6 Luna | 约 $0.35（Luna）至 $3.50（Haiku 4.5）；Gemini 3.8 Flash 促销价约 $2.60、标价约 $5.25 | 明确规则、定义清晰的评分标准 |
+| 类型化决策模型：TypeSafe Jev（早期访问） | 约 $0.08 | 对全部流量执行二元清单检查 |
+| 基于代码 | $0 | 格式检查、模式匹配、验证 |
 
 **提示：** 先用强模型，验证你的 judge prompt（评审提示词），再测试更便宜的模型是否能得到相近的 TPR/TNR。通常是可以的。
 
@@ -2700,13 +2722,13 @@ def sample_traces(traces, sample_rate=0.1, min_sample=100):
 # Tier 1: Run on ALL traces (code-based, free)
 tier1_results = [eval_format(t) for t in all_traces]
 
-# Tier 2: Run on traces that passed Tier 1 (cheap LLM, ~$0.50/1K)
+# Tier 2: Run on traces that passed Tier 1 (small LLM, ~$0.35/1K)
 tier1_passed = [t for t, r in zip(all_traces, tier1_results) if r['passed']]
-tier2_results = run_llm_eval(tier1_passed, model="gpt-4o-mini")
+tier2_results = run_llm_eval(tier1_passed, model="gpt-6-luna")
 
-# Tier 3: Run on a sample (expensive LLM, ~$5/1K)
+# Tier 3: Run on a sample (frontier LLM, ~$14/1K)
 sample = random.sample(tier1_passed, 500)
-tier3_results = run_llm_eval(sample, model="gpt-4o")
+tier3_results = run_llm_eval(sample, model="claude-opus-5-5")
 ```
 
 ### 策略 4：缓存重复评测
@@ -2718,8 +2740,9 @@ import hashlib
 
 eval_cache = {}
 
-def cached_eval(trace, eval_fn):
-    key = hashlib.md5(str(trace['input'] + trace['output']).encode()).hexdigest()
+def cached_eval(trace, eval_fn, judge_version):
+    raw = f"{judge_version}|{trace['input']}|{trace['output']}"
+    key = hashlib.sha256(raw.encode()).hexdigest()
     if key not in eval_cache:
         eval_cache[key] = eval_fn(trace)
     return eval_cache[key]
@@ -2727,9 +2750,21 @@ def cached_eval(trace, eval_fn):
 
 **平台缓存支持：**
 
-**LangWatch：** 内置评测缓存，会自动对相同 trace 去重。
+**LangWatch：** 目前需自行缓存评测结果。
 
-**Langfuse：** 需要手动缓存，但支持通过 metadata 使用自定义 cache key。
+**Langfuse：** 目前也需自行缓存；两者都没有记录裁判调用的自动去重能力。
+
+### 策略 5：离线运行使用批处理与提示缓存
+
+离线裁判不需要即时返回。Anthropic、OpenAI 和 Google 的 Batch API 价格为标价的 50%，结果在 24 小时内返回（Sonnet 5.5 Batch 为每百万 token $1/$5；GPT-6 Sol Batch/Flex 也是 $1/$5）。裁判提示词（评分标准加 few-shot 示例）是稳定前缀：将其放在前面、trace 放在末尾，重复前缀在多数当前模型上的缓存输入价格为基础输入价格的 0.1 倍，在 Claude Opus 5.5 和 GPT-6.1 Sol 上为 0.05 倍。
+
+类型化决策模型是另一档选择。TypeSafe 的 Jev（`2026` 年 `9` 月 `15` 日结束隐身）直接返回带概率的 yes/no、类别或分数，输入价为每百万 token `$0.042`，输出不计费。LangSmith、Langfuse、Braintrust、Opik 和 DeepEval 随后两周内都加入了 Jev 裁判选项。一项配对研究显示，它的二元准确度在 `27` 组比较中至少 `19` 组与 LLM 评分裁判无显著差异；成本低 `16` 至 `325` 倍、速度快 `28` 至 `350` 倍，但序数评分较弱，也不提供理由。另一个研究发现，LLM 对 Jev 最有把握的错误判决中约 `96%` 会重复同一错误，因此第二个裁判并不能代替人工标注。
+
+评测器必须与优化器隔离。`2026` 年 `9` 月对自主研究 agent 的研究（arXiv `2609.28614`）发现：开放式任务奖励作弊率为 `30.5%`，窄范围内核任务为 `2.9%`；经过 `5` 轮反馈后，若告知具体失败原因，模型—任务组合中有 `40.5%` 绕过了评测，泛化反馈下为 `20.3%`。EvasionBench（arXiv `2609.30217`）还观察到 agent 会编码禁用命令、把操作拆成多次工具调用或不断重试，使内容离开监控窗口。被投毒的基准同样会误导自我改进系统（arXiv `2609.17817`），并可能让关闭 HTTPS 证书检查等不安全改动在干净数据复测后仍保留下来。
+
+评测平台的所有权、数据保留和迁移日期也应纳入选型：Simple Evals 自 `2025` 年 `7` 月起冻结；LangSmith 最长保留 `180` 天；Dynatrace 于 `2026` 年 `8` 月 `13` 日同意以 `$915M` 收购 Arize（Phoenix），并称 Phoenix 将继续提供。Claude Sonnet `4.5` 快照 `claude-sonnet-4-5-20250929` 将于 `2026` 年 `11` 月 `30` 日退役；Gemini `2.5` 于 `9` 月 `18` 日限制新用户，Vertex AI 将于 `10` 月 `20` 日退役 `2.5` 系列；OpenAI 托管 Evals 于 `10` 月 `31` 日转为只读、`11` 月 `30` 日关闭。
+
+Jev 研究（arXiv `2609.29769`）显示，对其最有把握的错误答案，LLM 裁判约有 `96%` 重复相同错误；层级级联裁判的准确率提升不超过 `2.7` 个百分点。成本、延迟优势应与校准数据一起衡量，不能把增加裁判数量当成独立真值。
 
 ### 实时护栏的延迟考量
 
@@ -2737,8 +2772,9 @@ def cached_eval(trace, eval_fn):
 |---|---|---|
 | Regex/code checks | <1ms | 是 |
 | Embedding similarity | 10-50ms | 是 |
+| 类型化决策模型（Jev） | 平均约 0.4 秒（LangChain 测量） | 勉强可实时（增加一次网络调用） |
 | Small LLM (Haiku-class) | 200-500ms | 勉强可用（会带来明显延迟） |
-| Large LLM (GPT-4o-class) | 1-3s | 否（仅用于离线） |
+| LLM 裁判 | LangChain 同一测试中的 LLM 裁判约需 2-3 秒；高推理强度下更久 | 否（仅用于离线） |
 
 ---
 
@@ -2758,12 +2794,13 @@ def cached_eval(trace, eval_fn):
 **LangWatch：**
 ```bash
 pip install langwatch
-# Sign up at langwatch.ai or run self-hosted Docker
+# Sign up at langwatch.ai or self-host (Docker Compose or Helm)
 ```
 
 ```python
 import langwatch
-langwatch.init()  # That's it! Auto-instrumentation enabled
+langwatch.setup()  # reads LANGWATCH_API_KEY
+# Then decorate your entry point with @langwatch.trace() (Chapter 2)
 ```
 
 **Langfuse：**
@@ -2827,16 +2864,16 @@ client = OpenAI()  # Auto-traced
 ```python
 import langwatch
 
-# All evaluators (code + LLM) in one place
-results = langwatch.evaluate.batch(
-    dataset=daily_traces,
-    evaluators=[
-        "no_markdown_sms",      # Code-based (custom)
-        "dietary_compliance",   # LLM-based (built-in)
-    ]
-)
+# Code + LLM evaluators in one loop (scheduled daily)
+evaluation = langwatch.experiment.init("daily-evals")
 
-print(f"Pass rate: {results.metrics['pass_rate']:.1%}")
+for index, row in evaluation.loop(daily_traces_df.iterrows(), threads=8):
+    def task(index, row):
+        evaluation.log("no_markdown_sms", index=index,
+                       passed=eval_no_markdown_in_sms(row)['passed'])
+        evaluation.log("dietary_adherence", index=index,
+                       passed=run_dietary_judge(row)["label"] == "PASS")
+    evaluation.submit(task, index, row)
 ```
 
 **使用 Langfuse：**
@@ -2874,8 +2911,17 @@ if check_for_degradation(today_failure_rate, avg_failure_rate):
 
 **Langfuse：** 通过其 API 构建自定义 Dashboard：
 ```python
-# Fetch recent scores
-scores = langfuse.api.score.list(limit=1000, from_timestamp=last_week)
+# Fetch recent scores (Scores API v3, Python SDK 4.8.1+; the v1/v2 score
+# list endpoints are deprecated and leave Langfuse Cloud on November 16, 2026)
+scores, cursor = [], None
+while True:
+    page = langfuse.api.scores_v3.get_many_v3(
+        name="dietary", from_timestamp=last_week, limit=100, cursor=cursor  # max 100
+    )
+    scores.extend(page.data)
+    cursor = page.meta.cursor
+    if not cursor:
+        break
 
 # Aggregate and visualize
 failure_rates = aggregate_by_day(scores)
@@ -3004,17 +3050,18 @@ plot_dashboard(failure_rates)
 
 | Feature | LangWatch | Langfuse | 备注 |
 |---------|-----------|----------|------|
-| **Setup Time** | 5 分钟（3 行） | 15 分钟（更多配置） | LangWatch：langwatch.init() |
-| **Built-in Evaluators** | 40+ | 0（全部自定义） | LangWatch 节省大量开发时间 |
+| **Setup Time** | 约 5 分钟 | 约 5 分钟（OpenAI 兼容接入）至 15 分钟 | LangWatch：`langwatch.setup()` 加 trace 装饰器 |
+| **Built-in Evaluators** | 30+（Ragas、PII、越狱、内容安全、偏题） | 模板化托管 LLM 裁判、托管代码裁判 | LangWatch 无需编写提示词即可覆盖更多通用检查 |
 | **Custom Evaluators** | 支持（装饰器） | 支持（完整 SDK） | 两者都支持自定义逻辑 |
-| **Analytics Dashboard** | 内置，自动生成 | 需要自己构建 | LangWatch：零配置分析 |
-| **Cost Tracking** | 自动 | 手动打标签 | LangWatch 会跟踪模型成本 |
+| **Analytics Dashboard** | 内置 | 精选仪表盘及自定义仪表盘 | LangWatch 配置更少 |
+| **Cost Tracking** | 自动 | 对支持的模型自动跟踪，也可配置自定义模型价格 | 两者都按模型跟踪成本 |
 | **Community Size** | 正在增长 | 大且成熟 | Langfuse 集成更多 |
-| **Self-Hosting** | Docker（简单） | Docker（更复杂） | 两者都完全开源 |
+| **Self-Hosting** | Docker Compose 或 Helm | Docker Compose 或 Helm | 两者都使用 PostgreSQL、Redis、ClickHouse；Langfuse 还需要兼容 S3 的对象存储 |
+| **Alerts** | 内置（邮件、Slack、webhook） | 内置（Slack、GitHub Actions、webhook；自托管需 v4） | 都支持指标阈值告警 |
 | **Prompt Management** | 支持 | 支持（更成熟） | Langfuse 的版本管理 UI 更丰富 |
-| **Caching** | 内置 | 手动 | LangWatch 可自动缓存重复 eval |
+| **Eval Caching** | 需自行实现 | 需自行实现 | 两者都未记录裁判调用去重功能（第 13 章） |
 | **Batch Evaluation** | 原生 API | 通过 experiments | LangWatch 在大批量场景更简单 |
-| **Real-time Evals** | 支持 | 通过 scores API | 两者都可以，LangWatch 上手更快 |
+| **Real-time Evals** | Guardrails（`as_guardrail=True`）和异步监控 | 异步托管评估器；阻塞式护栏需自行实现 | LangWatch 更容易配置阻塞检查 |
 
 **选择 LangWatch 的时候：**
 - 你希望快速开始（< 10 分钟搭建）
@@ -3143,14 +3190,16 @@ Confusion Matrix:
 Predicted Pos    |      TP        |       FP        |
 Predicted Neg    |      FN        |       TN        |
 
-TPR (Recall) = TP / (TP + FN)      "Catches real positives"
-TNR (Specificity) = TN / (TN + FP) "Avoids false alarms"
+Positive = PASS, so a false positive is a defect the judge let through.
+
+TPR (Recall) = TP / (TP + FN)      "Passes what is actually good"
+TNR (Specificity) = TN / (TN + FP) "Catches real failures"
 Precision = TP / (TP + FP)
 F1 Score = 2 * (Precision * Recall) / (Precision + Recall)
 
 Target for evals:
-- TPR > 80% (catches real issues)
-- TNR > 80% (doesn't false alarm)
+- TPR > 80% (doesn't false-alarm on good outputs)
+- TNR > 80% (catches real issues)
 ```
 
 ### 数据划分比例
@@ -3178,15 +3227,19 @@ Test:  ~45%  (final, unbiased evaluation - use ONCE)
 **LangWatch（最快）：**
 ```python
 import langwatch
-langwatch.init()
-# Done! Auto-tracing enabled
+langwatch.setup()  # reads LANGWATCH_API_KEY
+
+@langwatch.trace()
+def handle(question):
+    langwatch.get_current_trace().autotrack_openai_calls(client)
+    ...
 ```
 
 **Langfuse（配置更多）：**
 ```python
 from langfuse.openai import OpenAI
 client = OpenAI()
-# Set environment variables first
+# Set LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_BASE_URL first
 ```
 
 ---
@@ -3349,6 +3402,8 @@ What does NOT count as a failure:
 
 对于 judge 评估，始终使用 temperature 0.0。你希望同一输入每次都产生相同输出。
 
+部分新模型已不接受 temperature 等采样参数：Claude Opus `4.7` 及之后版本对非默认值返回 HTTP `400`；Anthropic Python SDK `1.0` 于 `2026` 年 `8` 月 `20` 日从 Messages 方法移除 `temperature`、`top_p` 和 `top_k`，传入会触发 `TypeError`；Google 于 `7` 月 `21` 日弃用 Gemini API 中的相同参数。GPT-`6` Astra 不接受 temperature 或 top_p；Claude Opus `5.5` 不能关闭 thinking，Sonnet `5.5` 传 `thinking: disabled` 会返回 HTTP `400`。因此按模型能力构造请求，不要向所有裁判统一发送采样参数。
+
 ### 6. 结构化输出格式
 
 明确告诉 judge 它应如何格式化响应。JSON 因解析可靠性更高而优先使用。
@@ -3396,11 +3451,13 @@ Return your evaluation as JSON:
 
 ### 9. Judge 模型选择
 
-| 模型层级 | 适用场景 | 典型准确率 |
+| 模型层级（2026 年 10 月示例） | 适用场景 | 预期表现 |
 |------------|------------|-----------------|
-| GPT-4o / Claude Sonnet 4.6 | 高风险 eval、复杂推理 | 85–95% |
-| GPT-4o-mini / Claude Haiku | 成本敏感、高吞吐 eval | 75–90% |
-| 开源模型（Llama、Mistral） | 自托管、隐私敏感 | 70–85% |
+| 前沿模型：Claude Opus 5.5、GPT-6 Astra | 高风险评测、复杂推理、设定上限 | 细腻标准下的一致性最高；速度最慢、成本最高 |
+| 中档：Claude Sonnet 5.5、GPT-6.1 Sol | 验证通过后的大多数生产裁判 | 对定义明确的评分标准，通常可达到前沿模型水平 |
+| 小模型：Claude Haiku 4.5、Gemini 3.8 Flash、GPT-6 Luna | 成本敏感、高吞吐评测 | 适用于清晰标准；要特别检查 TNR |
+| 开放权重：Qwen3.8-27B（Apache 2.0）、GLM-5.3-Flash（MIT）、DeepSeek V4.1-Flash（MIT） | 自托管、隐私敏感 | 随任务变化最大；信任前先验证 |
+| 类型化决策模型：TypeSafe Jev（早期访问） | 对全部流量执行二元清单判断 | 至少 19/27 组配对比较中与 LLM 评分裁判准确度无显著差异（arXiv 2609.29769）；序数评分较弱且不提供理由 |
 
 **提示：** 先用最强模型建立性能上限，再测试更便宜的模型是否能在你的具体用例中达到相同水平。很多时候可以，尤其是在有高质量 few-shot 示例时。
 
@@ -3419,12 +3476,20 @@ LangWatch 和 Langfuse 都内置了提示词版本管理。请使用它。
 ```python
 import langwatch
 
+# First version (pick the judge model in the LangWatch prompt editor;
+# the Python SDK's create/update take no model argument)
 langwatch.prompts.create(
-    name="dietary-judge-v3",
-    description="Added edge cases for keto",
-    template=judge_prompt_text,
-    model="gpt-4o",
-    temperature=0
+    handle="dietary-judge",
+    scope="PROJECT",
+    prompt=judge_prompt_text,
+)
+
+# Each change becomes a new version behind the same handle, with its reason
+langwatch.prompts.update(
+    "dietary-judge",
+    scope="PROJECT",
+    prompt=judge_prompt_text_v3,
+    commit_message="Added edge cases for keto (dev TNR 81% -> 92%)",
 )
 ```
 
@@ -3434,10 +3499,13 @@ from langfuse import get_client
 
 langfuse = get_client()
 
+# Creating a prompt under an existing name adds a new version
 langfuse.create_prompt(
     name="dietary-judge",
-    prompt=judge_prompt_text,
+    prompt=judge_prompt_text_v3,
+    config={"model": "gpt-4o", "temperature": 0},  # stored with the version
     labels=["staging"],  # promote to "production" after validation
+    commit_message="Added edge cases for keto (dev TNR 81% -> 92%)",
 )
 ```
 
@@ -3452,14 +3520,17 @@ langfuse.create_prompt(
 
 ```python
 import langwatch
+from openai import OpenAI
 
-# Initialize (auto-instruments OpenAI, LangChain, LlamaIndex, etc.)
-langwatch.init()
+# Initialize (reads LANGWATCH_API_KEY; pass instrumentors=[...] for
+# OpenTelemetry auto-instrumentation of other frameworks)
+langwatch.setup()
+client = OpenAI()
 
-# Add custom spans
-@langwatch.span(type="chain")
+@langwatch.trace(name="sql-pipeline")
 def my_pipeline(question):
-    """Parent span for the whole pipeline"""
+    """Root of the trace for the whole pipeline"""
+    langwatch.get_current_trace().autotrack_openai_calls(client)
     sql = generate_sql(question)
     results = execute_query(sql)
     return synthesize_answer(question, results)
@@ -3480,35 +3551,33 @@ def execute_query(sql):
 ```python
 import langwatch
 
-# Get all spans for a specific name
-spans_df = langwatch.get_spans(
-    filters={"name": "ParseRequest"}
-)
-
-# Get spans within a time range
-spans_df = langwatch.get_spans(
-    filters={
-        "timestamp_gte": "2025-02-01",
-        "timestamp_lte": "2025-02-09"
-    }
-)
+page = langwatch.traces.search(params={"query": "ParseRequest", "pageSize": 100})
+# Next page: pass page["pagination"]["scrollId"] back as params["scrollId"]
+trace = langwatch.traces.get(trace_id)  # one trace with its spans
 ```
 
 #### 数据集
 
 ```python
-import pandas as pd
 import langwatch
 
-df = pd.DataFrame({
-    "query": ["Query 1", "Query 2"],
-    "expected_answer": ["Answer 1", "Answer 2"]
-})
-
-dataset = langwatch.datasets.create(
-    name="my-dataset",
-    dataframe=df
+langwatch.dataset.create_dataset(
+    "my-dataset",
+    columns=[
+        {"name": "query", "type": "string"},
+        {"name": "expected_answer", "type": "string"},
+    ],
 )
+
+langwatch.dataset.create_records(
+    "my-dataset",
+    entries=[
+        {"query": "Query 1", "expected_answer": "Answer 1"},
+        {"query": "Query 2", "expected_answer": "Answer 2"},
+    ],
+)
+
+df = langwatch.dataset.get_dataset("my-dataset").to_pandas()
 ```
 
 #### 评估器
@@ -3516,27 +3585,25 @@ dataset = langwatch.datasets.create(
 ```python
 import langwatch
 
-# Use built-in evaluators (40+ available)
-results = langwatch.evaluate.batch(
-    dataset=traces_df,
-    evaluators=[
-        "dietary_compliance",   # Built-in
-        "toxicity",             # Built-in
-        "prompt_injection",     # Built-in
-    ]
-)
+df = langwatch.dataset.get_dataset("my-dataset").to_pandas()
+evaluation = langwatch.experiment.init("baseline")
 
-# Create custom evaluator
-@langwatch.evaluator(name="custom_check")
-def my_evaluator(trace):
-    # Your logic here
-    return {"passed": True, "score": 1.0}
+for index, row in evaluation.loop(df.iterrows(), threads=4):
+    def task(index, row):
+        answer = my_pipeline(row["query"])
 
-# Run custom evaluator
-results = langwatch.evaluate.batch(
-    dataset=traces_df,
-    evaluators=["custom_check"]
-)
+        # Your own metric (code-based or your LLM judge)
+        evaluation.log("exact_match", index=index,
+                       passed=answer == row["expected_answer"])
+
+        # A built-in evaluator, run by the platform
+        evaluation.evaluate(
+            "ragas/faithfulness",
+            index=index,
+            data={"input": row["query"], "output": answer, "contexts": retrieved_contexts},
+            settings={},  # required; evaluator-specific options, {} for defaults
+        )
+    evaluation.submit(task, index, row)
 ```
 
 #### 实验
@@ -3544,44 +3611,41 @@ results = langwatch.evaluate.batch(
 ```python
 import langwatch
 
-def my_task(example):
-    query = example["input"]["query"]
-    return {"answer": my_pipeline(query)}
-
-# Run experiment with automatic metrics
-results = langwatch.evaluate.batch(
-    dataset=dataset,
-    task=my_task,
-    evaluators=["accuracy", "latency", "cost"]
+# Blocking check inside the request
+guardrail = langwatch.evaluation.evaluate(
+    "presidio/pii_detection",
+    name="PII in response",
+    as_guardrail=True,
+    data={"output": draft_response},
 )
+if not guardrail.passed:
+    ...
 
-# View results
-print(results.metrics)
+# Attach your own verdict to the current span
+langwatch.get_current_span().add_evaluation(
+    name="dietary_adherence", passed=True, score=1.0, details="Vegan OK"
+)
 ```
 
 #### Prompt 管理
 
 ```python
 import langwatch
+from langwatch.prompts.types import Message
 
-# Create prompt
-prompt = langwatch.prompts.create(
-    name="recipe-assistant-v1",
-    template=[
-        {"role": "system", "content": "You are a recipe assistant..."},
-        {"role": "user", "content": "{{question}}"}
-    ],
-    model="gpt-4o-mini",
-    temperature=0.7
+# No model argument in the Python SDK: set the model in the LangWatch UI
+langwatch.prompts.create(
+    handle="recipe-assistant",
+    scope="PROJECT",
+    prompt="You are a recipe assistant...",  # system message
+    messages=[Message(role="user", content="{{input}}")],
 )
 
-# Use at runtime
-messages = prompt.render(question="How do I make pancakes?")
-response = client.chat.completions.create(
-    messages=messages,
-    model=prompt.model,
-    temperature=prompt.temperature
-)
+from litellm import completion
+
+prompt = langwatch.prompts.get("recipe-assistant")
+compiled = prompt.compile(input="How do I make pancakes?")
+response = completion(model=prompt.model, messages=compiled.messages)
 ```
 
 ### Langfuse
@@ -3612,8 +3676,21 @@ from langfuse import get_client
 
 langfuse = get_client()
 
-traces = langfuse.api.trace.list(limit=100, tags=["production"])
-trace = langfuse.api.trace.get("trace_id")
+# Observations API v2: filter by trace_id, name, type, session_id, and
+# always bound the time window. Needs a Langfuse v4 server (Cloud, or
+# self-hosted after upgrading; on a v3 server use api.legacy.observations_v1).
+# The trace list/get endpoints (langfuse.api.trace.*) are deprecated and
+# leave Langfuse Cloud on November 16, 2026.
+observations = langfuse.api.observations.get_many(
+    trace_id="trace_id",
+    fields="core,basic,io,usage",
+    from_start_time=window_start,
+    to_start_time=window_end,
+    limit=100,  # max 1,000; follow observations.meta.cursor for more
+)
+
+# Scores API v3 (Python SDK 4.8.1+); limit is capped at 100, page with meta.cursor
+scores = langfuse.api.scores_v3.get_many_v3(name="dietary_adherence", limit=100)
 ```
 
 #### 数据集
@@ -3836,7 +3913,6 @@ AI evals（AI 评估）不仅仅是“测试”——它是一种产品开发方
 
 ### 平台文档与学习中心
 
-- **LangWatch Docs**: [docs.langwatch.ai](https://docs.langwatch.ai)
 - **LangWatch GitHub**: [github.com/langwatch/langwatch](https://github.com/langwatch/langwatch)
 - **Langfuse Docs**: [langfuse.com/docs](https://langfuse.com/docs)
 - **Langfuse GitHub**: [github.com/langfuse/langfuse](https://github.com/langfuse/langfuse)
@@ -3845,10 +3921,9 @@ AI evals（AI 评估）不仅仅是“测试”——它是一种产品开发方
 
 ### 研究与思想领导
 
-- **OpenAI Evals Platform**: [evals.openai.com](https://evals.openai.com/)
 - **OpenAI Cookbook**（实战示例与指南）: [cookbook.openai.com](https://cookbook.openai.com/)
+- **从 OpenAI Evals 迁移到 Promptfoo**: [迁移指南](https://developers.openai.com/cookbook/examples/evaluation/moving-from-openai-evals-to-promptfoo)
 - **OpenAI Research**: [openai.com/research](https://openai.com/research)
-- **OpenAI Docs (Evals)**: [platform.openai.com/docs/guides/evals](https://platform.openai.com/docs/guides/evals)
 - **Anthropic Research**: [anthropic.com/research](https://www.anthropic.com/research)
 - **METR**（Model Evaluation & Threat Research，模型评估与威胁研究）: [metr.org](https://metr.org/)
 - **Eugene Yan on eval process**: [eugeneyan.com/writing/eval-process](https://eugeneyan.com/writing/eval-process/)
@@ -3863,13 +3938,15 @@ AI evals（AI 评估）不仅仅是“测试”——它是一种产品开发方
 
 | Tool | Focus | License | Links |
 |------|-------|---------|-------|
-| **LangWatch** | Observability & built-in evals（可观测性与内置评估） | Apache 2.0 | [GitHub](https://github.com/langwatch/langwatch) · [Docs](https://docs.langwatch.ai) |
-| **Langfuse** | Custom pipelines & tracing（自定义流水线与追踪） | MIT | [GitHub](https://github.com/langfuse/langfuse) · [Docs](https://langfuse.com/docs) |
+| **LangWatch** | 可观测性与内置评估 | Apache 2.0（企业模块商业许可） | [GitHub](https://github.com/langwatch/langwatch) · [文档](https://langwatch.ai/docs) |
+| **Langfuse** | 自定义流水线与追踪 | MIT（企业模块商业许可） | [GitHub](https://github.com/langfuse/langfuse) · [文档](https://langfuse.com/docs) |
+| **Arize Phoenix** | 追踪与评测，原生支持 OTel | Elastic-2.0 | [GitHub](https://github.com/Arize-ai/phoenix) |
+| **Promptfoo** | 评测与红队 CLI；OpenAI Evals 迁移目标 | MIT | [GitHub](https://github.com/promptfoo/promptfoo) · [文档](https://www.promptfoo.dev/docs/intro/) |
 | **RAGAS** | RAG-specific evaluation（RAG 专用评估） | Apache 2.0 | [GitHub](https://github.com/explodinggradients/ragas) · [Docs](https://docs.ragas.io/) |
 | **Comet Opik** | LLM tracing & evaluation（LLM 追踪与评估） | Apache 2.0 | [GitHub](https://github.com/comet-ml/opik) · [Site](https://www.comet.com/site/products/opik/) |
 | **judgy** | Statistical bias correction（统计偏差修正） | Open | [GitHub](https://github.com/ai-evals-course/judgy) |
 | **Braintrust** | Experimentation & logging（实验与日志） | Partial | [Docs](https://www.braintrust.dev/docs) |
-| **Galileo** | Hallucination detection（幻觉检测） | Proprietary | [Site](https://www.galileo.ai/) |
+| **Galileo**（现为 Cisco 的 Splunk Agent Observability） | 幻觉检测 | 专有 | [文档](https://docs.galileo.ai/) · [Splunk](https://www.splunk.com/en_us/products/agent-observability.html) |
 | **Maxim** | Agentic system evaluation（智能体系统评估） | Proprietary | [Site](https://www.getmaxim.ai/) |
 
 ### 策略对比矩阵

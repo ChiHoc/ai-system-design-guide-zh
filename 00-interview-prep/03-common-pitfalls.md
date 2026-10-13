@@ -45,7 +45,7 @@
 ### 陷阱 2：一刀切模型选型（One-Size-Fits-All Model Selection）
 
 **出错表现：**
-候选人说会对所有场景都用 GPT-4（或任何单一模型）。
+候选人说会对所有场景都用一个模型，通常是他们知道的最大前沿模型。
 
 **为什么重要：**
 不同任务有不同要求。用前沿模型（frontier model）做分类是浪费；用小模型做复杂推理会失败。
@@ -59,10 +59,13 @@
 ```
 "Model selection varies by task:
 
-- Intent classification: Fine-tuned BERT or GPT-5.5-mini
-- Simple responses: Claude Haiku 4.5, GPT-5.5-mini, or DeepSeek V4 Flash
-- Complex reasoning: Claude Sonnet 4.6 or GPT-5.5
-- Code generation: Claude Sonnet 4.6 (Opus 4.8 for the hardest cases)
+- Intent classification: Fine-tuned BERT-class encoder or GPT-6 Luna
+- Simple responses: GPT-6 Luna, Gemini 3.8 Flash, DeepSeek V4.1-Flash,
+  or Claude Haiku 4.5
+- Complex reasoning: Claude Sonnet 5.5 or GPT-6.1 Sol
+- Code generation: Claude Sonnet 5.5 or GPT-6.1 Sol, with Claude Opus 5.5
+  for the hardest cases (Fable 5.1 or GPT-6 Astra only where evals
+  show the ceiling matters)
 
 I would implement a router that classifies query complexity 
 and routes to the appropriate model. This typically reduces 
@@ -149,7 +152,7 @@ queries designed to probe for cross-tenant leakage."
 当 LLM（Large Language Model，大语言模型）提供方宕机、被限流或返回错误时，系统没有回退方案。
 
 **为什么重要：**
-LLM 提供方会发生宕机。速率限制也会被触发。故障处理能力决定系统是生产可用还是仅能做原型。
+LLM 提供方会发生宕机。Anthropic 状态页在 2026 年 8 月 16 日至 9 月 29 日间记录了至少 12 起重大或严重事故；OpenAI 在 9 月 29 日的事故则使 API、ChatGPT 和 Codex 降级约 5 小时 20 分钟。速率限制也会被触发。故障处理能力决定系统是生产可用还是仅能做原型。
 
 **面试官会注意到：**
 - 没提回退方案
@@ -164,9 +167,14 @@ LLM 提供方会发生宕机。速率限制也会被触发。故障处理能力�
    - Exponential backoff with jitter
    - Max 3 attempts
 
-2. Fallback providers: If primary fails, try secondary
+2. Fallback providers: If primary fails, try a different vendor
+   (a second model from the same vendor usually shares the outage)
    - OpenAI → Anthropic → local model
-   - Abstract the interface to enable swapping
+   - Abstract the interface, but keep per-model request shapes:
+     the newest Claude models reject forced tool_choice and
+     non-default temperature, and GPT-6 Astra rejects temperature,
+     so replaying one request body across providers returns 400s
+   - Keep a tested prompt per fallback model
 
 3. Cached responses: Return cached results for known queries
    - Exact match cache for repeated questions
@@ -234,31 +242,36 @@ avoids the lost-in-the-middle problem documented in Liu et al."
 
 **需要掌握：**
 - 计费按 token 计算，输入与输出常常分开计价
-- 大多数提供商里输出 token 成本约为输入 token 的 2-4 倍
+- 输出 token 成本通常为输入 token 的 3-6 倍；当前 Claude、GPT-6 和 Gemini Flash 的标价中，5 倍是常态
+- 长提示词可能使整次请求重新定价：OpenAI 的输入一旦超过 272K token，全部内容都会按长上下文费率计费；xAI 在 200K 及以上时将所有 token 价格翻倍；Anthropic（Claude 4.6 及更高版本）则在 1M token 内保持固定费率
+- 思考 token 按输出计费，且不同模型的默认 effort 不同（API 中 Claude Opus 5.5 为 `medium`，Sonnet 5.5 为 `high`），因此应按路由显式设置 effort
 - 流式输出通常不改变计费
 
-**快速参考（2026 年 6 月，需确认是否仍然有效）：**
+**快速参考（截至 2026 年 10 月 1 日的标准档价格；标有说明者为介绍期价格；仅 9 月就有多项变动，引用前请查看[定价章节](../02-model-landscape/03-pricing-and-costs.md)）：**
 
-| 模型 | 输入/100万 token | 输出/100万 token |
-|-------|----------|-----------|
-| Claude Fable 5 | $10 | $50 |
-| Claude Opus 4.8 | $5 | $25 |
-| GPT-5.5 | $5 | $30 |
-| Claude Sonnet 4.6 | $3 | $15 |
-| Gemini 3.1 Pro | $2 | $12 |
-| Claude Haiku 4.5 | $1 | $5 |
-| DeepSeek V4 Flash | $0.14 | $0.28 |
+| 模型 | 输入/100万 token | 输出/100万 token | 注意事项 |
+|-------|----------|-----------|-----------|
+| Claude Fable 5.1 | $10 | $50 | 保留 30 天；零数据保留仅可经 Anthropic 授权获得 |
+| GPT-6 Astra | $10 | $50 | 输入超过 272K 时，整次请求按 $20 / $75 计费 |
+| Claude Opus 5.5 | $4 | $20 | Anthropic 的默认起点；缓存读取 $0.20（0.05 倍） |
+| Claude Sonnet 5.5 | $2 | $10 | 1M 上下文内价格固定 |
+| GPT-6.1 Sol | $2 | $10 | 缓存读取 $0.10（0.05 倍）；超过 272K 时为 $4 / $15 |
+| Grok 4.7 | $2 | $6 | 200K 及以上的提示词，所有 token 按 $4 / $12 计费 |
+| Claude Haiku 4.5 | $1 | $5 | 唯一当前 Haiku；Foundry 将于 2026 年 11 月 15 日停止提供，需备好经测试的替代方案 |
+| Gemini 3.8 Flash | $0.75 | $3.75 | 介绍期至 2026 年 12 月 31 日；2027 年 1 月 1 日起为 $1.50 / $7.50 |
+| DeepSeek V4.1-Flash | $0.30 | $1.20 | 高峰费率；非高峰和周末减半 |
+| GPT-6 Luna | $0.10 | $0.50 | 超过 272K 时为 $0.20 / $0.75 |
 
 **成本计算示例：**
 ```
 10,000 queries/day
 Average: 2K input tokens, 500 output tokens
-Model: Claude Sonnet 4.6
+Model: Claude Sonnet 5.5
 
-Daily cost = 10K × (2K × $3/1M + 500 × $15/1M)
-          = 10K × ($0.006 + $0.0075)
-          = 10K × $0.0135
-          = $135/day = ~$4K/month
+Daily cost = 10K × (2K × $2/1M + 500 × $10/1M)
+          = 10K × ($0.004 + $0.005)
+          = 10K × $0.009
+          = $90/day = ~$2.7K/month
 ```
 
 **缓存杠杆（通常是区分候选人的关键）：**
@@ -267,14 +280,19 @@ Same workload, but 1.5K of the 2K input is a shared prefix
 (system prompt + tool schemas) served from cache at 10% of
 the input price:
 
-Daily cost = 10K × (0.5K × $3/1M + 1.5K × $0.30/1M + 500 × $15/1M)
-          = 10K × ($0.0015 + $0.00045 + $0.0075)
-          = ~$94/day = ~$2.8K/month   (30% saved by prompt shape alone)
+Daily cost = 10K × (0.5K × $2/1M + 1.5K × $0.20/1M + 500 × $10/1M)
+          = 10K × ($0.001 + $0.0003 + $0.005)
+          = $63/day = ~$1.9K/month   (30% saved by prompt shape alone)
+
+Cache writes cost 1.25x ($2.50/1M for a 5-minute entry), but at ~7
+requests a minute the prefix stays warm, so writes are noise.
 
 Design implication: keep the static content (instructions, schemas)
 at the front of the prompt and the dynamic content at the end, so
 the prefix stays byte-identical across requests and the cache hits.
 ```
+
+缓存读取折扣不再固定为 10%。大多数 Claude 模型以及 OpenAI 的 GPT-5.6 及更高版本按 0.1 倍计费；Claude Opus 5.5 和 GPT-6.1 Sol 为 0.05 倍；Claude Fable 5.1 为 0.025 倍。写入溢价和 TTL 也各不相同：OpenAI（GPT-5.6 及更高版本）对固定 30 分钟 TTL 的写入收取 1.25 倍费用；Anthropic 提供 5 分钟或 1 小时条目，分别为 1.25 倍或 2 倍。在高度依赖缓存的智能体工作负载中，这些乘数可能比标称输入价格更重要。
 
 ---
 
@@ -338,6 +356,7 @@ I also include negative examples showing when to abstain."
 | 格式漂移 | 长会话或模型更新后 JSON 输出质量下降 | 使用引擎级结构化输出（json_schema、tool schemas），而不是“请返回 JSON” |
 | 失去缓存命中 | 提示词前端的时间戳使每次请求都失去前缀缓存 | 静态内容放前面，动态内容放最后 |
 | 提示词-模型耦合 | 一个提供商上调好的提示词，在模型切换后悄悄退化 | 用模型 ID 版本化提示词；模型变更后重跑评估 |
+| 未固定的默认值 | 依赖升级会在你不知情时改变模型或 effort：openai-agents 0.20 将默认模型改为 `gpt-5.6-luna`，而 Opus 5.5 默认使用 `medium` effort，Opus 5 则使用 `high` | 在配置中固定模型 ID 和 effort；将 SDK 与 CLI 升级视为模型变更，并重跑评估 |
 
 在面试中自发说出其中两到三个，会让提示词相关答案从初级跃升到高级，因为这些几乎都是真实线上事故。
 
@@ -521,6 +540,8 @@ uses instruction hierarchy to resist injection. Output
 passes through a content filter before reaching the user."
 ```
 
+对于智能体，攻击面还包括它能触及的一切。2026 年，多家实验室的评估智能体曾接触到真实外部系统：OpenAI 的一个研究模型于 6 月绕过了澳大利亚政府 Medicare 统计门户的访问控制；在 OpenAI 的另一次运行中，一个智能体通过 DNS 建立隧道外传。首次外部响应约 12 分钟后监控即告警，但由于自动停止失败，运行直到 2.5 小时后才被终止。默认拒绝出站访问（包括 DNS）、范围受限的凭据，以及已实际测试过的终止开关，都应出现在第一张架构图中，而不是留到加固阶段。
+
 ---
 
 ## 自查清单
@@ -528,7 +549,7 @@ passes through a content filter before reaching the user."
 ### 面试前
 
 - [ ] 已复习 RAG（检索增强生成）架构模式
-- [ ] 了解当前模型定价（大致区间）
+- [ ] 了解当前模型定价（大致区间），包括缓存读取和长上下文的价格乘数
 - [ ] 能解释 chunking（分块）策略
 - [ ] 理解 embedding（向量嵌入）与 generation（生成）
 - [ ] 了解常见评估指标

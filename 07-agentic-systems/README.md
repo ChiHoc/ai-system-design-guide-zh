@@ -47,16 +47,16 @@ flowchart LR
 |------|----------------|
 | [01-agent-fundamentals.md](01-agent-fundamentals.md) | 什么样的系统才算“agent（智能体）”；agent 与 workflow 的区别；何时选择各自方案。 |
 | [02-reasoning-loops-react-and-beyond.md](02-reasoning-loops-react-and-beyond.md) | ReAct、Plan-and-Execute、Reflexion、Tree-of-Thought；循环设计模式。 |
-| [03-tool-use-and-mcp.md](03-tool-use-and-mcp.md) | Function calling（函数调用）、Model Context Protocol（MCP）、2026-07-28 无状态化改造、A2A v1.0、MCP 生产级加固。 |
-| [04-multi-agent-orchestration.md](04-multi-agent-orchestration.md) | 多智能体何时有帮助、何时会适得其反；orchestration（编排）与 choreography（协同编排）。 |
-| [05-agent-memory-and-state.md](05-agent-memory-and-state.md) | L1-L4 记忆层级（工作记忆、情节记忆、语义记忆、程序记忆）及其取舍。 |
-| [06-planning-and-decomposition.md](06-planning-and-decomposition.md) | 任务分解、计划修订、长程规划。 |
-| [07-error-handling-and-recovery.md](07-error-handling-and-recovery.md) | 工具失败、重试、循环护栏、“第 100 次工具调用”问题。 |
-| [08-human-in-the-loop-patterns.md](08-human-in-the-loop-patterns.md) | 确认门控、升级处理、受监督的自治。 |
-| [09-agentic-security-and-sandboxing.md](09-agentic-security-and-sandboxing.md) | 代码执行沙箱、能力门控、智能体中的 prompt 注入。 |
-| [10-evaluating-agentic-systems.md](10-evaluating-agentic-systems.md) | 轨迹评估（trajectory evals）、Agent-as-judge、过程奖励模型（Process Reward Models）、智能体基准。 |
-| [11-durable-execution.md](11-durable-execution.md) | 长运行智能体如何在崩溃中存活：事件历史、重放、exactly-once 副作用、Temporal。 |
-| [12-loop-engineering.md](12-loop-engineering.md) | 围绕智能体工程化循环：四种循环层级、终止与预算控制、上下文腐化（context rot）、验证、loopmaxxing 等反模式，以及成熟度阶梯。 |
+| [03-tool-use-and-mcp.md](03-tool-use-and-mcp.md) | Function calling（函数调用）、Model Context Protocol（MCP）、2026-07-28 无状态化改造及 2026 年 8 月路线图、技能扩展、A2A v1.0、智能体商务协议、MCP 生产级加固（安全通告潮、OAuth 混淆），以及计算机使用工具集。 |
+| [04-multi-agent-orchestration.md](04-multi-agent-orchestration.md) | 多智能体何时有帮助、何时会适得其反；监督者、群体、流水线（工作流即代码）和辩论模式；托管式协调器。 |
+| [05-agent-memory-and-state.md](05-agent-memory-and-state.md) | L1-L4 记忆层级（工作记忆、情节记忆、语义记忆、程序记忆）及其取舍；写入时、休眠时和读取时的整理；记忆何时会损害 agent 表现。 |
+| [06-planning-and-decomposition.md](06-planning-and-decomposition.md) | 任务分解、需求提取、计划修订、长程规划。 |
+| [07-error-handling-and-recovery.md](07-error-handling-and-recovery.md) | 工具失败、重试、循环护栏、停止开关与遏制时间、跨供应商故障切换。 |
+| [08-human-in-the-loop-patterns.md](08-human-in-the-loop-patterns.md) | 确认门控、策略门控自治、审批洗白、升级处理、受监督的自治。 |
+| [09-agentic-security-and-sandboxing.md](09-agentic-security-and-sandboxing.md) | 代码执行沙箱、能力门控、智能体中的提示词注入、2026 年事故记录、独立于运行环境的隔离措施。 |
+| [10-evaluating-agentic-systems.md](10-evaluating-agentic-systems.md) | 轨迹评估、当前智能体基准及其报告陷阱、评估完整性、决策模型评审者。 |
+| [11-durable-execution.md](11-durable-execution.md) | 长运行智能体如何在崩溃中存活：事件历史、重放、exactly-once 副作用、Temporal 与托管式 agent 运行时。 |
+| [12-loop-engineering.md](12-loop-engineering.md) | 围绕智能体工程化循环：四种循环层级、递归式自我改进、终止与预算控制、上下文腐化（context rot）、验证、loopmaxxing 等反模式，以及成熟度阶梯。 |
 
 ## 配套章节
 
@@ -68,8 +68,8 @@ flowchart LR
 ## 关键要点
 
 - 智能体不是单一技术；它们由推理循环（reasoning loop）、工具层（tool layer）、记忆（memory）、规划器（planner）和评估器（evaluator）组合而成。先读第 01 章。
-- MCP 是 2026 年的标准工具互操作协议；除非有强有力的理由，否则不要自建工具协议。
+- MCP 是 2026 年的标准工具互操作协议（当前规范修订版为 2026-07-28，与 A2A 同属 Agentic AI Foundation 治理）；除非有强有力的理由，否则不要自建工具协议。
 - 多智能体编排（ch 04）经常被过度使用；对大多数用例来说，带好工具的单智能体优于多智能体。
 - 记忆（ch 05）和错误恢复（ch 07）是生产级智能体最常出问题的地方；评估投入应优先放在这里。
-- 人类在环（ch 08）不是兜底方案；对于高风险操作，应有意设计门控。
+- 人类在环（ch 08）不是兜底方案；对于高风险操作，应有意设计门控。审批与权限分类器能够降低风险，但真正的边界是隔离措施（沙箱、网络出口策略、独立于运行环境的停止路径；ch 09）。
 - 循环工程（ch 12）如今已是一门独立学科：弱外壳（harness）中的强模型，会输给强外壳中的中等模型。要在外壳中强制终止和预算控制，并让 verifier（验证器）与 producer（生产者）分离。

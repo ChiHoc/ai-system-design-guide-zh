@@ -6,9 +6,11 @@
 
 <p align="center">
   <a href="https://www.aidaddy.tech"><img src="https://img.shields.io/badge/Read%20it%20online%20%E2%86%92-7C3AED?style=for-the-badge&logo=bookstack&logoColor=white" alt="Read the guide online at aidaddy.tech"></a>
+  <a href="https://enginebogie.com/u/ombharatiya"><img src="https://img.shields.io/badge/Book%20a%20mock%20interview%20%E2%86%92-0E7C66?style=for-the-badge&logo=googlecalendar&logoColor=white" alt="在 EngineBogie 预约 1:1 模拟面试"></a>
+  <a href="https://topmate.io/ombharatiya"><img src="https://img.shields.io/badge/Mentorship%20on%20Topmate-1F2937?style=for-the-badge&logoColor=white" alt="在 Topmate 预约指导"></a>
 </p>
 <p align="center">
-  <sub>🌐 在 <b><a href="https://www.aidaddy.tech">aidaddy.tech</a></b> 可进行即时搜索、章节联动跳转，并获得更清爽的阅读体验。⭐ 点赞仓库以支持本项目。</sub>
+  <sub>🌐 在 <b><a href="https://www.aidaddy.tech">aidaddy.tech</a></b> 即时搜索。🎯 与 Om 进行 1:1 模拟面试和指导。⭐ 点赞仓库以支持本项目。</sub>
 </p>
 
 <p align="center">
@@ -34,7 +36,7 @@
 
 这是一份实用且持续更新的指南，覆盖 AI system design（AI 系统设计）、RAG architectures（RAG 检索增强生成架构）、LLM engineering（LLM 工程）、agentic AI（智能体化 AI）、MCP 和 A2A protocols（A2A 协议），以及 AI engineering interview preparation（AI 工程面试准备）。内容包括生产模式、模型选型、评估方法，以及来自 staff-level interviews（Staff 级别面试）的真实案例。
 
-**首次阅读？** 可直接跳转到 [128 道面试题库](00-interview-prep/01-question-bank.md)、[RAG 基础章节](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
+**首次阅读？** 可直接跳转到 [147 道面试题库](00-interview-prep/01-question-bank.md)、[RAG 基础章节](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
 
 ---
 
@@ -43,6 +45,7 @@
 | 我想要…… | 从这里开始 |
 |--------------|------------|
 | **准备面试** | [题库](00-interview-prep/01-question-bank.md) → [答题框架](00-interview-prep/02-answer-frameworks.md) |
+| **与真实面试官练习** | [预约 1:1 模拟面试或指导](https://enginebogie.com/u/ombharatiya)（也可在 [Topmate](https://topmate.io/ombharatiya) 预约） |
 | **快速学习 AI 系统** | [LLM 内部机制](01-foundations/01-llm-internals.md) → [RAG 基础](06-retrieval-systems/01-rag-fundamentals.md) |
 | **构建生产级 RAG** | [分块](06-retrieval-systems/02-chunking-strategies.md) → [向量数据库](06-retrieval-systems/04-vector-databases.md) → [重排序](06-retrieval-systems/06-reranking-strategies.md) → [生产级 RAG](06-retrieval-systems/14-production-rag-at-scale.md) |
 | **进阶检索** | [上下文检索](06-retrieval-systems/10-contextual-retrieval.md) → [ColBERT](06-retrieval-systems/11-late-interaction-colbert.md) → [多模态 RAG](06-retrieval-systems/12-multimodal-rag.md) |
@@ -56,7 +59,7 @@
 | **在生产环境评估 AI** | [AI 评估指南（Phoenix/Langfuse）](ai_evals_comprehensive_study_guide.md) → [AI 评估指南（LangWatch/Langfuse）](ai_evals_complete_guide_langwatch_langfuse.md) |
 | **正确解读基准测试** | [基准与排行榜](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md) (饱和、污染、评测框架差异) |
 | **跟踪前沿研究（2026）** | [研究雷达](RESEARCH-RADAR.md) (热门论文与下一步学习方向) |
-| **构建语音智能体** | [实时语音智能体](18-voice-and-audio-agents/01-realtime-voice-agents.md) (级联与语音到语音、延迟预算、技术栈) |
+| **构建语音智能体** | [实时语音智能体](18-voice-and-audio-agents/01-realtime-voice-agents.md)（流水线、语音到语音与双工前端、延迟、每分钟成本）→ [语音 AI 题目](00-interview-prep/01-question-bank.md#语音-ai-问题) |
 | **跨模型路由或添加网关** | [AI 网关与模型路由](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md) (降级、速率限制、LiteLLM) |
 | **控制 AI 成本** | [FinOps 与 token 经济学](11-infrastructure-and-mlops/04-finops-and-token-economics.md) (缓存、批处理、归因、单位经济性) |
 | **满足 AI 法规要求** | [AI 治理与合规](13-reliability-and-safety/04-ai-governance-and-compliance.md) (欧盟 AI 法案、NIST RMF、需要实施的内容) |
@@ -96,12 +99,21 @@ flowchart TD
 
 | 本指南 | 纸质书籍 |
 |------------|---------------|
-| 2026 年 8 月模型 (Claude Opus 5, Sonnet 5, Fable 5, GPT-5.6 Sol/Terra/Luna, GPT-5.6-Cyber, Gemini 3.7 Flash, Grok 4.6, DeepSeek V4, Kimi K3, Qwen3.8, GLM-5.3, Muse Glimmer, Inkling) | 仍停留在 GPT-4 |
-| MCP 2.0, A2A v1.0, OpenClaw, 计算机使用、智能体式 RAG、ColBERT、潜在推理、MoE 推理服务 | 尚未涵盖 |
-| 附 2026 年 8 月核验日期的实际定价 | 已经过时 |
-| Staff 级面试问答（截至 2026 年 8 月的 128 道题）与就业市场趋势 | 泛泛的问题 |
+| 2026 年 10 月模型（Claude Opus 5.5、Sonnet 5.5、Fable 5.1、GPT-6 Astra/Sol/Luna、GPT-6.1 Sol、Gemini 3.8 Flash、Grok 4.7、Muse Spark 1.3、DeepSeek V4.1-Flash、MiMo-V2.6、GLM-5.3、Kimi K3、Qwen3.8） | 仍停留在 GPT-4 |
+| MCP 2026-07-28 规范、A2A v1.0.1、OpenClaw、计算机使用、全双工语音智能体、智能体式 RAG、ColBERT、潜在推理、MoE 推理服务 | 尚未涵盖 |
+| 附 2026 年 10 月核验日期的实际定价 | 已经过时 |
+| Staff 级面试问答（截至 2026 年 9 月的 147 道题，含语音 AI）与就业市场趋势 | 泛泛的问题 |
 
-**快速模型选择（2026 年 8 月）：** Claude Fable 5 适合追求能力上限（$10/$50 per 1M），Claude Opus 5 以 $5/$25 适合长时程智能体式编码，Claude Sonnet 5 是生产默认档（$2/$10，现已成为永久价格），GPT-5.6 Terra 以 $2/$12 适合通用生产、Luna 以 $0.20/$1.20 适合高量层，Gemini 3.7 Flash 年底前半价，价格为 $0.75/$3.75，Kimi K3 或 Muse Glimmer 适合开放权重。请注意，DeepSeek V4 从 8 月 16 日起不再是理所当然的低成本答案：价格将上涨至 3 至 12 倍，并改用高峰与非高峰时段计费。完整拆解见 [模型分类](02-model-landscape/01-model-taxonomy.md)。
+**快速模型选择（2026 年 10 月）：**
+
+- **智能体式编码与困难生产工作：** Claude Opus 5.5（每 1M $4/$20），Anthropic 现在建议客户从它开始，也是 Artificial Analysis Intelligence Index v4.3.2 最高分模型。
+- **生产默认：** 中间层已趋同于 $2/$10，包括 Claude Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol。智能体集群、聊天与通用工作负载可路由至此。
+- **能力上限：** Claude Fable 5.1 或 GPT-6 Astra（$10/$50），仅在评估表明 Opus 5.5 在 high 强度下仍不足时使用。
+- **高吞吐：** GPT-6 Luna（$0.10/$0.50）；Gemini 3.8 Flash 在 12 月 31 日前半价 $0.75/$3.75，之后 $1.50/$7.50，因此按标价预算；能在谷时安排的批处理用 DeepSeek V4.1-Flash，此时为峰时 $0.30/$1.20 的一半。
+- **开放权重：** Xiaomi MiMo-V2.6-Pro（MIT）领先，GLM-5.3 和 Kimi K3 紧随。先读许可：GLM-5.3 仅对年收入超过 US$10B 的 MaaS 运营商增加安全审查；Kimi K3 对 12 个月收入（含关联公司）超过 US$20M 的任何 MaaS 运营商要求另行签约。
+- **切换之前：** OpenAI 输入超过 272K token 后整个请求按长上下文费率计费，最新 Claude 模型强制 `tool_choice` 返回 400，Opus 5.5 默认 effort 为 `medium`，而 Opus 5 使用 `high`。Gemini 4 Argon 于 9 月 30 日公布，但尚未进入 Gemini API。
+
+完整拆解见[模型分类](02-model-landscape/01-model-taxonomy.md)和[模型选型指南](02-model-landscape/04-model-selection-guide.md)。
 
 ---
 
@@ -109,7 +121,7 @@ flowchart TD
 
 **本指南是：**
 - 一本用于设计生产级 AI 系统的 staff 级参考（RAG、智能体、MCP、评估流水线、多租户隔离）。
-- 一份面试准备配套材料，包含 128 道真实题、带完整模拟面试逐字稿的答题框架，以及截至 2026 年 8 月的九道白板练习。
+- 一份面试准备配套材料，包含 147 道真实题（含语音 AI 题组）、带完整模拟面试逐字稿的答题框架，以及截至 2026 年 9 月的十道白板练习。
 - 一本跟踪新模型发布、协议变化和新兴模式并随之更新的活文档。
 - 对取舍有明确观点：延迟与成本、准确性与忠实性、单智能体与多智能体。
 - 免费、采用 MIT 许可，并欢迎实践者提交 PR。
@@ -125,14 +137,14 @@ flowchart TD
 ## 📖 指南结构
 
 ```
-├── 00-interview-prep/           # Questions (128), frameworks, exercises, job-market trends (August 2026)
+├── 00-interview-prep/           # Questions (147), frameworks, exercises, job-market trends (October 2026)
 ├── 01-foundations/              # Transformers, attention, embeddings
-├── 02-model-landscape/          # Claude Opus 5, Sonnet 5, Fable 5, GPT-5.6, Gemini 3.x, DeepSeek V4, Kimi K3, Inkling, Llama 4
+├── 02-model-landscape/          # Claude Opus 5.5, Sonnet 5.5, Fable 5.1, GPT-6, Gemini 3.8, Grok 4.7, DeepSeek V4.1, open weights, pricing
 ├── 03-training-and-adaptation/  # Fine-tuning, LoRA, DPO, distillation, RLVR/GRPO
 ├── 04-inference-optimization/   # KV cache, PagedAttention, vLLM, diffusion LLMs, on-device
 ├── 05-prompting-and-context/    # Prompt engineering, CoT, Extended Thinking, DSPy, prompt injection
 ├── 06-retrieval-systems/        # RAG, chunking, GraphRAG, Agentic RAG, ColBERT, Contextual Retrieval, data engineering
-├── 07-agentic-systems/          # MCP 2.0, A2A protocol, multi-agent, computer-use, durable execution, loop engineering
+├── 07-agentic-systems/          # MCP (spec 2026-07-28), A2A v1.0.1, multi-agent, computer-use, durable execution, loop engineering
 ├── 08-memory-and-state/         # L1-L3 memory tiers, Mem0, caching
 ├── 09-frameworks-and-tools/     # LangGraph, DSPy, LlamaIndex, Claude Code, OpenCoder, framework churn
 ├── 10-document-processing/      # Vision-LLM OCR, multimodal parsing
@@ -143,14 +155,14 @@ flowchart TD
 ├── 15-ai-design-patterns/       # Pattern catalog, anti-patterns
 ├── 16-case-studies/             # Real-world architectures with diagrams
 ├── 17-tool-use-and-computer-agents/ # OpenClaw, Computer Use, tool agents, safety
-├── 18-voice-and-audio-agents/   # Real-time voice agents: VAD, turn-taking, speech-to-speech
+├── 18-voice-and-audio-agents/   # Voice agents: pipeline, speech-to-speech, duplex front ends, turn-taking, cost per minute
 ├── 19-multimodal-generation/    # Image/video/audio generation: pipelines, provenance, evaluation
 ├── GLOSSARY.md                  # Every term defined
 │
 ├── ai_evals_comprehensive_study_guide.md      # 🔬 Deep-dive: AI Evals (Phoenix + Langfuse)
-└── ai_evals_complete_guide_langwatch_langfuse.md  # 🔬 Deep-dive: AI Evals (LangWatch + Langfuse)
-└── COURSES.md                   # 🎓 Recommended courses & learning paths
-└── TRANSITION_GUIDE.md          # 🔄 Transition from Backend/QA/PM/EM to AI roles
+├── ai_evals_complete_guide_langwatch_langfuse.md  # 🔬 Deep-dive: AI Evals (LangWatch + Langfuse)
+├── COURSES.md                   # 🎓 Recommended courses & learning paths
+├── TRANSITION_GUIDE.md          # 🔄 Transition from Backend/QA/PM/EM to AI roles
 └── RESEARCH-RADAR.md            # 🛰️ Frontier research radar: trending papers and what to learn next
 ```
 
@@ -200,13 +212,13 @@ mindmap
 | [文档智能](16-case-studies/10-document-intelligence.md) | 每月从 50K 份合同提取信息 | 视觉 LLM 与并行提取器 |
 | [推荐引擎](16-case-studies/11-recommendation-engine.md) | 为 50M 用户提供个性化解释 | ML 排序与 LLM 解释 |
 | [合规自动化](16-case-studies/12-compliance-automation.md) | FDA 法规预审 | 主张提取与先例数据库 |
-| [语音医疗](16-case-studies/13-voice-ai-healthcare.md) | 实时生成临床记录 | 本地部署 ASR 与 HIPAA |
+| [语音医疗](16-case-studies/13-voice-ai-healthcare.md) | 实时生成临床记录 | BAA 下的 ASR、基于证据的记录与护士审核 |
 | [欺诈检测](16-case-studies/14-fraud-detection.md) | 可解释的 100ms 决策 | ML 与规则混合 |
 | [知识管理](16-case-studies/15-knowledge-management.md) | 带访问控制的 2M 份文档 | 权限感知 RAG |
 | [计算机使用智能体](16-case-studies/16-computer-use-agent-production.md) | 跨 3 个遗留 UI 自动处理费用报表 | Firecracker 虚拟机、动作门控与 IPI 防御 |
 | [多租户微调](16-case-studies/17-multi-tenant-fine-tuning-platform.md) | 280 个租户共享基础模型，每个租户独立使用 LoRA | LoRA 热切换与各租户的评估即 PRD |
 | [评估门控 CI/CD](16-case-studies/18-eval-gated-cicd.md) | 阻止使 AI 质量退化的 PR | 黄金集、LLM 评判者与统计校正 |
-| [客户模型蒸馏](16-case-studies/19-customer-distillation-pipeline.md) | 将每月前沿模型支出从 $50K 降至 $6K，3 个月回本 | 基于轨迹的蒸馏与金丝雀发布 |
+| [客户模型蒸馏](16-case-studies/19-customer-distillation-pipeline.md) | 将每月前沿模型账单从 $50K 降至约 $9K，不到 3 个月回本 | 基于轨迹的蒸馏与金丝雀发布 |
 | [MCP 知识智能体](16-case-studies/20-mcp-knowledge-agent.md) | 从 Snowflake/Confluence/Jira/Slack 获取跨系统答案 | MCP、OAuth 资源服务器与能力门控 |
 
 ---
@@ -218,7 +230,7 @@ mindmap
 | 指南 | 覆盖平台 | 内容 |
 |-------|------------------|---------------|
 | [AI 评估：综合学习指南](ai_evals_comprehensive_study_guide.md) | Arize Phoenix + Langfuse | LLM 作为评判者、RAG 评估、多轮评估、生产安全、使用 `judgy` 进行统计校正、30 天学习路径 |
-| [AI 评估：LangWatch 与 Langfuse 指南](ai_evals_complete_guide_langwatch_langfuse.md) | LangWatch + Langfuse | 同一教学大纲，结合 LangWatch 的 40+ 内置评估器、平台并排比较和选型指导 |
+| [AI 评估：LangWatch 与 Langfuse 指南](ai_evals_complete_guide_langwatch_langfuse.md) | LangWatch + Langfuse | 同一教学大纲，结合 LangWatch 的 30+ 现成评估器、平台并排比较和选型指导 |
 
 **两本指南共同覆盖的主题：**
 - 追踪与可观测性配置（Phoenix、LangWatch、Langfuse）
@@ -244,6 +256,13 @@ AI 工程（AI engineering）与系统设计（system design）面试常会问�
 
 ➡️ 从 [Interview Prep](00-interview-prep/) 开始
 
+**想在正式面试前演练一次？** 阅读优秀答案可以积累知识，但面试还考察另一种能力：在计时和取舍质疑下，把设计说清楚。Om 提供 1:1 AI 系统设计模拟面试、答案与简历审阅，以及面向转向高级 AI 岗位者的长期指导。可在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 预约。
+
+<p align="center">
+  <a href="https://enginebogie.com/u/ombharatiya"><img src="https://img.shields.io/badge/Book%20a%20mock%20interview%20%E2%86%92-0E7C66?style=for-the-badge&logo=googlecalendar&logoColor=white" alt="在 EngineBogie 预约模拟面试"></a>
+  <a href="https://topmate.io/ombharatiya"><img src="https://img.shields.io/badge/Mentorship%20on%20Topmate-1F2937?style=for-the-badge&logoColor=white" alt="在 Topmate 预约指导"></a>
+</p>
+
 ---
 
 ## ❓ 常见问题（Frequently Asked Questions）
@@ -254,7 +273,7 @@ AI system design（AI 系统设计）是围绕 LLM（Large Language Models，大
 
 ### 我该如何准备 AI engineering（AI 工程）面试？
 
-从 [题库](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 8 月共有 128 道题），然后结合 [答题框架](00-interview-prep/02-answer-frameworks.md) 和 [白板练习](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [案例研究](16-case-studies/) 中。
+从 [题库](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 9 月共有 147 道题），然后结合 [答题框架](00-interview-prep/02-answer-frameworks.md) 和 [白板练习](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [案例研究](16-case-studies/) 中。正式面试前，至少和一位会打断并质疑你的人做一次计时模拟；可在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 与 Om 预约。
 
 ### 什么是 RAG（Retrieval-Augmented Generation，检索增强生成）？
 
@@ -266,11 +285,11 @@ AI agents（AI 智能体）是由 LLM 驱动的系统，能够规划、调用工
 
 ### 什么是 MCP（Model Context Protocol，模型上下文协议），它与 A2A 有何区别？
 
-MCP 是一种开放协议，使 LLM 能以标准化方式发现并调用外部工具和数据源。A2A（Agent-to-Agent，智能体到智能体）是用于智能体之间通信的互补协议。两者解决的是不同层面：MCP 是工具边界，A2A 是智能体边界。详见 [Tool Use and MCP](07-agentic-systems/03-tool-use-and-mcp.md)。
+MCP 是一种开放协议，使 LLM 应用能以标准方式发现并调用外部工具和数据源。A2A（Agent2Agent）是将工作交给不受你控制的智能体的互补协议：远程智能体在 `/.well-known/agent-card.json` 发布 Agent Card，客户端向其发送消息，由远程智能体决定是否开启长时间运行的任务。两者解决不同层面：MCP 是工具边界，A2A 是智能体边界，多数系统远在需要 A2A 之前就需要 MCP。两者现在均归属 Linux Foundation 的 Agentic AI Foundation（A2A 于 2026 年 8 月加入）。面试中应精确引用版本：MCP 规范按日期修订，当前版（2026-07-28）使协议核心无状态，不存在“MCP 2.0”；A2A 最新规范版本为 v1.0.1。详见 [Tool Use and MCP](07-agentic-systems/03-tool-use-and-mcp.md)。
 
 ### 生产环境中该用哪个 LLM：Claude、GPT、Gemini，还是开源模型？
 
-这取决于 latency budget（延迟预算）、context length（上下文长度）、每百万 token 成本、tool-use quality（工具使用质量）和 data residency（数据驻留）。[模型分类](02-model-landscape/01-model-taxonomy.md) 和 [定价](02-model-landscape/03-pricing-and-costs.md) 章节对 Claude Opus 5、Claude Sonnet 5、GPT-5.6、Gemini 3.7 Flash、Grok 4.6、DeepSeek V4 等模型截至 2026 年 8 月的情况进行了对比。
+这取决于 latency budget（延迟预算）、context length（上下文长度）、每任务成本（每任务 token 乘价格，而非每 token 价格）、tool-use quality（工具使用质量）和 data residency（数据驻留）。2026 年 10 月的合理起点是：智能体式编码与困难工作用 Claude Opus 5.5（每 1M $4/$20），多数生产流量用 $2/$10 层（Claude Sonnet 5.5、GPT-6 Sol、GPT-6.1 Sol），高吞吐用 GPT-6 Luna 或 Gemini 3.8 Flash，仅在评估表明低价层不足时使用 Claude Fable 5.1 或 GPT-6 Astra（$10/$50）。[模型分类](02-model-landscape/01-model-taxonomy.md) 和 [定价](02-model-landscape/03-pricing-and-costs.md) 章节比较这些模型，以及 Grok 4.7、Muse Spark 1.3、DeepSeek V4.1-Flash 和 MiMo-V2.6、GLM-5.3、Kimi K3 等开放权重模型；[模型选型指南](02-model-landscape/04-model-selection-guide.md) 将其转为决策树。切换前运行自身评估：供应商分数不能跨测试框架或推理强度迁移。
 
 ### 如何在生产环境中评估 LLM 或 RAG 系统？
 
@@ -290,7 +309,7 @@ Agentic RAG（智能体式 RAG）把检索与一个智能体循环结合起来�
 
 ### 这份指南多久更新一次？
 
-持续更新。新的模型发布、协议变化（MCP、A2A）和新兴模式会在发布后持续补充。近期新增内容包括 [工具使用与计算机智能体](17-tool-use-and-computer-agents/01-tool-use-landscape.md) 和 [2026 年 8 月就业市场趋势](00-interview-prep/06-job-market-trends-2026.md)。
+持续更新。新的模型发布、协议变化（MCP、A2A）和新兴模式会在发布后持续补充。2026 年 10 月更新将模型、价格、协议和框架版本推进至 2026 年 10 月 1 日状态。近期新增包括十二道[语音 AI 题目](00-interview-prep/01-question-bank.md#语音-ai-问题)、七道 2026 年 9 月题目、第十道白板练习、重写的[实时语音智能体](18-voice-and-audio-agents/01-realtime-voice-agents.md)章节，以及 [2026 年 10 月就业市场趋势](00-interview-prep/06-job-market-trends-2026.md)。
 
 ### 如果我从后端、QA、PM 或 EM 转向 AI，可以使用这份指南吗？
 
@@ -325,6 +344,7 @@ Agentic RAG（智能体式 RAG）把检索与一个智能体循环结合起来�
 - **GitHub:** [@ombharatiya](https://github.com/ombharatiya) - 关注仓库，给项目点星，并留意新版本发布。
 - **X / Twitter:** [@ombharatiya](https://x.com/ombharatiya) - 关于模型发布、MCP、智能体和面试的简短观点。
 - **LinkedIn:** [ombharatiya](https://linkedin.com/in/ombharatiya) - 更深入的文章和高级 AI 岗位面试准备建议。
+- **模拟面试与指导：** [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) - 预约 1:1 AI 系统设计模拟面试、答案审阅，或转向 AI 岗位的持续指导。
 
 <p align="center">
   <a href="https://github.com/ombharatiya"><img src="https://img.shields.io/badge/Follow%20on%20GitHub-ombharatiya-181717?style=for-the-badge&logo=github" alt="Follow on GitHub"></a>

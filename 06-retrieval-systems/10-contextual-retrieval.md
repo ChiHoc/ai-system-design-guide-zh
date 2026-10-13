@@ -1,6 +1,6 @@
 # 上下文检索
 
-上下文检索（Contextual Retrieval）是一种在摄取时执行的技术，用于解决 RAG 失败的 #1 根本原因：**当分块（chunk）与其源文档分离后失去意义**。它由 Anthropic 于 2024 年底率先提出，如今已成为高精度检索的生产标准。Anthropic 自身的测量显示，仅使用混合搜索（hybrid search）就能将检索失败减少 49%，而与重排序（reranking）结合时可减少 67%。
+上下文检索（Contextual Retrieval）是一种在摄取时执行的技术，用于解决 RAG 失败的 #1 根本原因：**当分块（chunk）与其源文档分离后失去意义**。它由 Anthropic 于 2024 年底率先提出，如今已成为高精度检索的生产标准。Anthropic 自身的测量显示，上下文嵌入结合上下文 BM25 可使前 20 个结果中的检索失败减少 49%，加入重排序后可减少 67%。
 
 ## 目录
 
@@ -236,7 +236,7 @@ context and nothing else."""
 def contextualize_chunk(
     full_document: str,
     chunk: str,
-    model: str = "claude-sonnet-4-20250514"
+    model: str = "claude-haiku-4-5"  # small model: context strings are short and factual
 ) -> str:
     """Generate context for a single chunk."""
     response = client.messages.create(
@@ -250,7 +250,9 @@ def contextualize_chunk(
             )
         }]
     )
-    context = response.content[0].text
+    # Read the text block, not content[0]: on models with thinking on
+    # (Sonnet 5.5, Opus 5.5), a thinking block comes first.
+    context = next(b.text for b in response.content if b.type == "text")
     return f"{context}\n\n{chunk}"
 
 
@@ -271,7 +273,7 @@ def process_document(document: str, chunks: List[str]) -> List[str]:
 def contextualize_with_caching(
     full_document: str,
     chunks: List[str],
-    model: str = "claude-sonnet-4-20250514"
+    model: str = "claude-haiku-4-5"
 ) -> List[str]:
     """
     Use prompt caching so the full document is only
@@ -306,13 +308,18 @@ def contextualize_with_caching(
                 ]
             }]
         )
-        context = response.content[0].text
+        context = next(b.text for b in response.content if b.type == "text")
         results.append(f"{context}\n\n{chunk}")
 
     return results
 ```
 
-**提示缓存的成本影响**：对于一个 10,000 token 的文档，若拆分为 30 个分块，提示缓存可将上下文化成本最多降低 **90%**，因为文档前缀会在第一次调用后被缓存。
+**提示缓存的成本影响**：对于一个拆分为 30 个分块的 10,000 token 文档，提示缓存可使文档输入成本降低约 **85%**：首次缓存写入按输入价格的 1.25 倍计费，随后 29 次读取按 0.1 倍计费，而不是 30 次均按原价计费。
+
+以下三个运维陷阱会抹掉这部分节省：
+- **交错处理与冷启动并发。** 默认缓存有效期为 5 分钟。同一文档的所有分块应在此窗口内处理；若队列把它们分散到数小时，每次调用都会成为缓存写入。先单独发出第一次调用，待其返回后再并发处理其余分块：并行的首次调用都会未命中缓存并支付写入费用。
+- **短文档。** 可缓存前缀的最小长度因模型而异：Claude Haiku 4.5 为 4,096 token，Claude Opus 5.5 和 Fable 5.1 为 512 token。3,000 token 的文档在 Haiku 4.5 上根本不会缓存；应检查 `usage.cache_read_input_tokens`，而不是想当然。
+- **退役的模型 ID。** 带日期的模型 ID 会退役：`claude-sonnet-4-20250514` 于 2026 年 6 月 15 日退出 Claude API，导致硬编码它的流水线失效。应把模型 ID 放在配置中，并随每条生成的上下文字符串一同保存。
 
 ### 3 模式：上下文块头（轻量替代方案）
 
@@ -326,7 +333,7 @@ def add_chunk_headers(
 ) -> str:
     """
     Prepend document and section metadata to the chunk.
-    No LLM call required -- purely structural.
+    No LLM call required: purely structural.
     """
     header_parts = [f"Document: {document_title}"]
 
@@ -358,9 +365,9 @@ contextualized = add_chunk_headers(
 
 | 因素 | 块头（CCH） | LLM 上下文化 |
 |--------|--------------------|-----------------------|
-| **成本** | 免费（无 LLM 调用） | 每 1-5 个 1M token 收费 $ |
+| **成本** | 免费（无 LLM 调用） | 使用缓存时，每 100 万文档 token 约 $0.50（GPT-6 Luna）至 $5（Claude Haiku 4.5） |
 | **质量** | 适合结构化文档 | 适用于所有文档，效果极佳 |
-| **速度** | 即时 | 每个块 50-200ms |
+| **速度** | 即时 | 每次调用 0.5-2 秒；吞吐量来自并发 |
 | **最适合** | Markdown、HTML、带清晰标题的 PDF | 非结构化文本、法律、医疗 |
 
 ---
@@ -369,15 +376,19 @@ contextualized = add_chunk_headers(
 
 ### 上下文化成本
 
-对于一个包含 10,000 个块的知识库（平均每块 400 个 token）：
+对于一个包含 10,000 个分块（每块 400 token）、来自 500 份文档（每份 8,000 token）的知识库，假设文档已缓存、每次调用另有约 500 个未缓存的提示 token 和 75 个输出 token，按 2026 年 10 月 1 日的标价估算：
 
-| 模型 | 每块成本 | 总成本 | 质量 |
-|-------|---------------|------------|---------|
-| Claude Haiku（快速、低成本） | ~0.0003$ | ~3$ | 良好 |
-| Claude Sonnet（均衡） | ~0.002$ | ~20$ | 很好 |
-| Claude Opus（最高质量） | ~0.01$ | ~100$ | 极佳 |
+| 选项 | 每 100 万 token 价格（输入 / 缓存读取 / 输出） | 每块成本 | 总成本 | 备注 |
+|--------|--------------------------------------|----------------|------------|-------|
+| **GPT-6 Luna** | $0.10 / $0.01 / $0.50 | ~$0.0002 | ~$2 | OpenAI 自动缓存；缓存写入按 1.25 倍计费，固定有效期为 30 分钟 |
+| **Claude Haiku 4.5** | $1 / $0.10 / $5 | ~$0.002 | ~$21 | 默认不启用思考；可缓存前缀至少需要 4,096 token |
+| **Claude Sonnet 5.5** | $2 / $0.20 / $10 | ~$0.004 | ~$43 + 思考费用 | 默认启用思考；此任务可传入 `thinking: {type: "between_tools"}` 或使用低 effort |
+| **Claude Opus 5.5** | $4 / $0.20 / $20 | ~$0.007 | ~$70 + 思考费用 | 无法关闭思考；对这项任务而言过于昂贵 |
+| **voyage-context-4**（无需 LLM 调用） | 嵌入 $0.12 | ~$0.00005 | ~$0.50 | 替代嵌入步骤；只改善稠密检索（见下文） |
 
-**最佳实践**：使用 Haiku（或其他快速、低成本模型）进行上下文化。上下文字符串简短且事实性强，因此不需要前沿模型。结合提示缓存，可使重复传入的文档正文成本降低约 90%。
+**最佳实践**：使用小模型做上下文化。上下文字符串简短且事实性强，前沿模型只会增加成本；在最新 Claude 模型上还会增加思考 token（默认启用，且 Opus 5.5 无法关闭），却没有可测量的质量提升。结合提示缓存；可以等待的回填任务则通过 Batch API 运行（Anthropic 和 OpenAI 均按标价的 50% 计费）。
+
+Haiku 4.5 仍是唯一的 Haiku；截至 2026 年 10 月 1 日，虽已预告 Haiku 5.5 将在“未来几周”推出，但尚未发布。Haiku 4.5 将于 2026 年 11 月 15 日在 Microsoft Foundry 退役。在 Claude API 上，它尚无弃用通知，Anthropic 会至少提前 60 天通知。应把上下文化模型视为可替换依赖。
 
 ### 何时使用上下文检索
 
@@ -400,8 +411,9 @@ contextualized = add_chunk_headers(
 |----------|-------------|----------------------|------|------------|
 | **朴素分块** | 固定大小切分，直接嵌入原始文本 | 基线 | 无 | 低 |
 | **块头（CCH）** | 预置文档/章节标题 | 10-20% | 无 | 低 |
-| **上下文检索** | 为每个块生成 LLM 上下文 | 35-49% | 每 1 万块 $3-20 | 中 |
-| **上下文 + 重排序** | 上述方案 + 交叉编码器重排 | 67% | 每 1 万块 $5-30 | 中高 |
+| **上下文检索** | 为每个块生成 LLM 上下文 | 35-49% | 每 1 万块约 $2-45（小到中型模型） | 中 |
+| **上下文 + 重排序** | 上述方案 + 交叉编码器重排 | 67% | 在上述成本外另付每次查询的重排费用 | 中高 |
+| **上下文分块嵌入** | 嵌入模型读取整篇文档，为每块生成一个向量 | 仅稠密检索；未在 Anthropic 的基准上测量 | 每 1 万块约 $0.50 | 低 |
 | **HyDE** | 在查询时生成假设文档 | 20-40% | 按查询计费的 LLM 成本 | 中 |
 | **父子分块** | 嵌入子块，检索父块 | 15-30% | 无 | 中 |
 
@@ -421,6 +433,23 @@ Late Chunking:
 ```
 
 Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全避免 LLM 调用。它通过嵌入模型的注意力机制来保留上下文，而不是显式地在文本前拼接内容。其权衡在于，Late Chunking 不能帮助 BM25 检索，只能改善稠密检索。
+
+### 上下文分块嵌入模型
+
+同样的思路如今也以托管嵌入 API 的形式提供。与使用 Claude 做上下文化相比，上表中的摄取成本可降低一到两个数量级：
+
+- **voyage-context-4**（Voyage AI，2026 年 6 月 29 日正式发布）：为每个分块生成包含整篇文档上下文的向量，内置自动分块（`enable_auto_chunking=True`）、原生重叠分块，并能透明地处理超出其 32K token 窗口的文档。价格为每 100 万 token $0.12，低于 voyage-context-3 的 $0.18。Voyage 报告称，在 39 个数据集上，相比 context-3，分块级提升 2.08%，文档级提升 1.4%（厂商报告）。MongoDB Atlas 也提供此模型。
+- **pplx-embed-v2-context-9b-preview**（Perplexity，Hugging Face，2026 年 9 月 25 日）：联合编码文档的各个分块，输出 2,048 维向量（通过 Matryoshka 可缩至 1,024 维），原生支持 int8，并分别提供 `encode_queries` 和 `encode` 路径。它明确处于预览阶段，生成的嵌入不可与后续版本混用，因此应把它当作评估候选，而非生产索引。
+
+| | LLM 上下文化 | 上下文分块嵌入 |
+|---|---|---|
+| **摄取成本（1 万块）** | 约 $2-45，另加嵌入费用 | 约 $0.50，替代原有嵌入 |
+| **是否帮助 BM25** | 是（上下文文本被索引） | 否 |
+| **可调试性** | 是，可以读取上下文字符串 | 否，上下文只存在于向量中 |
+| **厂商锁定** | 更换嵌入模型后，上下文字符串仍可使用 | 索引绑定一个厂商模型；切换时须重新嵌入 |
+| **文档编辑** | 对改动的分块重新做上下文化 | 重新嵌入整篇文档 |
+
+**2026 年的一种合理默认方案**：稠密检索侧使用上下文分块嵌入，BM25 侧使用确定性的分块头；只有在两者仍然遗漏的文档类别上使用 LLM 上下文化，并先在黄金测试集上衡量收益。
 
 ---
 
@@ -461,7 +490,8 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 │                           │                                         │
 │                      Top 25 chunks                                  │
 │                           │                                         │
-│                      Reranker (Cohere, Cross-Encoder)               │
+│                      Reranker (Cohere Rerank 4, Voyage rerank-3,    │
+│                      or a self-hosted cross-encoder)                │
 │                           │                                         │
 │                      Top 5 chunks                                   │
 │                           │                                         │
@@ -476,9 +506,10 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 |---------|----------|
 | **摄取吞吐量** | 使用异步 worker 并行化 LLM 调用（并发 50-100） |
 | **文档更新** | 仅重新上下文化变更的块；将原始文本与上下文分开存储 |
-| **规模成本** | 使用 Haiku + 提示缓存；按大小批处理文档 |
+| **规模成本** | 小模型 + 提示缓存，同一文档的分块集中调度；回填用 Batch API；或使用上下文嵌入模型 |
 | **质量监控** | 抽样 1% 的块并进行人工评估上下文质量 |
 | **索引一致性** | 对每个文档原子更新向量数据库 + BM25 索引 |
+| **模型更迭** | 随每条上下文字符串保存上下文化模型 ID 和提示版本。模型退役后，已有字符串仍有效；在同一索引中混用不同风格前，先抽样检查继任模型的输出 |
 
 ---
 
@@ -496,10 +527,11 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 ### 问：一个包含 50,000 份文档的知识库需要上下文检索。你如何管理摄取成本？
 
 **强答案：**
-三种策略：
-1. **模型选择**：使用小型、快速模型（如 Claude Haiku 级别）进行上下文化。输出是简短的事实性文本，不是创意写作 -- 前沿模型只会增加成本而不会带来质量提升。
-2. **提示缓存**：在所有块的上下文化调用之间缓存完整文档文本。对于一个 10,000 token 的文档、30 个块，这可以将输入 token 成本大约降低 90%。
+四种策略：
+1. **模型选择**：使用小型、快速模型（如 Claude Haiku 4.5 或 GPT-6 Luna）进行上下文化。输出是简短的事实性文本，不是创意写作。前沿模型只会增加成本而不会带来质量提升；最新 Claude Opus 和 Sonnet 模型还会产生无法完全关闭的思考 token。
+2. **提示缓存**：在所有块的上下文化调用之间缓存完整文档文本，并集中调度同一文档的分块，使调用落在缓存有效期内。对于一个 10,000 token 的文档、30 个分块，这可将文档输入成本降低约 85%。
 3. **分层策略**：不是每份文档都需要 LLM 上下文化。对于结构良好的文档（如 Markdown、带标题的 HTML），使用确定性的上下文块头（前置文档标题 + 章节层级），这是免费的。将 LLM 上下文化留给非结构化或含糊的文档。
+4. **把上下文交给嵌入模型**：voyage-context-4 等上下文分块嵌入模型（每 100 万 token $0.12）无需逐块调用 LLM，即可生成感知文档上下文的分块向量。对于约 50,000 篇、每篇 8,000 token 的文档（共 4 亿 token），成本约 $50，而使用 Haiku 4.5 和缓存约需 $2,000。但它只帮助稠密检索，因此我会为 BM25 配上分块头，并在黄金测试集中仍有遗漏的文档上保留 LLM 上下文化。
 
 ### 问：上下文检索与 HyDE 在提升检索质量方面有何不同？
 
@@ -512,6 +544,8 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 - Anthropic. “Contextual Retrieval”（2024 年 9 月）
 - Jina AI. “Late Chunking: Contextual Chunk Embeddings Using Long-Context Embedding Models”（2024）
 - Voyage AI. “voyage-context-3: Contextualized Chunk Embeddings”（2025）
+- Voyage AI. “voyage-context-4”（2026 年 6 月）
+- Perplexity. “pplx-embed-v2-context-9b-preview”模型卡（Hugging Face，2026 年 9 月）
 - NirDiamant. “RAG Techniques: Contextual Chunk Headers”（GitHub，2024）
 
 ---

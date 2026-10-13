@@ -1,12 +1,12 @@
 # 案例研究：面向客户的蒸馏（Customer-Specific Distillation）流水线
 
-一个 Series-B AI 产品通过在 6 个月的生产轨迹（production traces）上蒸馏一个 7B 学生模型（student model），将 frontier model 的月度支出从 50K 美元降到 4 到 6K 美元，回本周期为 3 个月，重蒸馏（re-distillation）周期为 4 到 6 个月。
+一个 Series-B AI 产品通过在 6 个月的生产轨迹（production traces）上蒸馏一个 8B 学生模型（student model），将 frontier model 的月度支出从 50K 美元降到 4 到 6K 美元，回本周期不到 3 个月，重蒸馏（re-distillation）周期为 4 到 6 个月。
 
 ## 业务问题
 
 一个规模化 AI 产品（每月约 800 万次用户请求）运行在 frontier model 上。到 2026 年初，成本线已突破每月 50K 美元，季度环比增长 18%，财务要求给出方案。团队有一个明确判断：大约 90% 的生产流量落在少量重复出现的任务模式中（意图分类、结构化抽取、文档摘要、三类分流）。对这些任务而言，frontier model 过于昂贵；一个在 frontier 输出上微调的小得多的模型，可以用远低得多的成本提供服务。
 
-2026 年 5 月的现实约束如下：
+约束条件如下：
 
 - 每月 50K 美元的 frontier-model 支出，且仍在增长
 - 延迟预算：高流量任务的 p95 低于 350 ms
@@ -14,7 +14,7 @@
 - 合规：客户数据不能离开特定云区域
 - 人力：1 名 ML 工程师，加兼职平台支持
 
-蒸馏模式已经成熟：DistilBERT（[Sanh et al., 2019](https://arxiv.org/abs/1910.01108)）、TinyBERT、Alpaca-style instruction distillation（[Taori et al., 2023](https://github.com/tatsu-lab/stanford_alpaca)）以及较新的 chain-of-thought distillation（[Hsieh et al., 2023](https://arxiv.org/abs/2305.02301)）都表明，7 到 13B 的 student 可以在聚焦任务上恢复 teacher 性能的 92% 到 98%。Frontier-lab 的 FDE 团队（Anthropic Field Engineering、OpenAI Solutions）已经在公开会议中讲过这套预算模型；下文数字与这些团队向客户说明的口径一致。
+蒸馏模式已经成熟：DistilBERT（[Sanh et al., 2019](https://arxiv.org/abs/1910.01108)）、TinyBERT、Alpaca-style instruction distillation（[Taori et al., 2023](https://github.com/tatsu-lab/stanford_alpaca)）以及较新的 chain-of-thought distillation（[Hsieh et al., 2023](https://arxiv.org/abs/2305.02301)）都表明，7 到 13B 的 student 可以在聚焦任务上恢复 teacher 性能的 92% 到 98%。下文的预算数字仅供示例；实际使用时应按自身流量和现行价格重新计算，因为两者在 2026 年都大幅变化（见关键设计决策 7）。
 
 ## 架构
 
@@ -50,12 +50,12 @@ flowchart LR
 
 | Layer | Tech | Purpose |
 |-------|------|---------|
-| Teacher | Frontier model (Claude Opus 4.7 or equivalent) | 标签来源 |
-| Student | Llama 4 7B int4 or Qwen 3.6 7B | 生产服务 |
+| Teacher | Frontier model（Claude Opus 5.5 或同级模型），通过半价 Batch API 标注 | 标签来源 |
+| Student | IBM Granite 4.2 8B 或 Llama 3.1 8B，int4 | 生产服务；Apache 2.0 或 Llama 许可证，在我们的规模下没有商业门槛 |
 | Trace store | S3 plus Langfuse | 采样与回放 |
 | Trainer | DeepSpeed plus FSDP on 8x H100 | 一周训练运行 |
 | Eval | Per-task golden set, on-call paged on regression | 质量门禁 |
-| Serving | vLLM with FP8 | 350 ms p95 |
+| Serving | vLLM 0.30+（安全版本下限），int4 权重，FP8 KV 缓存 | 350 ms p95 |
 
 ### 数据流
 
@@ -63,14 +63,16 @@ flowchart LR
 2. 采样器按任务类别进行分层采样，并通过重平衡确保稀有类别得到代表。
 3. 教师模型（frontier model）为每个样本生成目标输出；如果任务受益于推理蒸馏，则通常还会带上 chain-of-thought 推理轨迹。
 4. 5% 的人工抽检由领域专家完成，用于发现教师错误；我们进行拒绝采样，只保留人类评审与教师一致的样本对。
-5. 学生模型在 8x H100 上微调约 1 周（约 22K 美元计算成本），产出一个 7B 模型。
+5. 学生模型在 8x H100 上微调约 1 周（约 4K 至 5.4K 美元计算成本：1,344 个 H100 小时，每 GPU 小时 $2.77 至 $3.99），产出一个 8B 模型。
 6. 模型通过按任务评测后，在生产环境中以 shadow 方式运行 2 周，然后逐步上线：5%、20%、50%、90%，历时 3 周，并通过实时质量指标驱动自动回滚。
 
 ## 关键设计决策
 
 ### 1. 只用真实生产追踪蒸馏，不用合成数据
 
-常见诱惑是用 LLM 生成合成 prompt，再交给教师标注。我们试过；它会产出在合成 prompt 上表现优异、但在真实流量上退化 4 到 7 个点的模型。生产追踪数据捕捉了分布偏移、异常情况和长尾案例，这些才是关键。我们收集 6 个月追踪数据，按任务类别分层采样，并使用真实 prompt 作为蒸馏来源。这与 frontier labs 的 FDE 团队所建议的实践一致。
+常见诱惑是用 LLM 生成合成 prompt，再交给教师标注。我们试过；它会产出在合成 prompt 上表现优异、但在真实流量上退化 4 到 7 个点的模型。生产追踪数据捕捉了分布偏移、异常情况和长尾案例，这些才是关键。我们收集 6 个月追踪数据，按任务类别分层采样，并使用真实 prompt 作为蒸馏来源。
+
+开始前先阅读教师模型的条款。前沿模型厂商的商业条款限制使用其输出来构建竞争模型，因此要取得书面确认：用于自身产品、面向特定任务的学生模型是否在允许范围内；还要记录标注每个样本对的教师模型及版本。
 
 ### 2. 结合人工抽检做 reject-sample
 
@@ -98,7 +100,7 @@ flowchart LR
 
 ### 6. 重蒸馏节奏
 
-世界在变化。新产品特性会改变任务分布；用户会学会新的行为；教师本身也会随着新模型发布而改进。我们每 4 到 6 个月重蒸馏一次。流水线有一部分是自动化的：追踪采样、教师标注和训练都已脚本化；人工抽检和评测复核仍然需要人来做。每次重蒸馏的成本约 26K 美元全包（22K 计算、1,800 标注，再加其他开销），耗时 4 到 6 周。
+世界在变化。新产品特性会改变任务分布；用户会学会新的行为；教师本身也会随着新模型发布而改进。我们每 4 到 6 个月重蒸馏一次，但前提是训练路径始终可用。我们在自己的账户中微调开放权重，而非依赖厂商托管微调：OpenAI 正逐步关闭微调平台（从未使用过微调的组织不能再创建任务，现有客户则会在 2027 年 1 月 6 日失去创建新任务的能力）；无法再训练的学生模型会在下次分布漂移时成为负担。流水线有一部分是自动化的：追踪采样、教师标注和训练都已脚本化；人工抽检和评测复核仍然需要人来做。每次重蒸馏的成本约 9K 美元全包（约 5K 计算、1,800 标注，再加其他开销），耗时 4 到 6 周。
 
 ### 7. 什么时候蒸馏不适合
 
@@ -108,12 +110,13 @@ flowchart LR
 - 任务高度多变。若每个请求都独一无二，学生就学不到有用分布。
 - 教师本身不稳定或快速演进。针对移动目标反复重蒸馏是在浪费精力。
 - 质量门槛极严（要求超过 99% fidelity）。蒸馏损失是真实存在的；若无法容忍，就继续用教师。
+- 小型托管模型已经通过你的黄金集。托管价格在 2026 年大幅下降：GPT-6 Luna 上线价为每 100 万输入/输出 token $0.10/$0.50，比 Claude Opus 5.5 的 $4/$20 低 40 倍；中档模型价格则收敛在 $2/$10。对于高吞吐分类和抽取任务，采用良好提示词并路由到小型托管模型，成本可能低于学生模型每月 $9K 的运行费用，而且完全不需要训练流水线。只有小型托管模型未通过黄金集、延迟或数据驻留要求排除它们，或流量规模使自托管更便宜时，才进行蒸馏。
 
 我们用一个快速筛选启发式：至少 60% 的流量落在 5 个或更少的任务模式里，且这些任务的月支出超过 20K 美元。若两者都不满足，就不做蒸馏。
 
 ### 8. 量化选择
 
-我们把 7B 学生以 int4 提供服务（通过 vLLM 的 GPTQ，KV cache 采用 FP8）。与 FP16 相比，int4 将内存占用大约降低 4 倍，并在 H100 上将吞吐提升约 2.3 倍。我们测得综合指标下降 0.4 个点，远在可接受范围内。我们也考虑过 int8（精度损失更小、速度提升更小）和 FP8（生态成熟度更弱）；按每请求成本来看，int4 胜出。
+我们把 8B 学生以 int4 提供服务（通过 vLLM 的 GPTQ，KV cache 采用 FP8）。与 FP16 相比，int4 将内存占用大约降低 4 倍，并在 H100 上将吞吐提升约 2.3 倍。我们测得综合指标下降 0.4 个点，远在可接受范围内。我们也考虑过 int8（精度损失更小、速度提升更小）和 FP8 权重（在 H100 上几乎无损且支持成熟，但内存节省仅为 int4 的一半）；按每请求成本来看，int4 胜出。
 
 ### 9. 训练数据隐私考虑
 
@@ -126,20 +129,20 @@ flowchart LR
 | Trace collection (6 months) | 已作为 observability spend 的一部分付过 |
 | Teacher labeling (about 800K pairs) | 一次性 42K 美元 |
 | Human spot-check | 一次性 8K 美元 |
-| Compute (8x H100 for 1 week, plus retries) | 一次性 32K 美元 |
+| Compute (8x H100 for 1 week, plus retries) | 一次性约 8K 美元 |
 | Eval set curation | 一次性 14K 美元 |
 | Platform engineering (overhead) | 一次性 24K 美元 |
-| **Total upfront** | **120K 美元** |
+| **Total upfront** | **96K 美元** |
 
 | Monthly run-rate | Before | After |
 |------------------|--------|-------|
 | Frontier model (10 percent of traffic, plus re-distillation harness) | $50K | $5K |
-| Student model serving (vLLM on dedicated H100s) | $0 | $1,200 |
-| **Monthly total** | **$50K** | **$6.2K** |
+| Student model serving (vLLM 使用两张专用 H100，其中一张用于冗余；按 10 月 1 日每 GPU 小时 $2.77 的指数价，每张每月约 $2,000) | $0 | 约 $4K |
+| **Monthly total** | **$50K** | **$9K** |
 
-每月节省：大约 44K 美元。回本：120K / 44K，约 2.7 个月。财务上我们把它表述为“3 个月回本”。
+每月节省：大约 41K 美元。回本：96K / 41K，约 2.3 个月。财务上我们把它表述为“不到 3 个月回本”。
 
-平均每 5 个月一次的重蒸馏成本为 26K 美元，我们把它摊销到同一条节省项里。年净节省：约 470K 美元。
+平均每 5 个月一次的重蒸馏成本约 9K 美元，我们把它摊销到同一条节省项里。年净节省：约 470K 美元。
 
 ## 蒸馏流水线
 
@@ -210,7 +213,7 @@ eval set 和 shadow traffic 都看起来没问题，但 5% 实时流量暴露了
 
 ### 成本模型
 
-月度稳态：6.2K 美元服务成本，加上摊销后的重蒸馏成本（每月 5.2K 美元）。与仅用教师模型每月 50K 美元相比，完全摊销后每月可节省约 38K 美元。年化：净节省约 456K 美元。
+月度稳态：9K 美元运行费用，加上摊销后的重蒸馏成本（每月 1.8K 美元）。与仅用教师模型每月 50K 美元相比，完全摊销后每月可节省约 39K 美元。年化：净节省约 470K 美元。
 
 ### 值班手册
 
@@ -249,12 +252,10 @@ eval set 和 shadow traffic 都看起来没问题，但 5% 实时流量暴露了
 - Taori 等人, [Stanford Alpaca: 一个指令跟随（instruction-following）的 LLaMA 模型](https://github.com/tatsu-lab/stanford_alpaca)
 - Hsieh 等人, [Distilling Step-by-Step（逐步蒸馏）](https://arxiv.org/abs/2305.02301)
 - Jiao 等人, [TinyBERT: 用于自然语言理解的 BERT 蒸馏](https://arxiv.org/abs/1909.10351)
-- Anthropic, [关于蒸馏模式](https://www.anthropic.com/research)
-- OpenAI, [平台中的蒸馏](https://platform.openai.com/docs/guides/distillation)
-- [vLLM FP8 推理](https://docs.vllm.ai/en/latest/quantization/fp8.html)
-- [Langfuse 跟踪采样](https://langfuse.com/docs/observability/sampling)
+- OpenAI, [从更大模型蒸馏](https://developers.openai.com/api/docs/guides/supervised-fine-tuning#distilling-from-a-larger-model)（依赖正逐步关闭的 OpenAI 微调服务）
+- [vLLM FP8 W8A8](https://docs.vllm.ai/en/latest/features/quantization/llm_compressor/fp8/) 与 [量化 KV 缓存](https://docs.vllm.ai/en/latest/features/quantization/quantized_kvcache/)
+- [Langfuse 跟踪采样](https://langfuse.com/docs/observability/features/sampling)
 - Hamel Husain, [快速改进 AI 产品的实战指南](https://hamel.dev/blog/posts/field-guide/)
 - [用于训练的 DeepSpeed](https://www.deepspeed.ai/training/)
-- [Together AI 蒸馏案例研究](https://www.together.ai/blog/distillation)
 
 相关章节: [Fine-Tuning and Distillation（微调与蒸馏）](../03-training-and-adaptation/05-knowledge-distillation.md), [Inference Optimization（推理优化）](../04-inference-optimization/01-inference-fundamentals.md), [Cost Management（成本管理）](../04-inference-optimization/07-cost-optimization-playbook.md).

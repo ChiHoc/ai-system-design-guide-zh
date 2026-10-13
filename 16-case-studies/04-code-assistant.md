@@ -214,39 +214,47 @@ flowchart TD
 
 ## 代码生成流水线
 
-### 补全服务（12 月 2025）
+### 补全服务
+
+推理模型不适合逐次按键的补全：仅思考 token 就会耗尽 200ms 预算。行内补全改用自行托管的小型中间填充（FIM）模型，也满足“代码不离开客户基础设施”的选项。
 
 ```python
-class DeepCompletion:
+class InlineCompletion:
     """
-    Sub-150ms latency using o4-mini with speculative decoding.
+    Sub-200ms FIM completions from a small self-hosted model inside the
+    customer VPC. Served by vLLM (pin >= 0.30.0) with speculative decoding
+    set at server start, e.g.
+    vllm serve <checkpoint> --speculative-config '{"method": "eagle3", ...}'
     """
-    def __init__(self):
-        self.model = "o4-mini"  # Native code-optimized mini
-        self.draft_model = "nano-code-1b" # Local on-device model
-    
-    async def complete(self, context: str) -> str:
-        # Speculative decoding: 1B model drafts, o4-mini verifies
-        return await self.openai.generate(
+    def __init__(self, client):
+        self.client = client   # OpenAI-compatible client for the in-VPC server
+        self.model = "fim-8b"  # your FIM-tuned checkpoint of an Apache 2.0 base
+
+    async def complete(self, prefix: str, suffix: str) -> str:
+        resp = await self.client.completions.create(
             model=self.model,
-            draft_model=self.draft_model,
-            prompt=context,
-            max_tokens=64
+            prompt=self.build_fim_prompt(prefix, suffix),  # sentinel tokens are model-specific
+            max_tokens=64,
+            temperature=0.0,
+            stop=["\n\n"],
         )
+        return resp.choices[0].text
 ```
 
-### 生成服务（“Claude Code” 时代）
+**基础模型与许可证。** 候选包括 IBM Granite 4.2（3B 和 8B 稠密模型，Apache 2.0）等宽松许可的小模型；如果延迟预算允许，也可选 Qwen3.8-27B（Apache 2.0）。基准测试前先读许可证：Qwen3.8-Flash-Next 采用 Qwen Community License 1.0，无论营收多少，代码助手业务都需单独取得许可，而本产品正属此类。推理服务方面，推测解码已不止 Medusa：vLLM 支持 EAGLE-3、MTP、草稿模型和 DFlash；Inco AI 报告 DFlash 2 在 Qwen3.8-27B 上提速 2.7 至 3.4 倍（供应商报告数据）。
+
+### 生成服务（代理式重构）
 
 ```python
 class AgenticGeneration:
     """
-    Using Claude Sonnet 4.6 (Hybrid) for autonomous refactoring.
+    Claude Sonnet 5.5 for multi-file refactors, run as a tool-using agent.
     """
     async def refactor_module(self, folder_path: str):
-        # Claude Sonnet 4.6 with 'Thinking' enabled for architecture consistency
-        agent = ClaudeCodeAgent(
-            model="claude-3-7-sonnet",
-            tools=["ls", "read_file", "write_file", "test_runner"]
+        agent = CodingAgent(
+            model="claude-sonnet-5-5",
+            effort="medium",  # start here and sweep; thinking: disabled returns 400
+            tools=["ls", "read_file", "write_file", "test_runner"],
         )
         
         # Agent explores codebase, understands dependencies, and applies fix
@@ -254,7 +262,15 @@ class AgenticGeneration:
 ```
 
 > [!TIP]
-> **生产选择：** 虽然 Claude Opus 4.7 是个编程猛兽，但 **Claude Sonnet 4.6** 在 12 月 2025 的 IDE 生产场景中是首选，因为它具备 **混合推理**：开发者可以为疑难 bug 切换“Thinking（思考）”，为样板代码切换“Fast（快速）”。
+> **生产选择（2026 年 10 月）。** Claude Sonnet 5.5（$2 / $10）是 IDE 内代理式工作的默认选择。Anthropic 报告 Terminal-Bench 4.0 上 Sonnet 5.5 为 70.6%，Opus 5.5（xhigh effort）为 66.4%；两者均为供应商报告数据，也都未登上 tbench.ai 排行榜。该榜单 2026 年 9 月 21 日更新时最高为 58.18%（GPT-6 Astra，max effort）。2025 年的“切换思考模式”做法已不适用：Sonnet 5.5 上 `thinking: {type: "disabled"}` 会返回 400，因此要调整的是 effort，而 `between_tools` 是最低思考设置。应按任务而非按 token 评估性价比：DeepSWE v1.1 上 GPT-6 Astra（xhigh）、Gemini 3.8 Flash（high）和 Claude Opus 5（max）的 pass@1 均为 74%，每任务成本分别为 $4.43、$2.36 和 $11.84。
+
+### 模型供应商策略
+
+企业买家如今会问助手背后的模型归谁所有，模型供应商也会问助手归谁所有。Cursor 于 2026 年 8 月 14 日宣布加入 SpaceX（据报道为约 600 亿美元的股票交易），此后 Cursor 博客出现了 Grok 模型发布消息。两周后的 8 月 28 日，OpenAI 告知 SpaceX 将逐步终止向 Cursor 提供 OpenAI 模型的合同，拟于 2026 年 11 月 12 日停止供应，并在此前不向 Cursor 提供未来模型；这也排除了 GPT-6 Astra（9 月 3 日发布，OpenAI 在通知中点名了 Astra）。所有权变化使一家领先代码产品可能在约 11 周通知期内失去整个前沿模型系列。因此，**模型中立成为产品要求**，且要从两个方向落实：
+
+- 所有模型调用经由带租户级模型允许清单的网关路由，让企业无需改代码即可排除供应商，失去供应商时也只需改路由，而非重写系统。评估套件至少要能对两个模型系列运行，以便被迫切换时有已测量的质量基线。同一网关还服务于要求代码留在 VPC 的租户：将其生成与重构流量发往租户自己的 Bedrock、Google Cloud 或 Foundry 账户，或自托管开放权重模型，绝不发往供应商公共端点。
+- 按租户跟踪各供应商的数据使用和保留条款。允许供应商使用流量的折扣端点（例如 Meta Muse Spark 1.3 的贡献者档 $0.10 / $0.20）必须由租户主动选择。
+- 预期客户会提出超出 SOC 2 的保障问题。AIUC-1 是一种新兴答案：面向代理的安全、保障与可靠性认证，采用对抗性测试审计，且须至少每季度测试及每年审计才能保持认证（Cursor 于 2026 年 8 月 13 日宣布取得认证）。
 
 ---
 
@@ -464,17 +480,16 @@ class CompletionCache:
 | 安全性（0 高严重级别） | 100% | 99.8% |
 | 接受率 | > 30% | 34% |
 
-### 成本分析（12 月 2025 日）
+### 成本分析（2026 年 10 月）
 
-| 组件 | 每 1M 条建议成本 | 备注 |
-|-----------|------------------------|-------|
-| **补全（o4-mini）** | $0.20 | 针对高吞吐量进行了极致优化 |
-| **代理式任务（Claude Sonnet 4.6）** | $45.00 | 假设 10k token + 思考 |
-| **验证（本地）** | $0.00 | 已转移到设备端 Nano |
-| **基础设施** | $15.00 | 托管 GPU 服务 |
-| **总计（混合）** | **~$12.00** | **相较 2024 降低 90%** |
+| 请求类型 | 假设 | 每 100 万次请求成本 | 备注 |
+|--------------|------------|----------------------|-------|
+| **行内补全，自托管 8B 模型** | 约 2K 输入 / 30 输出；每张 H100 约 15 次补全/秒，满足 200ms SLO | 约 $50 | H100 每 GPU 小时 $2.77（Silicon Data 指数，2026 年 10 月 1 日）。须实测自身吞吐量；按键间的前缀缓存可提高吞吐量 |
+| **通过 API 行内补全（GPT-6 Luna）** | 相同 token 量，每 100 万 token 为 $0.10 / $0.50 | 约 $215 | 自托管池饱和时的溢出路径；不适用于要求代码留在 VPC 的租户 |
+| **多行生成（Claude Sonnet 5.5）** | 8K 输入 / 500 输出，预先关闭思考（`between_tools`）以满足 3 秒预算 | 约 $21,000 | 每请求 $0.021；若思考约 1K token，成本增加约 $0.01，延迟增加数秒 |
+| **代理式重构（Claude Sonnet 5.5）** | 约 750K 输入，90% 缓存命中；约 6K 输出 | 约 $390,000 | 每任务 $0.39；推导见[自主编程代理成本拆解](07-autonomous-coding-agent.md#成本拆解-cost-breakdown) |
 
-*混合成本假设 98% 次补全、2% 次高价值代理式重构。*
+*混合成本（98% 补全、2% 代理式重构）：每 100 万次请求约 $7,850，其中超过 99% 来自代理式任务。补全服务集群的成本几乎可以忽略；代理的提示缓存命中率才决定预算。命中率降至 50% 时，同样的重构任务约需 $1.08，接近三倍。*
 
 ---
 
@@ -487,6 +502,7 @@ class CompletionCache:
 1. **澄清需求**（1 分钟）
    - “补全和生成的目标延迟分别是多少？”
    - “是否需要企业部署和本地部署选项？”
+   - “企业客户是否排除某些模型供应商，或要求特定的数据使用条款？”
    - “需要支持哪些语言？”
 
 2. **识别关键挑战**（1 分钟）
@@ -518,7 +534,9 @@ class CompletionCache:
 
 - GitHub Copilot 架构：https://github.blog/
 - Codestral：https://mistral.ai/news/codestral/
-- CodeLlama：https://ai.meta.com/blog/code-llama/
+- CodeLlama：https://ai.meta.com/blog/code-llama-large-language-model-coding/
+- OpenAI，“SpaceX 收购 Cursor 后我们的决定”（2026 年 8 月 28 日）：https://openai.com/index/our-decision-on-cursor-following-its-acquisition-by-spacex
+- Cursor，“Cursor 现已成为 SpaceX 的一部分”（2026 年 8 月 14 日）：https://cursor.com/blog/joining-spacex
 
 ---
 

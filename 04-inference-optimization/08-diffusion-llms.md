@@ -6,7 +6,7 @@
 
 - [它们如何工作](#它们如何工作)
 - [速度优势与权衡](#速度优势与权衡)
-- [2026 年格局](#_2026-年格局)
+- [2026 年的扩散系统](#_2026-年的扩散系统)
 - [混合方案：先扩散再 AR 校验](#混合方案-先扩散后-ar-验证)
 - [扩散优势所在与 AR 仍然占优的场景](#扩散优势所在与-ar-仍然占优的场景)
 - [成熟度与当前建议](#成熟度与当前建议)
@@ -42,17 +42,19 @@ AR 模型按从左到右分解序列：每个 token 只基于过去信息预测�
 
 ---
 
-## 2026 年格局
+## 2026 年的扩散系统
 
 将版本、速度和价格视为会迅速变化的快照。
 
 | 系统 | 类型 | 备注（reported） |
 |--------|------|------------------|
-| **Mercury / Mercury 2**（Inception Labs） | 闭源、先 code-focused 后 general | 最清晰的生产化方案之一：兼容 OpenAI 的 API 和云市场上架，约 1,000–1,200 token/s，公开定价。被宣传为 fast reasoning model（快速推理模型），但有分析人士质疑其在多步推理上是否成立；建议按你们自己的评测验证。 |
-| **Gemini Diffusion**（Google） | 闭源演示 | 演示速度令人瞩目；截至 2026 年中**无公开 API**。不要围绕它做架构决策。 |
+| **Mercury 2.5**（Inception Labs） | 闭源、通用模型 | 最清晰的生产化方案之一：Inception、Baseten 和 OpenRouter 上提供兼容 OpenAI 的 API。Inception 报告称，它在常见的 NVIDIA GPU 上达到 1,107 token/s，支持 260K 上下文，每 1M token 的输入/输出标价为 $0.20/$0.75（上市推广价 $0.04/$0.15）。其被宣传为快速推理模型，但有分析人士质疑扩散模型的多步推理能力；应在自己的评测上验证。 |
+| **Mercury Voice**（Inception Labs） | 闭源、语音智能体 | 2026 年 9 月 29 日面向企业正式上线：用于语音智能体的扩散推理模型，报告的首个回答 token 中位延迟为 320 ms（p95 为 750 ms），提供三级推理强度、128K 上下文，每 1M token 标价 $0.40/$1.50（上市时优惠 50%）。 |
+| **Gemini Diffusion**（Google） | 闭源演示 | 演示速度令人瞩目；**无公开 API**（截至 2026 年 10 月 1 日不在 Gemini API 模型列表中）。不要围绕它做架构决策。 |
 | **DiffusionGemma**（Google） | 开源权重（open weights） | 一类开源 Gemma 系列扩散模型，据报在单台数据中心 GPU 上可达 1,000+ token/s。请勿与 Gemini Diffusion 混淆。 |
-| **LLaDA / LLaDA 2.0** | 开源权重 | 奠基性的开源模型及其后续 MoE（Mixture of Experts, 专家混合）版本；与同尺寸 AR 模型有竞争力，但非 frontier。 |
+| **LLaDA / LLaDA 2.x** | 开源权重 | 奠基性的开源模型及其后续 MoE（Mixture of Experts, 专家混合）版本；与同尺寸 AR 模型有竞争力，但非 frontier。LLaDA2.2-mini（蚂蚁集团，2026 年 9 月 5 日，Apache 2.0）是 16B/1.4B 激活参数的 MoE，支持 128K 上下文和编辑 token（DELETE、INSERT），既能填补掩码，也能修改文本；厂商报告的 BFCL v4 得分 47.68、tau2-Bench 得分 57.50 表明智能体型扩散模型已经存在，但工具使用仍落后于 AR 模型。 |
 | **Dream 7B** | 开源权重 | 报告显示可匹配或超越同尺寸 AR 模型，具备可调步数（steps）旋钮并在规划任务上表现强（如 Sudoku、Countdown）；已有完全开源的代码变体。 |
+| **DFlash 2**（Inco AI） | 扩散草拟器 | 它不是独立的聊天模型，而是面向 AR 目标模型的块扩散草拟器；在 Qwen3.8-27B 上报告 2.7x 至 3.4x 的吞吐（厂商自报）。2026 年 8 月下旬已合入 SGLang、vLLM 和 llama.cpp。 |
 
 ---
 
@@ -60,11 +62,11 @@ AR 模型按从左到右分解序列：每个 token 只基于过去信息预测�
 
 当前最有生产价值的方向是融合两种范式：
 
-- **扩散作为投机草稿器（speculative drafter）。** 扩散模型并行提出一个 token 块，由 AR 模型进行验证，保持 AR 的目标分布，类似于[speculative decoding](03-speculative-decoding.md)。TiDAR（arXiv:2511.08923）报告其吞吐约为 AR 的约 5 倍，同时缩小质量差距，定位于在延迟敏感场景中优于标准 speculative decoding。
+- **扩散作为推测解码草拟器，已投入使用。**扩散模型并行提出一个 token 块，由 AR 模型进行验证，保持 AR 的目标分布，类似于[推测解码](03-speculative-decoding.md)。TiDAR（arXiv:2511.08923）报告其每秒 token 数约为 AR 的 5 倍，同时缩小质量差距。生产版本已在 2026 年出现：块扩散草拟器（DFlash，arXiv:2602.06036；DFlash 2，8 月 18 日）分别于 8 月 19 日合入 SGLang、8 月 21 日合入 vLLM、8 月 27 日合入 llama.cpp；Ollama 的 MLX 引擎也支持 DFlash。小型开源模型亦开始提供扩散解码适配器，例如 MBZUAI K2 Horizon 0.9B 和 7B 的“Uno”适配器。
 - **块式 / 半 AR 改造。** Fast-dLLM v2（arXiv:2509.26328）将现有 AR 模型（Qwen）改造为块扩散模型，使用块级 KV cache 和置信度感知并行解码，这是一种“从现有 checkpoint（检查点）拿到可缓存、快速扩散解码”的实用方案。
 - **扩散推理的强化学习（RL）。** d1（arXiv:2504.12216）是首个用于掩码扩散 LLM 的 GRPO-style RL（GRPO 风格强化学习）方法（diffu-GRPO），将 masked SFT（掩码监督微调）与高效 RL 阶段结合，在数学和规划基准上持续优于基础扩散模型。
 
-近期最可能的生产路径并非纯扩散，而是这些混合方案，在保留速度的同时补回 KV 缓存和质量。
+近期的生产路径并非纯扩散，而是这些混合方案，在保留速度的同时补回 KV 缓存和质量。其中“草拟器”一半已经成为现实：如果在主流引擎上自托管 AR 模型，现在无需更换模型就能使用扩散。
 
 ---
 
@@ -86,7 +88,7 @@ AR 模型按从左到右分解序列：每个 token 只基于过去信息预测�
 
 1. **不要替换你的 AR frontier model（前沿模型）**用于质量关键、长上下文或 agentic 场景。
 2. **在延迟与吞吐主导、输出短到中等且结构化的任务上先做试点**，如代码补全和 infill、批量转换、结构化抽取。若要低摩擦 A/B 测试，优先使用兼容 OpenAI 的商业扩散 API；若需自托管则选择开源权重模型。
-3. **关注混合方案**，而非单一纯扩散，因为块式/半 AR 加上“扩散草拟 + AR 验证”可能是更现实的生产路径。
+3. **现在就使用混合方案。**为现有 AR 模型配上扩散草拟器（vLLM、SGLang 或 llama.cpp 中的 DFlash 2）是获得扩散速度的低风险方式，因为每个 token 仍由 AR 目标模型决定。应在真实并发条件下测量接受长度和吞吐量。
 4. **按你自己的任务和真实解码设置做基准测试。** 可得质量直接受你解除掩码激进程度影响，而厂商的 token/s 数据通常基于更激进配置。
 5. **对“reasoning diffusion model（推理扩散模型）”的营销持怀疑态度**，必须在自有推理评测上验证。
 
@@ -113,7 +115,8 @@ AR 模型按从左到右分解序列：每个 token 只基于过去信息预测�
 - "Fast-dLLM v2" arXiv:2509.26328
 - Zhao 等人，"d1: Scaling Reasoning in Diffusion LLMs via RL" arXiv:2504.12216
 - "Dream 7B" arXiv:2508.15487
-- Inception Labs，[Mercury](https://www.inceptionlabs.ai/)（commercial diffusion LLM）
+- Inception Labs，[Mercury](https://www.inceptionlabs.ai/)（商业扩散 LLM）及[“Mercury 2.5 介绍”](https://www.inceptionlabs.ai/blog/introducing-mercury-2-5)
+- “DFlash”（块扩散推测解码草拟器）arXiv:2602.06036
 
 ---
 

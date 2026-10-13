@@ -39,11 +39,12 @@
 
 ## 上下文检索（The Anthropic Pattern）
 
-由 Anthropic 于 2024 年末标准化的这一模式解决了 **Context Dilution（上下文稀释）** 问题。
+Anthropic 于 2024 年 9 月发布的这一模式解决了 **Context Dilution（上下文稀释）** 问题。
 
 - **问题**：某个 chunk 可能写着 “It costs $200,”，但没有标题时，我们不知道 “It” 指的是 “Widget-X”。
-- **模式**：在摄取（Ingestion）阶段，对每个 300-token 的 chunk，让 LLM 写一个 50-token 的上下文字符串（例如：“This chunk is about the pricing for Widget-X in the North American market”）。
-- **收益**：对于碎片化数据，检索精度可提高 30-50%。
+- **模式**：在摄取（Ingestion）阶段，对每个 300-token 的 chunk，让 LLM 写一个 50-100 token 的上下文字符串（例如：“This chunk is about the pricing for Widget-X in the North American market”），在嵌入和 BM25 索引之前都将其前置。
+- **收益**：Anthropic 测得，仅上下文嵌入就使 top-20 检索失败减少 35%，加上上下文 BM25 后减少 49%，再加上重排序器则减少 67%。
+- **2026 年替代方案**：上下文化分块嵌入模型（voyage-context-4）无需逐块调用 LLM 即可生成感知文档的分块向量，但仅改善稠密检索。详见[上下文检索](10-contextual-retrieval.md)。
 
 ---
 
@@ -52,17 +53,18 @@
 我们不只是存储原始文档，还会存储“增强后的”元数据（meta-data）。
 - **摘要**：存储文档的一段摘要。
 - **问答生成**：生成这份文档能回答的 5 个问题，并将这些问题与文档一起做 Embedding。
-- **状态**：目前大多数高端 RAG 系统现在嵌入的是**“Questions（问题）”**而不是**“Answers（答案）”**，以匹配用户的查询意图。
+- **状态**：许多高端 RAG 系统会将生成的**“Questions（问题）”**与片段文本一同嵌入，让简短用户问题匹配存储的问题，而不是冗长答案段落。
 
 ---
 
 ## 上下文内重排序
 
-随着 1M-2M 上下文窗口现在已成标准（Claude Sonnet 4.6，Gemini 3.1 Pro），**按上下文排序（Rank-by-Context）**是一种可行模式。
+随着前沿模型的 1M-token 窗口成为标准（Claude Opus 5.5 和 Sonnet 5.5、1.05M 的 GPT-6 系列、Gemini 3.8 Flash），**按上下文排序（Rank-by-Context）**是一种可行模式。
 1. 检索前 100 篇文档。
 2. 将这 100 篇全部放入上下文窗口。
 3. 让模型：“Read these 100 docs and identify the 5 most relevant. Then, use those 5 to answer.”（阅读这 100 篇文档并找出最相关的 5 篇。然后用这 5 篇回答。）
 - **优势**：这利用了模型的**长上下文推理（Long Context Reasoning）**能力，无需单独的 Cross-Encoder（交叉编码器）模型即可执行重排序。
+- **成本检查**：100 篇各 500 token 的文档意味着每查询 50K 输入 token：在 Claude Sonnet 5.5 或 GPT-6 Sol 这类每 1M 输入 $2 的模型上约为 $0.10，而 Voyage rerank-3（每 1M 为 $0.05）处理相同 token 仅约 $0.0025，尚未计入输出 token 就相差 40 倍。仅用于低流量、重推理查询，并使提示词低于长上下文价格跃升阈值（OpenAI 为 272K 输入，xAI 为 200K）。
 
 ---
 
@@ -76,15 +78,17 @@ HyDE 依赖于先“幻觉”出一个基线答案来查找真实数据。如果
 ### Q: 什么是 “Asymmetric Retrieval”（非对称检索）问题？
 
 **标准答案：**
-非对称检索指的是，用户查询通常很短（3-10 个词），而文档块通常很长（300-500 个词）。它们在向量空间中处于不同的统计分布，导致“距离偏差（Distance Bias）”。高性能系统通过 **Asymmetric Encoders（非对称编码器）**（一个模型用于查询，一个模型用于文档）或 **Query Expansion（查询扩展）**（HyDE）来把查询“扩展”成更接近文档的分布。
+非对称检索指的是，用户查询通常很短（3-10 个词），而文档块通常很长（300-500 个词）。它们在向量空间中处于不同的统计分布，导致“距离偏差（Distance Bias）”。高性能系统通过 **Asymmetric Encoders（非对称编码器）**（独立的查询与文档前缀或模型）或 **Query Expansion（查询扩展）**（HyDE）来把查询“扩展”成更接近文档的分布。
+
+这种非对称性如今也是成本杠杆。Voyage 4 和 Cohere Embed 5 提供共享同一空间的模型系列，因此可以用大模型索引文档、用小模型编码查询。Qdrant 的 Constella 研究预览更进一步：固定的 400M 参数 Stella 文档索引搭配 34.5M 查询编码器，保留约 91% 的 BEIR-15 nDCG@10，CPU 延迟降低 12 倍（厂商报告）。高 QPS 下，查询编码位于关键路径，文档编码则不在，因此应将模型预算花在文档侧。
 
 ---
 
 ## 参考文献
 - Gao et al. "Precise Zero-Shot Dense Retrieval without Relevance Labels" (HyDE, 2023/2024)
-- Anthropic. "The Contextual Retrieval Playbook" (2024)
+- [Anthropic. “上下文检索介绍”（2024 年 9 月）](https://www.anthropic.com/news/contextual-retrieval)
 - LlamaIndex. "Query Transformation Cookbook" (2025)
 
 ---
 
-*下一篇: [Agentic Systems](../07-agentic-systems/01-agent-fundamentals.md)*
+*上一篇：[Agentic RAG](08-agentic-rag.md) | 下一篇：[上下文检索](10-contextual-retrieval.md)*

@@ -86,7 +86,7 @@ Backend Engineer
 #### 你的 90 天计划
 
 **第 1 个月：LLM 集成**
-- 学习 OpenAI / Anthropic API（流式处理、函数调用、结构化输出）
+- 学习 OpenAI / Anthropic API（流式处理、函数调用、结构化输出）。OpenAI 应使用 Responses API：Assistants API 已于 2026 年 8 月 26 日停服，跳过基于它的教程
 - 构建一个简单的 RAG 系统：PDF 摄取 → Qdrant → LLM 响应
 - 阅读本仓库：[01-foundations](01-foundations/)、[02-model-landscape](02-model-landscape/)、[05-prompting-and-context](05-prompting-and-context/)
 - 课程：*面向开发者的 ChatGPT 提示词工程*（DeepLearning.AI，免费）
@@ -121,7 +121,7 @@ Backend Engineer
 ```
 Frontend Engineer
       │
-      ├──► AI Product Engineer         (3–6 months — highest demand)
+      ├──► AI Product Engineer         (3–6 months, highest demand)
       ├──► AI UX Engineer              (3–6 months, UX focus)
       └──► Full-Stack LLM Engineer     (6–9 months, add backend LLM skills)
 ```
@@ -178,7 +178,7 @@ Frontend Engineer
 ```
 QA Engineer
       │
-      ├──► AI Eval Engineer            (3–6 months — best fit, fast transition)
+      ├──► AI Eval Engineer            (3–6 months, best fit, fast transition)
       ├──► AI Quality Engineer         (3–6 months)
       └──► Red Team Analyst            (6–9 months, security focus)
 ```
@@ -219,7 +219,7 @@ QA Engineer
 - 将评估器接入 GitHub Actions 工作流——每个 PR 都运行评估
 - 定义质量门禁（忠实度 > 0.85，格式通过率 > 0.99）
 - 创建每周评估报告仪表盘
-- 课程：*Evals for AI*（Maven，Hamel + Shreya——付费，但对职业转型值得）
+- 课程：*AI Evals For Engineers & PMs*（Maven，Hamel + Shreya；付费，但对职业转型值得）
 
 #### 作品集项目创意
 - 面向公共 LLM 应用的开源评估套件
@@ -237,7 +237,7 @@ QA Engineer
 ```
 Product Manager
       │
-      ├──► AI Product Manager           (3–6 months — direct analog)
+      ├──► AI Product Manager           (3–6 months, direct analog)
       ├──► AI Program Manager           (3–6 months, coordination focus)
       └──► Head of AI Product           (9–18 months, leadership path)
 ```
@@ -277,7 +277,7 @@ Product Manager
 - 为你的产品编写一份“AI 质量规范”：定义每个功能的优秀标准
 - 与工程师合作，为这些标准接入评估
 - 为下个季度设定包含 AI 质量门禁的成功指标（不只是用户增长）
-- 课程：*Evals for AI*（Maven，Hamel + Shreya——明确为 PM 设计）
+- 课程：*AI Evals For Engineers & PMs*（Maven，Hamel + Shreya；明确为 PM 设计）
 
 #### 让你作为 AI PM 脱颖而出的技能
 - 你亲自审查过追踪记录（大多数 PM 会委托他人）
@@ -357,15 +357,15 @@ DevOps / Platform Engineer
 | 可观测性技术栈 | LLM 特定指标（token 吞吐量、TTFT） | 🔴 高 |
 | 成本管理 | GPU 成本优化、用于训练的 spot instances（竞价实例） | 🔴 高 |
 | 密钥管理 | 多个 LLM provider（提供商）的 API key 轮换 | 🟡 中 |
-| N/A | 用于自托管模型服务的 vLLM / TGI | 🟡 中 |
+| N/A | 用于自托管模型服务的 vLLM / SGLang（Hugging Face TGI 已进入维护模式） | 🟡 中 |
 | N/A | 模型版本管理和 registry（注册表） | 🟡 中 |
-| N/A | quantization（量化）基础（GPTQ、AWQ、GGUF） | 🟡 中 |
+| N/A | quantization（量化）基础（GPTQ、AWQ、GGUF、FP8、NVFP4） | 🟡 中 |
 | N/A | 基础 prompt engineering（提示词工程），用于理解你正在服务的内容 | 🟢 较低 |
 
 #### 你的 90 天计划
 
 **第 1 个月：LLM 服务**
-- 在本地部署 vLLM，为 Llama 3.3 7B 或 Qwen2.5-Coder 提供服务
+- 部署 vLLM 0.30.0 或之后版本（2026 年 8 月和 9 月超过 20 项安全公告后的当前安全下限，包括模型加载远程代码执行缺陷），服务 IBM Granite 4.2 8B 等小型 Apache-2.0 模型
 - 添加 Prometheus 指标：tokens/sec、延迟 P50/P95/P99、队列深度
 - 基于请求队列设置 auto-scaling（自动扩缩容）
 - 阅读此仓库：[04-inference-optimization](04-inference-optimization/)、[11-infrastructure-and-mlops](11-infrastructure-and-mlops/)
@@ -381,7 +381,7 @@ DevOps / Platform Engineer
 - 在目标流量下比较自托管与 API 成本（使用仓库中的定价指南）
 - 按模型、团队、功能设置成本仪表盘
 - 实现优雅的多 provider（提供商）failover（故障转移）
-- 课程：*ML Engineering for Production (MLOps)*（面向生产的机器学习工程，Coursera，DeepLearning.AI）
+- 课程：*Machine Learning in Production*（生产环境机器学习，Coursera，DeepLearning.AI）
 
 ---
 
@@ -394,7 +394,7 @@ DevOps / Platform Engineer
 ```
 Data Engineer
       │
-      ├──► AI Data Engineer             (2–4 months — fastest transition)
+      ├──► AI Data Engineer             (2–4 months, fastest transition)
       ├──► Embedding Pipeline Engineer  (3–6 months)
       └──► Fine-tuning Data Specialist  (4–8 months)
 ```
@@ -451,7 +451,7 @@ Data Eng        2–4 mo       $165–210K    RAG Data, Fine-tuning Data
 EM              6–12 mo      $200–280K    AI Engineering Manager
 ```
 
-*薪资是基于 Levels.fyi 和 LinkedIn 数据的美国市场估算，2026 年 5 月。范围会因公司、地点和经验水平而显著不同。*
+*薪资是基于 Levels.fyi 和 LinkedIn 数据的美国市场估算，2026 年 5 月。范围会因公司、地点和经验水平而显著不同。较新的参考点是 levels.fyi 于 2026 年 10 月 2 日自报的美国 AI Engineer 薪资中位数 $160K。*
 
 ---
 
@@ -492,9 +492,9 @@ EM              6–12 mo      $200–280K    AI Engineering Manager
 |-----------|-------------|---------------|--------------|
 | **后端** | 面向开发者的 ChatGPT Prompt Engineering（提示工程）（DL.AI，免费） | 构建与评估 RAG（检索增强生成）（DL.AI，免费） | LangGraph 中的 AI Agents（AI 智能体）（DL.AI，免费） |
 | **前端** | 面向开发者的 ChatGPT Prompt Engineering（提示工程）（DL.AI，免费） | 使用 ChatGPT API 构建系统（DL.AI，免费） | 评估与调试 GenAI（生成式 AI）（DL.AI + W&B，免费） |
-| **QA** | 本仓库中的 AI Evals Guide（AI 评估指南）（免费） | LLM Apps（大语言模型应用）的质量与安全（DL.AI，免费） | AI 评估 - Maven（Hamel + Shreya，付费） |
-| **PM** | 面向所有人的 AI（Coursera，免费） | AI 评估指南第 3 章（免费） | AI 评估 - Maven（Hamel + Shreya，付费） |
-| **DevOps** | 高效服务 LLMs（大语言模型）（DL.AI，免费） | 评估与调试 GenAI（生成式 AI）（DL.AI + W&B，免费） | 面向生产的 ML Engineering（机器学习工程）（Coursera） |
+| **QA** | 本仓库中的 AI Evals Guide（AI 评估指南）（免费） | LLM Apps（大语言模型应用）的质量与安全（DL.AI，免费） | AI Evals For Engineers & PMs（Maven，Hamel + Shreya，付费） |
+| **PM** | 面向所有人的 AI（Coursera，免费） | AI 评估指南第 3 章（免费） | AI Evals For Engineers & PMs（Maven，Hamel + Shreya，付费） |
+| **DevOps** | 高效服务 LLMs（大语言模型）（DL.AI，免费） | 评估与调试 GenAI（生成式 AI）（DL.AI + W&B，免费） | Machine Learning in Production（生产环境机器学习，Coursera） |
 | **数据工程** | 构建与评估 RAG（检索增强生成）（DL.AI，免费） | 微调 LLMs（大语言模型）（DL.AI，免费） | 本仓库中的 AI 评估指南（免费） |
 | **EM** | 使用 LLMs（大语言模型）的生成式 AI（Coursera） | LangGraph 中的 AI Agents（AI 智能体）（DL.AI，免费） | CS294 LLM 智能体（伯克利，免费） |
 
@@ -514,9 +514,23 @@ EM              6–12 mo      $200–280K    AI Engineering Manager
 
 5. **假设模型是瓶颈** — 在大多数生产级 AI 系统中，瓶颈是检索质量、提示词设计或数据质量。模型很少是真正的问题。
 
-6. **在生产环境的模型版本字符串中使用 "latest"** — 固定精确版本。无声的模型更新会破坏你的产品。
+6. **在生产环境的模型版本字符串中使用 "latest"。** 固定精确版本，同时固定推理强度。无声的模型更新会破坏你的产品：Claude Opus 5.5 将默认强度从 `high` 改为 `medium`，Codex CLI 和 Claude Code 等编码工具在 2026 年 9 月的普通版本更新中更换了默认模型。
 
 7. **过度智能体化** — 当一次精心设计提示词的调用就能工作时，却从 5 智能体系统开始。先从简单做起，只在需要时增加复杂度。
+
+---
+
+## 2026 年市场：为什么经验是你的优势
+
+自 2022 年起，AI 高暴露工作的入门门槛显著收紧，到 2026 年，证据已来自大规模招聘与行政数据集，而非轶事：
+
+- **Indeed Hiring Lab（2026 年 9 月 17 日）：** AI 暴露最高的职业中，初级岗位在招聘中的占比从 2021 年 29% 降至 2026 年 10%，高级占比从 22% 升至 47%。表面 AI 薪资溢价大部分来自资历结构变化。
+- **US Census Bureau（工作论文 CES-WP-26-56，2026 年 9 月）：** 2022 年末后，以计算机科学为首的 AI 暴露最高专业毕业生初始收入，相对最低暴露专业下降约 13%；作者将影响比作在严重衰退中毕业。
+- **Federal Reserve Bank of Dallas（2026 年 9 月 22 日）：** 专业可自动化任务占比每增加 10 个百分点，毕业一年内在 Texas 就业的概率降低 1.7 个百分点。
+
+这对职业转型者有利。招聘转向已了解生产系统如何失败的人，因此**在当前职级横向转入 AI 岗位，而不是重新从初级开始**：突出已交付系统，在此基础上叠加 AI 专门技能。
+
+2026 年迅速兴起的混合角色是 **Forward Deployed Engineer（FDE，前线部署工程师）**，嵌入客户现场，从用例、集成、评估、安全审查推进到交接。现有两类：前沿实验室 FDE（外部估算 OpenAI 总薪酬约 $350K 至 $550K），以及 BCG X 直接从校园招聘的咨询 FDE（二手报道底薪 $110K 至 $190K，未确认）。Anthropic 于 2026 年 10 月 2 日公布 Claude Frontier Academy，计划在 2027 年底前为客户和合作伙伴培训 10,000 名“Frontier Deployed Engineers”，通过 Anthropic 客户与合作伙伴团队提名。它是认证计划，不是招聘通道，但预计更多职位描述会采用该职称。具备客户沟通经验的后端工程师与解决方案工程师天然适合。完整角色分类见[就业市场趋势](00-interview-prep/06-job-market-trends-2026.md)。
 
 ---
 
@@ -527,14 +541,17 @@ EM              6–12 mo      $200–280K    AI Engineering Manager
 1. **GitHub 作品集**：一个打磨完善的端到端项目胜过 10 个玩具项目
 2. **写一篇博客文章**：描述你解决过的一个真实问题以及解决方式（错误分析、评估流水线、RAG 延迟修复）
 3. **为开源做贡献**：OpenHands、LlamaIndex、DSPy、RAGAS。即使是文档 PR 也能让你被注意到。
-4. **使用本仓库的面试准备材料**：[00-interview-prep/01-question-bank.md](00-interview-prep/01-question-bank.md) 包含 128 道题，并配有高质量答案
+4. **使用本仓库的面试准备材料**：[00-interview-prep/01-question-bank.md](00-interview-prep/01-question-bank.md) 包含 147 道题，并配有高质量答案
+5. **找一次模拟面试或一位导师**：和坐过面试官席位的人一起，职业转型会更快。Om 在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 和 [Topmate](https://topmate.io/ombharatiya) 提供 1:1 AI 系统设计模拟面试与转型指导
 
 **面试中该说什么：**
 - 说出具体决策："我选择 Qdrant 而不是 Pinecone，是因为 X"（不要只说"我构建了一个 RAG 系统"）
 - 引用你遇到过的 failure modes（故障模式）以及你如何修复它们
-- 至少熟记一个 benchmark（基准测试）（SWE-bench、RAGAS 分数、你的服务部署配置的 TTFT）
+- 至少熟记一个 benchmark（基准测试）（Terminal-Bench 4.0 或 SWE-Bench Pro 私有集、RAGAS 分数、你的服务部署配置的 TTFT），并说明产生该数字的推理强度和测试框架
 - 展示你会思考评估和成本，而不只是功能
+
+**每轮面试都应书面核对 AI 工具政策。** 政策存在分化：Meta 有 AI 辅助编码轮，Anthropic 候选人指南除非另有说明，否则禁止现场面试和带回作业使用 AI 辅助；Google 在部分初中级岗位的一轮中试点 Gemini。部分公司也正把终面移回现场。见[AI 工具参与：逐轮核对政策](00-interview-prep/06-job-market-trends-2026.md#面试中的-ai-工具-逐轮确认政策)。
 
 ---
 
-*属于 [AI 系统设计指南](README.md) 的一部分 — 由 [ombharatiya](https://github.com/ombharatiya) 维护*
+*属于 [AI 系统设计指南](README.md) 的一部分，由 [ombharatiya](https://github.com/ombharatiya) 维护*

@@ -33,9 +33,18 @@
 |-------------|------|------------------|
 | 提示词文本 | 中等 | 回归测试 + 质量评估 |
 | 系统提示词 | 高 | 全量评估套件 |
-| 模型版本 | 高 | 全面基准测试（benchmark） |
+| 模型版本（包括被迫迁移） | 高 | 全面基准测试（benchmark）+ API 契约测试 |
 | RAG 索引 | 中等 | 检索 + 质量评估 |
-| 参数（temperature 等） | 低-中 | 质量抽样 |
+| 参数（effort、thinking、最大 token 数） | 中等 | 质量与成本抽样 |
+| 同一模型 ID 下的供应商侧变更 | 中高 | 针对生产模型 ID 的定期评估 |
+| SDK 或框架主版本 | 中等 | 针对实际发出请求的契约测试 |
+| 仓库内的智能体、编辑器或 VCS 配置 | 高 | 安全审查；视为可执行代码 |
+
+2026 年使最后四行变得不可省略。智能体与 VCS 配置在[第 5 阶段](#第-5-阶段-供应链与智能体配置门禁)设置独立门禁；另外三项如下：
+
+- **采样参数正在退出。** Claude API 对 Opus 4.7 及以后模型的非默认采样值已返回 400；Anthropic Python SDK 1.0（2026 年 8 月 20 日）从 Messages 方法中移除了 `temperature`、`top_p` 和 `top_k`（传入即抛出 `TypeError`）。Google 于 7 月 21 日在 Gemini API 中将它们标为弃用，GPT-6 Astra 则拒绝自定义 temperature、`top_p` 和 logprobs。“把 temperature 设为 0 以保证 CI 可复现”已不再适用；推理 effort 成为主要控制项，其默认值也会随版本改变（Claude Opus 5.5 默认 `medium`，Opus 5 默认 `high`）。应断言结构化字段并做语义检查，而非比较完全相同的字符串。
+- **固定 ID 下的模型也可能变化。** OpenAI 于 2026 年 9 月 25 日修复 `gpt-6-sol` 和 `gpt-6-luna` 的图像编码缺陷，但未更改 ID，因此该日期之前的图像评估不再代表这些端点的当前行为。编码智能体 CLI 也会在小版本中更换默认模型（Codex CLI 在 rust-v0.159.1 改用 GPT-6.1 Sol；Claude Code 在 2.1.280 改用 Opus 5.5）。应定期针对生产环境使用的精确 ID 运行评估套件，而不只在自己的提交后运行。
+- **SDK 主版本可能悄然破坏测试工具。** Anthropic SDK 1.0 和 OpenAI SDK 3.0（8 月 12 日）转向 `httpx2`。根据 Anthropic 的迁移指南，除非调用 `httpx2.alias_httpx()`，OpenTelemetry 埋点、`respx` 和 `vcrpy` 可能漏掉调用，使录制响应测试触及真实 API，或在完全没有追踪的情况下依旧通过。
 
 ---
 
@@ -238,6 +247,25 @@ class LLMEvaluationStage:
 
 ---
 
+保持评估工具的可迁移性。托管评估产品同样会更迭：OpenAI Evals 将于 2026 年 10 月 31 日变为只读，11 月 30 日关闭；OpenAI 推荐 Promptfoo（MIT 许可，OpenAI 于 3 月同意收购）。应在仓库中以工具无关的格式保存数据集、评分器和阈值，使门禁在更换供应商后仍然可用。完整门禁示例见[评估门禁 CI/CD 案例研究](../16-case-studies/18-eval-gated-cicd.md)。
+
+### 第 5 阶段：供应链与智能体配置门禁
+
+AI 仓库如今包含容易在普通代码审查中被忽略的可执行配置，攻击者也会有针对性地利用它们：
+
+| 接触面 | 2026 年事件 | 门禁 |
+|---------|---------------|------|
+| 智能体和编辑器自动执行配置（`.claude/settings.json` 钩子、`.vscode/tasks.json` 打开文件夹任务） | Mini Shai-Hulud 截至 4 月 30 日已利用这些钩子；8 月 4 日的 ChainDrop npm 蠕虫在 444 个包、2,212 个版本中重用它们（StepSecurity），窃取 OpenAI、Anthropic、Cursor、Codex 和 Gemini token | 对这些路径实施 CODEOWNERS 审查；新增钩子或自动执行任务时让 CI 失败 |
+| 仓库 `.git/config`（`core.fsmonitor`、`core.hooksPath`、过滤器） | GitSpawn（Manifold，9 月 2 日）：七种 CLI 编码智能体在后台 git 调用中，于沙箱外执行了攻击者命令 | 智能体发起的 git 调用使用 `-c core.fsmonitor=false`；绝不信任从 clone 之外带来的 `.git` 目录 |
+| 以 SHA 固定的智能体插件 | Plugin4Shell（AIR Security，9 月 17 日）：一个名称伪装为固定 SHA 的分支替换了已批准代码；在 Claude Code 2.1.179 和 Codex 0.146.0 修复 | 检出后验证实际文件树与固定版本一致 |
+| 上游静默修复的依赖 | Hacktron（9 月 13 日披露）：7 月末，Claude Opus 5 在约 3 小时内把一个已由上游修复、但没有 CVE 的 libheif 溢出变成可用漏洞；结合 SSO 错误配置，获得 OpenAI 社区论坛的远程代码执行权限 | 上游修复发布后即打补丁，不等待 CVE 公告；定期重建基础镜像 |
+
+如今漏洞利用窗口以小时计。Google 于 2026 年 9 月 8 日以 AI 驱动的补丁量为由，将 Chrome 发布周期从 4 周缩短到 2 周。对 CI 的含义是：依赖和基础镜像的新鲜度要有带 SLA 的门禁；智能体配置应按代码同等审查，因为它就是代码。
+
+应明确决定谁能批准这些路径。2026 年 9 月 1 日，GitHub 以公开预览形式允许 Copilot 代码审查的批准计入必需审查（默认关闭），管理员可指定 Copilot 能批准的文件路径。AI 审查可以是额外门禁，但智能体配置、CI 工作流和依赖清单应排除 AI 批准，并要求人工 CODEOWNER，因为这些正是受注入或被攻破的智能体最想修改的文件。[智能体安全章节](../07-agentic-systems/09-agentic-security-and-sandboxing.md)介绍运行时侧的防护。
+
+---
+
 ## 质量门禁
 
 ### 门禁配置
@@ -357,6 +385,21 @@ class ShadowDeployer:
 
 ---
 
+### 模型迁移也是部署
+
+模型变更如今按供应商的日程到来，而非你的日程。Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役（Anthropic 建议迁至 Sonnet 5.5）；OpenAI 将于 12 月 11 日退役 `gpt-5-2025-08-07` 和 `o3-2025-04-16` 快照；Bedrock 上的 Claude Sonnet 4 则于 10 月 14 日结束服务。Anthropic 提前 60 天通知。OpenAI 对正式发布模型声称提前 6 个月，对专用变体提前 3 个月，对预览模型可能仅提前 2 周；而 `gpt-5.4-cyber` 上线仅 20 天便于 10 月 1 日退役，因此应按短于公告最小值的窗口规划。
+
+最新模型还会改变 API 契约，迁移可能在质量评估开始前就因请求格式失败：
+
+- Claude Fable 5.1、Opus 5.5 和 Sonnet 5.5 对 `tool_choice` 的 `any` 或 `tool` 值返回 400；应使用 `auto` 加严格工具或结构化输出。
+- Opus 5.5 的思考无法关闭；Sonnet 5.5 上的 `thinking: {"type": "disabled"}` 返回 400（最低设置为 `between_tools`）。
+- 思考块绑定模型和对话：其他模型无法读取的块会被静默丢弃；对于 2026 年 8 月 31 日及之后创建的账户，在思考块前编辑历史会返回 400。旧模型录制的对话记录不能直接作为新模型的有效测试。
+- GPT-6 Astra 不支持 temperature、`top_p` 和 logprobs，工具调用需要 Responses API。
+
+应像代码部署一样对待模型升级：在新 ID 上运行完整评估套件，对客户端实际发送的请求做契约测试，使用生产流量进行影子测试，然后以常规回滚触发条件做金丝雀发布。在旧模型退役前保留它作为回滚目标，并将退役日期写入部署日历。
+
+---
+
 ## 回滚流程
 
 ### 自动回滚
@@ -441,10 +484,33 @@ class AutoRollback:
 
 ---
 
+### 问：供应商将在 60 天后退役产品正在使用的模型。如何安全迁移？
+
+**标准答案：**
+
+“我把它当成有硬期限的计划部署，分四步进行。
+
+**1. 先核对契约。** 测质量之前先检查请求仍能成功。最新 Claude 模型（Fable 5.1、Opus 5.5、Sonnet 5.5）拒绝强制 `tool_choice`，Sonnet 5.5 拒绝 `thinking: disabled`，GPT-6 Astra 拒绝 temperature。我对客户端实际发出的请求运行契约测试，并调整请求格式（以严格工具或结构化输出替代强制工具调用，以 effort 替代 temperature）。
+
+**2. 在新 ID 上评估。** 运行完整黄金集和抽样的 LLM 裁决评估，记录成本与延迟，因为默认 effort 和思考行为随版本变化，影响账单的程度可能与质量一样大。我不把旧模型生成的对话记录复用为多轮测试样例，因为新版 Claude 模型会丢弃或拒绝其他模型的思考块。
+
+**3. 影子测试，然后金丝雀发布。** 对真实流量做影子测试，观察差异，再按常规回滚触发条件进行金丝雀发布。旧模型在退役日期前保持为回滚目标。
+
+**4. 修复流程。** 在按模型和平台索引的登记表中记录退役日期，因为同一模型在不同云平台的退役时间可能相差数月；定期针对生产模型 ID 运行评估，以便发现供应商侧的静默变更。
+
+若流水线已建好，60 天足够；若迁移期间还要从零搭建评估套件，就不够。”
+
+---
+
 ## 参考资料
 
 - ML Ops: https://ml-ops.org/
 - LangSmith: https://docs.smith.langchain.com/
+- Promptfoo: https://www.promptfoo.dev/
+- OpenAI 弃用公告：https://developers.openai.com/api/docs/deprecations
+- Anthropic 模型弃用公告：https://platform.claude.com/docs/en/about-claude/model-deprecations
+- StepSecurity，ChainDrop npm 蠕虫：https://www.stepsecurity.io/blog/chaindrop-npm-worm
+- AIR Security，Plugin4Shell：https://www.air.security/blog-posts/plugin4shell
 
 ---
 

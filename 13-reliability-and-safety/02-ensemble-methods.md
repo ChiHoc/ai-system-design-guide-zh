@@ -20,7 +20,7 @@
 单模型输出在高风险应用中并不可靠：
 - 模型会产生幻觉事实
 - 推理可能存在缺陷
-- 输出会随 temperature 变化而波动
+- 每次采样的输出都可能不同
 - 单一评审者（single-judge）评估存在偏差
 
 集成通过冗余（redundancy）和多样性（diversity）提升可靠性。
@@ -33,6 +33,7 @@
 | Generation（生成） | 提升输出质量 | Self-Consistency（自一致性）, Best-of-N（N 选一） |
 | Verification（验证） | 减少幻觉 | Multi-Agent Debate（多智能体辩论）, Fact Checking（事实核查） |
 | Synthesis（综合） | 融合不同视角 | Mixture of Agents（智能体混合） |
+| 升级处理 | 仅在需要时使用强模型计算资源 | 级联、跨模型家族审查 |
 
 ---
 
@@ -50,8 +51,8 @@ class PanelOfJudges:
     """
     def __init__(self, judges: list, aggregation: str = "mean"):
         # Use diverse model families, not just different sizes
-        # Good: [Claude, GPT-4, Gemini, Llama-70B]
-        # Bad: [GPT-4, GPT-4-turbo, GPT-3.5] - same family bias
+        # Good: [Claude Sonnet 5.5, GPT-6.1 Sol, Gemini 3.8 Flash, GLM-5.3]
+        # Bad: [GPT-6 Astra, GPT-6.1 Sol, GPT-6 Luna] - same family bias
         self.judges = judges
         self.aggregation = aggregation
     
@@ -84,9 +85,11 @@ class PanelOfJudges:
 
 **适用场景：** 高风险评估、基准创建、不能接受单一评审者偏差时。
 
+**一致不等于准确。** 评审模型的错误可能相关，因此意见一致的评审团也可能共同自信地判断错误。2026 年 9 月的一项研究（arXiv 2609.29769）比较了返回类型化分数而非文本的决策模型 Jev 与 LLM 评分评审器：LLM 评审器的成本高 16–325 倍、耗时长 28–350 倍，但在 Jev 最有把握的错误中，约 96% 的 LLM 判断重复了同一错误，没有一种级联方案比最佳单评审器高出超过 2.7 分。评审团能降低方差，级联能降低成本；但两者都不能可靠地识别共同盲点。应保留人工标注的黄金集，并据此评估评审团，而非让评审团自评。
+
 ### 带位置去偏的成对比较
 
-模型有 60-70% 的概率偏好第一个选项。应始终运行两种顺序：
+LLM 评审器存在位置偏差，常偏好排在第一的答案，其程度随评审器和任务而变化（Zheng 等，2023；Wang 等，2023）。应始终运行两种顺序：
 
 ```python
 async def pairwise_compare_debiased(model, response_a: str, response_b: str, criteria: str) -> dict:
@@ -130,21 +133,24 @@ class SelfConsistencyDecoder:
     """
     Key parameters:
     - k (sample count): 5-10 for most tasks, 15-20 for hard math
-    - temperature: 0.5-0.8 for reasoning tasks
+    - temperature: 0.5-0.8 for reasoning tasks, where the API still accepts it
     
     Too low temperature = not enough diversity
     Too high temperature = too much noise
     """
     
-    def __init__(self, model, k: int = 7, temperature: float = 0.7):
+    def __init__(self, model, k: int = 7, temperature: float | None = 0.7):
         self.model = model
         self.k = k
-        self.temperature = temperature
+        self.temperature = temperature  # None for models with fixed sampling
     
     async def generate_with_consistency(self, prompt: str) -> dict:
+        # Pass temperature only if the target model accepts it
+        sampling = {} if self.temperature is None else {"temperature": self.temperature}
+
         # Generate k reasoning paths in parallel
         responses = await asyncio.gather(*[
-            self.model.generate(prompt, temperature=self.temperature)
+            self.model.generate(prompt, **sampling)
             for _ in range(self.k)
         ])
         
@@ -179,7 +185,23 @@ class SelfConsistencyDecoder:
         pass
 ```
 
-**最适合：** 数学、逻辑、答案可验证的编程任务。准确率提升：5-15%。
+**最适合：** 数学、逻辑、答案可验证的编程任务。原论文（Wang 等）的代表性结果显示，相比贪心思维链推理，提升范围从 ARC-challenge 的 +3.9 分到 GSM8K 的 +17.9 分；这些数字来自 2022 年、尚无内置推理能力的模型。不要直接套用于当前推理模型，应先在自己的评估集上测量收益，再决定是否支付 k 倍成本。
+
+### 采样控制正在消失
+
+经典方法通过调整 temperature 获得多样性。前沿 API 正逐渐移除这一旋钮：
+
+| 平台 | 状态（2026 年 10 月） |
+|----------|-----------------------|
+| Claude API | Opus 4.7 及更新版本、Sonnet 5 及更新版本收到非默认采样值时返回 400；Anthropic Python SDK 1.0（2026 年 8 月 20 日）从 Messages 方法中移除了 `temperature`、`top_p`、`top_k`，传入这些参数会抛出 `TypeError` |
+| Gemini API | `temperature`、`top_p`、`top_k` 于 2026 年 7 月 21 日被标记弃用；Gemini 3.8 Flash 用 `thinking_level` 而非 `thinking_budget` 控制推理 |
+| OpenAI GPT-6 Astra | 不支持自定义 `temperature`、`top_p` 或 `logprobs` |
+
+对集成方法的影响：
+
+- **多样性要从别处获得。** 这些模型的默认采样已有随机性，因此 k 次采样仍可能出现分歧。若分歧不足，可变化提示词、推理 effort 或模型家族，而不是 temperature。
+- **置信度来自投票，而非 logprobs。** Astra 不提供 logprobs，因此样本中的票数占比（或评审分数）就是置信度信号。
+- **不要要求最新 Claude 模型写出详细推理。** 要求输出 `<thinking>` 节或 JSON 的 `reasoning` 字段，可能触发 `reasoning_extraction` 类别的拒绝；自 2026 年 9 月 24 日起，这类拒绝也会计费。应对最终答案投票；若需要推理路径，可请求简短解释，或设置 `thinking: {type: "adaptive", display: "summarized"}` 并读取摘要化思考内容（默认 `display: "omitted"` 时，这些模型返回空思考块）。
 
 ### 带奖励模型的 Best-of-N
 
@@ -190,7 +212,7 @@ class BestOfNSampler:
     """
     Key considerations:
     1. N selection: N=4-8 for interactive, N=16-64 for batch
-    2. Reward model ensemble prevents reward hacking
+    2. Reward model ensemble reduces (does not prevent) reward hacking
     3. Monitor sample diversity - if too similar, BoN is wasted compute
     """
     
@@ -202,7 +224,7 @@ class BestOfNSampler:
     async def generate_best(self, prompt: str) -> dict:
         # Generate N candidates in parallel
         candidates = await asyncio.gather(*[
-            self.generator.generate(prompt, temperature=0.8)
+            self.generator.generate(prompt, temperature=0.8)  # drop on fixed-sampling models
             for _ in range(self.n)
         ])
         
@@ -213,7 +235,7 @@ class BestOfNSampler:
                 rm.score(prompt, candidate) for rm in self.reward_models
             ])
             
-            # Conservative aggregation prevents reward hacking
+            # Conservative aggregation makes reward hacking harder
             # Use 25th percentile instead of mean
             conservative_score = np.percentile(rm_scores, 25)
             
@@ -247,7 +269,7 @@ class BestOfNSampler:
         return 1 - np.mean(similarities)  # Higher = more diverse
 ```
 
-**最适合：** 开放式生成、创意任务。准确率提升：10-30%。
+**最适合：** 开放式生成、创意任务。收益受评分器限制：当评分器只是代理奖励模型时，best-of-n 起初能提高真实质量，但 n 继续增加后质量反而可能下降（Gao 等，2022）。因此应以人工评分核验选出的结果，并让 N 保持适中。
 
 ---
 
@@ -330,7 +352,7 @@ Provide your final answer.
 │                                                                  │
 │  Layer 1 (Proposers):                                           │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐            │
-│  │ Claude  │  │  GPT-4  │  │ Gemini  │  │ Llama   │            │
+│  │ Claude  │  │  GPT-6  │  │ Gemini  │  │ Llama   │            │
 │  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘            │
 │       │            │            │            │                   │
 │       └────────────┴─────┬──────┴────────────┘                  │
@@ -377,6 +399,25 @@ Synthesize the best answer, combining the strongest elements from each response.
 
 **最适合：** 复杂综合、报告生成、多领域问题。
 
+### 级联与跨模型家族审查
+
+开发者工具中开始出现两种成本更低的模式。GitHub 的 HydraFusion 于 2026 年 9 月 30 日起在 VS Code 和 Copilot 应用中提供研究预览，按以下三种模式之一编排多个模型：
+
+- **单模型：** 作为基线，仅运行一个模型。
+- **级联：** 高效模型先起草，质量闸门作出判断，仅当未通过时才升级到更强模型。成本取决于升级率，而非强模型的单价。
+- **审查：** 另一个模型家族的评审者审查草稿，起草模型再修订一次。单轮审查控制成本，跨家族评审也较不容易与起草模型共享盲点。
+
+```mermaid
+flowchart LR
+    Q[任务] --> D[高效模型起草]
+    D --> G{质量闸门}
+    G -->|通过| O[输出]
+    G -->|未通过| S[更强模型]
+    S --> O
+```
+
+级联的质量取决于闸门。如果闸门由起草模型同一模型家族的评审器担任，它很可能放过起草模型惯有的错误（见上文相关性错误结果）；因此应优先使用可验证检查：测试通过、schema 有效、引用可解析。
+
 ---
 
 ## 集成与仲裁
@@ -411,15 +452,19 @@ Is there a single "correct" answer format?
 
 ### 集成成本矩阵
 
-| 方法 | 成本倍数 | 延迟 | 准确率提升 | 适用场景 |
+| 方法 | 成本倍数 | 延迟 | 预期效果 | 适用场景 |
 |--------|-----------------|---------|---------------|-------------|
 | Single Model | 1x | 1x | 基线 | 低风险、高吞吐 |
-| Self-Consistency k=3 | 3x | 1x（并行） | +5-8% | 推理、对延迟敏感 |
-| Self-Consistency k=10 | 10x | 1x（并行） | +10-15% | 数学、准确率关键 |
-| Best-of-N (N=8) | 8x + scoring | 1x（并行） | +15-25% | 创意生成 |
+| Self-Consistency k=3 | 3x | 1x（并行） | 收益有限；三种不同结果无法形成多数 | 推理、对延迟敏感 |
+| Self-Consistency k=10 | 10x | 1x（并行） | 在答案可验证的任务上收益更大，但 k 增大后边际收益下降 | 数学、准确率关键 |
+| Best-of-N (N=8) | 8x + scoring | 1x（并行） | 受评分器限制；面对可被利用的奖励模型，质量可能下降 | 创意生成 |
 | Panel of Judges (3) | 3x eval | 1x（并行） | 降低偏差 | 评估任务 |
 | Multi-Agent Debate | 6x | 3x | 幻觉 ↓ | 事实关键 |
 | Mixture of Agents | 5-8x | 2x | 更好的综合能力 | 复杂报告 |
+| 带质量闸门的级联 | 1x + 闸门 +（升级率 × 强模型成本） | 通常 1x，升级时 2x | 闸门可靠时接近强模型质量 | 有可验证闸门的高流量任务 |
+| 跨模型家族审查（单轮） | ~3x | ~3x（串行） | 捕捉模型家族特有的错误 | 代码审查、事实要求高的草稿 |
+
+效果列有意只给方向性描述。效果大小取决于模型和任务，因此在支付额外倍数成本前，应在自己的评估集上将每种方法与单模型基线比较。
 
 ### 何时不使用集成
 
@@ -445,7 +490,7 @@ Is there a single "correct" answer format?
 - 分类：对标签投票
 - 简短问答：对答案投票
 
-关键在于你可以比较答案是否相等。temperature 0.5-0.8 能在保持连贯性的同时提供多样性。对大多数任务我会使用 k=5-10。
+关键在于你可以比较答案是否相等。API 仍暴露 temperature 时，0.5–0.8 能在保持连贯性的同时提供多样性；对固定采样的模型（较新的 Claude 模型、GPT-6 Astra）或采样参数已被弃用的模型（2026 年 7 月后的 Gemini），我会依赖默认采样，并在样本过早趋同时改变提示词或模型。对大多数任务我会使用 k=5–10。
 
 **Best-of-N** 适用于没有单一正确答案的开放式生成任务：
 - 创意写作
@@ -468,22 +513,43 @@ Is there a single "correct" answer format?
 
 2. **Conservative aggregation（保守聚合）**：不要使用 mean score（平均分），而使用第 25 百分位或最小值。这样会选择在所有 RM 上都得分良好的样本，而不是只在其中一个上得分好。
 
-3. **Diversity monitoring（多样性监控）**：跟踪样本多样性。如果多样性降得太低，模型可能正在利用某种狭窄的 reward hack（奖励漏洞）。我会调整 temperature 或使用不同的 prompt。
+3. **Diversity monitoring（多样性监控）**：跟踪样本多样性。如果多样性降得太低，模型可能正在利用某种狭窄的 reward hack（奖励漏洞）。我会改变提示词或推理 effort；API 仍允许时，也可调整 temperature。
 
 4. **Human calibration（人工校准）**：定期验证 RM 选出的样本是否 действительно符合 human preferences（人类偏好）。
 
-5. **Multiple dimensions（多个维度）**：在多个 criteria（标准）上评分（quality 质量、safety 安全、relevance 相关性），并要求所有维度都得分良好，而不只是一个 composite（综合）分数。
+5. **Multiple dimensions（多个维度）**：在多个 criteria（标准）上评分（quality 质量、safety 安全、relevance 相关性），并要求所有维度都得分良好，而不只是一个 composite（综合）分数。总分式 rubric 会让强项掩盖不及格项：2026 年 9 月的一项 rubric-RL 研究（arXiv 2609.38847）观察到，rubric 覆盖率上升的同时，留出集上医生标准的适切性却降到未训练模型以下；仅当某维度全部标准通过才计入该维度，则让适切性提高 10.8 分，且不损失覆盖率。同样的闸门可用于从 N 个样本中挑选结果。
 
 关键洞察是，任何单一 reward signal（奖励信号）都可能被 gaming（滥用）。Ensembles（集成）会让作弊难得多。”
+
+### Q：三个 LLM 评审器对 95% 的判断意见一致，这是好消息吗？
+
+**强答案：**
+
+“不能只看这一点。高一致率表明评审团判断稳定，不代表判断正确。评审器共享训练数据和盲点，因此错误会相关。2026 年 9 月一项将低成本决策模型评审器与 LLM rubric 评审器比较的研究（arXiv 2609.29769）发现，在低成本评审器最有把握的错误中，约 96% 的 LLM 判断重复了同一错误；级联方案相比最佳单评审器最多仅提高 2.7 分。
+
+**我会检查：**
+1. **对人工标注黄金集的准确率**，并按重要标准分层。评审器彼此一致不能替代此项。
+2. **评审团一致反对人类判断的案例。** 这些案例暴露共同盲点，应加入黄金集。
+3. **真实多样性。** 使用不同模型家族；二元清单标准还可采用不同类型的评审器（返回类型化判断的决策模型，而非再加一个 LLM）。同一家族的三个评审器，可能只是成本三倍的一个评审器。
+4. **位置与长度偏差**，通过交换顺序和控制长度来测试。
+
+如果评审团在黄金集上准确，那么 95% 的一致率或许意味着可减至一两个评审器以节约成本。如果不准确，一致率只是掩盖了问题。”
 
 ---
 
 ## References
 
 - Verga et al. “Replacing Judges with Juries: Evaluating LLM Generations with a Panel of Diverse Models” (2024)
-- Wang et al. “Self-Consistency Improves Chain of Thought Reasoning” (2023)
+- Wang 等，《Self-Consistency Improves Chain of Thought Reasoning in Language Models》（ICLR 2023）：https://arxiv.org/abs/2203.11171
+- Gao、Schulman 和 Hilton，《Scaling Laws for Reward Model Overoptimization》（2022）：https://arxiv.org/abs/2210.10760
 - Du et al. “Improving Factuality and Reasoning in Language Models through Multiagent Debate” (2023)
+- Wang 等，《Mixture-of-Agents Enhances Large Language Model Capabilities》（2024）
+- Zheng 等，《Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena》（2023）
+- Wang 等，《Large Language Models are not Fair Evaluators》（2023）
+- Rao 与 Callison-Burch，《JEV vs. LLMs as Rubric Judges: Cheaper, Faster, and Wrong in the Same Places》（arXiv 2609.29769，2026）：https://arxiv.org/abs/2609.29769
+- GitHub 更新日志，HydraFusion 在 VS Code 和 GitHub Copilot 应用中上线（2026 年 9 月 30 日）：https://github.blog/changelog/2026-09-30-hydrafusion-in-vs-code-and-the-github-copilot-app
+- Liu 等，《Scoring Higher, Answering Worse: Mitigating Reward Hacking in Rubric-Based RL via Protocol-Level Rubrics》（arXiv 2609.38847，2026）：https://arxiv.org/abs/2609.38847
 
 ---
 
-*Next: [Reliability Patterns Extended](03-reliability-patterns.md)*
+*上一篇：[护栏与安全](01-guardrails.md) · 下一篇：[可靠性模式](03-reliability-patterns.md)*

@@ -112,30 +112,29 @@
 └──────────────────────────────────────────────────────────┘│    │
 ```
 
-分层流水线可视为一棵决策树。每一层只会升级它无法低成本判断的内容。第 1 层与第 4 层之间的单次决策成本比大约为 1:5000，因此把路由做对是单位经济性的主要杠杆：
+分层流水线可视为一棵决策树。每一层只会升级它无法低成本判断的内容；百分比均表示全部帖子的占比。第 `1` 层至第 `4` 层的单次决策成本跨度约为 `1:50,000`，因此正确路由是单位经济性的主要杠杆：
 
 ```mermaid
 flowchart TD
-    IN[Content Ingestion] --> T1{Tier 1: Fast Filters<br/>hash + keyword + pattern<br/>under 10ms, $0.0001}
-    T1 -->|blocked: 5%| B1[Block + Report]
-    T1 -->|elevated: pattern hit| T2
-    T1 -->|pass clean: 85%| T2
-    T2{Tier 2: ML Models<br/>vision + text + multimodal<br/>under 100ms, $0.001}
-    T2 -->|high confidence: 85% of T2| AA1[Auto Action]
-    T2 -->|low confidence: 15% of T2| T3
-    T3{Tier 3: LLM Review<br/>nuanced reasoning<br/>under 3s, $0.01}
-    T3 -->|confident| AA2[Auto Action]
-    T3 -->|uncertain: 2%| HR[Human Review<br/>minutes, $0.50]
+    IN[内容进入] --> T1{第1层：快速过滤<br/>哈希＋关键词＋模式<br/>低于10毫秒，约$0.00001}
+    T1 -->|拦截：5%| B1[拦截并报告]
+    T1 -->|通过或升级：95%| T2
+    T2{第2层：安全分类器<br/>自托管，文本＋图像<br/>低于100毫秒，约$0.0002}
+    T2 -->|高置信度：85%| AA1[自动处理]
+    T2 -->|低置信度：10%| T3
+    T3{第3层：LLM审核<br/>Gemini 3.8 Flash<br/>低于3秒，约$0.005}
+    T3 -->|可确定：9%| AA2[自动处理]
+    T3 -->|不确定：1%| HR[人工审核<br/>分钟级，$0.50]
 ```
 
 ### 处理层级
 
-| 层级 | 方法 | 时延 | 成本 | 覆盖范围 |
-|------|--------|---------|------|----------|
-| 1 | 哈希/关键词 | < 10ms | $0.0001 | 5% 已阻止 |
-| 2 | ML 分类器 | < 100ms | $0.001 | 85% 自动判定 |
-| 3 | LLM 审核 | < 3s | $0.01 | 8% 细致判断 |
-| 4 | 人工审核 | 分钟级 | $0.50 | 2% 已升级 |
+| 层级 | 方法 | 时延 | 每次决策成本 | 覆盖范围（全部帖子的占比） |
+|------|------|------|--------------|----------------------------|
+| `1` | 哈希／关键词／模式 | `< 10ms` | 约 `$0.00001` | `5%` 拦截 |
+| `2` | 自托管安全分类器 | `< 100ms` | 约 `$0.0002` | `85%` 自动判定 |
+| `3` | LLM 审核（Gemini `3.8` Flash） | `< 3s` | 约 `$0.005` | `10%` 接受审核，`9%` 得出判定 |
+| `4` | 人工审核 | 分钟级 | `$0.50` | `1%` 升级 |
 
 ---
 
@@ -191,46 +190,53 @@ class FastFilters:
         return FilterResult(action="continue", tier=1)
 ```
 
-### 第 2 层：ML 分类
+### 第 2 层：自托管安全分类器
 
 ```python
-### Tier 2: Native Multimodal Classification (Gemini 3 Flash)
-
-```python
-class MultimodalSafety:
+class SafetyClassifiers:
     """
-    Dec 2025 Shift: No separate OCR/Vision models.
-    Gemini 3 Flash handles interleaved text/images natively for <$0.10 / 1M posts.
+    Cheap, fast, high volume: every post that clears Tier 1 lands here.
+    An open multimodal safety model (for example Llama Guard 4 12B) plus
+    in-house classifiers fine-tuned on your own policy labels, served on
+    your GPUs. Escalate to Tier 3 only on low confidence.
     """
     async def classify(self, content: Content) -> dict:
-        # Native multimodal understanding catches context (e.g., text on a protest sign)
-        response = await genai.submit(
-            model="gemini-3-flash",
-            content=[content.text, content.image_bytes],
-            schema=SafetySchema
+        scores = await asyncio.gather(
+            self.policy_model.score(text=content.text, images=content.images),
+            self.spam_model.score(content),
+            self.nsfw_vision_model.score(content.images),
         )
-        return response
+        verdict = self.combine(scores)  # per-category thresholds tuned on human labels
+        return {"verdict": verdict.label, "confidence": verdict.confidence, "tier": 2}
 ```
 
-### 第 3 层：细致 LLM 审核（GPT-5.2-mini）
+### 第 3 层：细致 LLM 审核（Gemini `3.8` Flash）
 
 ```python
+from google.genai import types
+
 class NuanceReviewer:
     """
-    Using GPT-5.2-mini for nuanced context (sarcasm, regional slang).
-    Reasoning capabilities of 2025-mini models exceed 2024-frontier models.
+    Native multimodal review for the ~10% of posts the classifiers are unsure
+    about: sarcasm, regional slang, text on a protest sign, meme context.
+    Gemini 3.8 Flash reads text inside images, so no separate OCR call here.
     """
     async def review(self, content: Content, context: dict) -> dict:
-        result = await client.chat.completions.create(
-            model="gpt-5.2-mini",
-            messages=[
-                {"role": "system", "content": "Analyze for regional hate speech slang."},
-                {"role": "user", "content": content.text}
-            ],
-            response_format={"type": "json_object"}
+        parts = [
+            POLICY_PROMPT,
+            content.text,
+            *[types.Part.from_bytes(data=img, mime_type="image/jpeg") for img in content.images],
+        ]
+        response = await self.client.aio.models.generate_content(
+            model="gemini-3.8-flash",
+            contents=parts,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=ReviewResult,
+                thinking_config=types.ThinkingConfig(thinking_level="low"),
+            ),
         )
-        return json.loads(result)
-```
+        return json.loads(response.text)
 ```
 
 ---
@@ -239,7 +245,7 @@ class NuanceReviewer:
 
 ### Review Queue Management
 
-Every piece of content traverses a lifecycle from submission to a terminal state. The lifecycle as a state machine makes SLOs concrete: each priority lane has a different target time-to-terminal, and an appeal can transition back to pending:
+每条内容都会从提交开始，经历一个生命周期，最终进入终止状态。将生命周期建模为状态机能让 SLO 变得具体：每个优先级队列都有不同的终态时限目标，申诉也可以让内容重新回到待处理状态：
 
 ```mermaid
 stateDiagram-v2
@@ -272,10 +278,10 @@ class ReviewQueueManager:
     
     def __init__(self):
         self.queues = {
-            "critical": PriorityQueue(),  # CSAM, violence - immediate
-            "high": PriorityQueue(),      # Hate speech - < 15 min
-            "standard": PriorityQueue(),  # Other violations - < 1 hour
-            "appeals": PriorityQueue()    # User appeals
+            "critical": PriorityQueue(),  # CSAM, violence - human SLO 15 min
+            "high": PriorityQueue(),      # Hate speech - human SLO 1 hour
+            "standard": PriorityQueue(),  # Other violations - human SLO 24 hours
+            "appeals": PriorityQueue()    # User appeals - SLO 7 days
         }
     
     async def enqueue(self, content: Content, result: ReviewResult):
@@ -360,6 +366,7 @@ class ModeratorDecision:
 | 上下文操纵 | 多轮分析 |
 | 编码内容 | 解码管道 |
 | 对抗性图像 | 鲁棒视觉模型 |
+| 将 AI 生成图像冒充真实图像 | 读取来源元数据并使用水印检测器；按政策加标签 |
 
 ### 防御管道
 
@@ -405,6 +412,19 @@ class AdversarialDefense:
 
 ---
 
+### 来源信息与 AI 生成内容
+
+对于这一规模的平台，`2026` 年的两套规则使内容来源信息成为流水线要求：
+
+| 规则 | 时间 | 对流水线的意义 |
+|------|------|----------------|
+| 经 AB `2713` 修订的加州《AI 透明度法》（`2026` 年 9 月 30 日签署） | 大型平台义务自 `2027` 年 1 月 1 日适用 | 检测来源数据和数字签名，向用户显示其是否存在、内容由哪个生成式 AI 系统或采集设备制作；让用户查看或下载这些数据；上传、分发或下载时不得故意剥除符合标准的来源信息 |
+| 欧盟 AI 法案第 `50` 条与标记行为准则 | 自 `2026` 年 8 月 2 日生效；已上市系统须于 12 月 2 日前标记输出 | 生成器须以机器可读方式标记输出；行为准则要求签署者采用签名元数据加不可感知水印（少于 `200` token 的文本免于水印），并免费提供检测工具；水印检测互操作性须于 `2027` 年 2 月 2 日前实现。越来越多的上传内容会带有流水线可读取的标记 |
+
+工程后果是：内容进入路径中的图像与视频转码器通常会丢弃元数据，现在必须传递来源信息；审核记录也应把检测到的来源信息与分类器判定一同存储。来源信息是信号，不是最终判定：缺少元数据不能证明任何事，因为大多数内容从未被标记。如果平台还交付自己的图像生成器，AI 法案新增的第 `5` 条禁止生成未经同意的私密影像与儿童性虐待材料，自 `2026` 年 12 月 2 日起适用；缺乏充分防护的通用生成器也在涵盖范围内。
+
+---
+
 ## 结果与指标
 
 ### 性能对比
@@ -416,20 +436,20 @@ class AdversarialDefense:
 | 假阳性率 | 15% | 4.2% | 降低 72% |
 | 版主效率 | 50/天 | 200/天 | 提升 4 倍 |
 
-### 成本分析（12 月 2025）
+### 成本分析（`2026` 年 10 月，日处理 `1000` 万条帖子）
 
-| 组件 | 每 10M 条帖子 | 备注 |
-|-----------|---------------|-------|
-| 第 1 层过滤器 | $0.10 | 可忽略不计 |
-| 第 2 层多模态 | $0.50 | Gemini 3 Flash（$0.05/1M） |
-| 第 3 层 LLM（GPT-5.2） | $0.20 | 针对 10% 流量进行细微差别检查 |
-| 人工审核 | $15.00 | 仅聚焦于 1% 的流量 |
-| **总计** | **$15.80** | **相比 2024 降低 40%** |
+| 组件 | 计算 | 每日成本 | 备注 |
+|------|------|----------|------|
+| 第 `1` 层过滤器 | `10M × ~$0.00001` | 约 `$100` | CPU 哈希和模式匹配 |
+| 第 `2` 层分类器 | `9.5M × ~$0.0002` | 约 `$1,900` | 按峰值负载配置约 `28` 张全天运行的自托管 H100，每张每小时 `$2.77`（Silicon Data 指数，`2026` 年 10 月 1 日） |
+| 第 `3` 层 LLM 审核 | `1M × ~$0.005` | 约 `$5,000` | Gemini `3.8` Flash，约 `2.5K` 输入（政策提示词加图像）／`150` 输出，按 `2027` 年 1 月标价（`$1.50/$7.50`）；优惠价约为一半 |
+| 人工审核 | `100K × $0.50` | 约 `$50,000` | `500` 名审核员，每人每天 `200` 次决策 |
+| **总计** | | **约 `$57,000/天`** | 人工审核约占 `88%` |
+
+**为什么不把所有内容交给 LLM？** 按每帖约 `$0.005`，审核全部 `1000` 万条帖子每天约需 `$50,000`，与整个人工审核预算相当，而且会给每帖增加数秒延迟。第 `2` 层分类器的单帖成本约低 `25` 倍，并在毫秒级回答。Flash 层级的价格会快速双向变化，因此价格变化时要重新比较；Gemini `3.8` Flash 将于 `2027` 年 1 月 1 日涨价一倍。
 
 > [!TIP]
-> **生产经验：** 将重型处理从“第 2 层视觉/OCR”迁移到 **原生多模态（Gemini 3 Flash）**，使管道复杂度降低了 70%，延迟降低了 400ms。
-
-*人工审核仍然占据主要成本，但已聚焦于难例*
+> **生产经验：** 原生多模态 LLM 可在第 `3` 层直接读取图像中文字，省去单独的 OCR 步骤。但第 `1`、`2` 层之前仍要保留归一化和 OCR：哈希列表、关键词过滤器与小型分类器无法读取图像，而图中文字正是针对这些廉价层的规避手段。
 
 ---
 
@@ -441,7 +461,7 @@ class AdversarialDefense:
 
 1. **澄清规模与需求**（1 分钟）
    - “流量有多大？内容类型有哪些？可接受的假阳性率是多少？”
-   - “是否有合规要求（CSAM 报告、GDPR）？”
+   - “是否有合规要求（CSAM 报告、GDPR，以及自 `2027` 年 1 月起加州《AI 透明度法》的来源信息展示要求）？”
 
 2. **多层架构**（3 分钟）
    - “我会使用一个复杂度逐级提升的级联结构：”
@@ -457,7 +477,7 @@ class AdversarialDefense:
 
 4. **人机协同设计**（2 分钟）
    - “由人工处理低置信度决策和申诉”
-   - “AI 自动处理 95%+，使人工审核在经济上可行”
+   - “AI 自动判定约 `99%`，使人工审核规模可由 `500` 名审核员承担”
    - “反馈闭环：人工决策改进 ML 模型”
 
 5. **对抗鲁棒性**（2 分钟）
@@ -475,10 +495,10 @@ class AdversarialDefense:
 
 ## 参考资料
 
-- Meta 内容审核：https://transparency.fb.com/
-- Google Perspective API：https://perspectiveapi.com/
-- OpenAI 审核：https://platform.openai.com/docs/guides/moderation
+- Meta 内容审核：https://transparency.meta.com/
+- Google Perspective API（即将停止服务；于 `2026` 年 12 月 31 日终止，不应新增依赖）：https://perspectiveapi.com/
+- OpenAI 审核：https://developers.openai.com/api/docs/guides/moderation
 
 ---
 
-*下一篇：[LLM 定价参考](../02-model-landscape/03-pricing-and-costs.md)*
+*下一篇：[实时 AI 搜索案例研究](06-real-time-search.md)。当前模型价格参见 [LLM 定价参考](../02-model-landscape/03-pricing-and-costs.md)。*

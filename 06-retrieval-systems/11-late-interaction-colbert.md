@@ -8,6 +8,7 @@ Late Interaction 是一种检索范式，介于快速但不够精确的 **bi-enc
 - [ColBERT 架构](#colbert-架构)
 - [MaxSim：核心打分机制](#maxsim-核心打分机制)
 - [ColBERTv2 与 PLAID 索引](#colbertv2-与-plaid-索引)
+- [通用向量数据库中的多向量检索（MUVERA）](#通用向量数据库中的多向量检索-muvera)
 - [Late Interaction 与替代方案](#late-interaction-与替代方案)
 - [使用 RAGatouille 实现](#使用-ragatouille-实现)
 - [生产部署模式](#生产部署模式)
@@ -159,7 +160,7 @@ Score(Q, D) = SUM over all qi of MAX over all dj of (qi . dj)
 
 ## ColBERTv2 与 PLAID 索引
 
-最初的 ColBERT（2020）有一个关键限制：**存储**。为每个文档中的每个 token 存储 128 维向量是很昂贵的。一个包含 10M 篇文档、每篇 200 个 token 的语料库，将需要约 ~256 GB 的向量存储空间。
+最初的 ColBERT（2020）有一个关键限制：**存储**。为每个文档中的每个 token 存储 128 维向量是很昂贵的。一个包含 10M 篇文档、每篇 200 个 token 的语料库共有 20 亿个 token 向量：float32 格式约需 1 TB，即使用 float16 仍需 512 GB。
 
 ### ColBERTv2 的改进（2021）
 
@@ -200,38 +201,70 @@ PLAID（Performance-optimized Late Interaction Driver，性能优化的 Late Int
 ┌─────────────────────────────────────────────────────────────────┐
 │                    PLAID RETRIEVAL PIPELINE                     │
 │                                                                 │
-│  Stage 1: CENTROID PRUNING                                      │
-│  ─────────────────────────                                      │
+│  Stage 1: CANDIDATE GENERATION                                  │
+│  ─────────────────────────────                                  │
 │  For each query token, find nearest centroids                   │
 │  Collect candidate passages that contain those centroids        │
 │  Result: ~10,000 candidates from millions                       │
 │                                                                 │
-│  Stage 2: CENTROID INTERACTION                                  │
-│  ─────────────────────────────                                  │
+│  Stage 2: CENTROID INTERACTION (with pruning)                   │
+│  ────────────────────────────────────────────                   │
+│  Drop centroids whose query score is below a threshold          │
 │  Approximate MaxSim using centroid-level scores only            │
 │  Filter candidates to top ~1,000                                │
 │                                                                 │
-│  Stage 3: CENTROID PRUNING (Fine)                               │
-│  ──────────────────────────────                                 │
-│  Decompress residuals for remaining candidates                  │
-│  Compute approximate MaxSim with residual vectors               │
+│  Stage 3: CENTROID INTERACTION (no pruning)                     │
+│  ──────────────────────────────────────────                     │
+│  Re-score survivors with all of their centroid IDs              │
+│  (still no residuals decompressed)                              │
 │  Filter to top ~100                                             │
 │                                                                 │
 │  Stage 4: FULL DECOMPRESSION                                    │
 │  ────────────────────────────                                   │
 │  Fully decompress token vectors for top candidates              │
-│  Compute exact MaxSim                                           │
+│  Compute full MaxSim on the decompressed vectors                │
 │  Return final ranked results                                    │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**关键洞见**：PLAID 避免对所有文档的所有向量都进行解压。每个阶段都会廉价地缩小候选集，因此昂贵的精确打分只会发生在语料库极小的一部分上。
+**关键洞见**：PLAID 避免对所有文档的所有向量都进行解压。每个阶段都会廉价地缩小候选集，因此昂贵的完整打分只会发生在语料库极小的一部分上。
 
 **PLAID 性能**：
 - 在单张 GPU 上以 **10M+ 篇文档、50-100ms** 的速度进行检索
-- 保持 **精确 MaxSim** 准确率（不是近似）
+- 仅对最后的候选项在有损解压后的残差向量上计算完整 MaxSim。候选生成阶段是近似的，因此召回率取决于剪枝的激进程度（`ncells`、质心分数阈值）；应在样本上与穷举 MaxSim 对照测量
 - 在完整打分前使用质心剪枝，跳过语料库的 99%+ 部分
+
+---
+
+## 通用向量数据库中的多向量检索（MUVERA）
+
+PLAID 是专门构建的引擎，而多数团队不愿仅为晚期交互再运行一套搜索系统。**MUVERA**（Multi-Vector Retrieval via Fixed Dimensional Encodings，Google Research，NeurIPS 2024）弥合了这一差距：它把文档的一组 token 向量转换为一个较长的定长向量，其内积近似 MaxSim（Chamfer）分数，因此可用普通单向量 ANN 索引生成候选项。
+
+```
+INDEX:  doc token vectors ──► FDE transform ──► 1 fixed-length vector ──► HNSW / DiskANN
+                 └──────────────────────────────► keep the multi-vector set (compressed, on disk)
+
+QUERY:  query token vectors ──► FDE ──► ANN top-k candidates
+                                              └──► full MaxSim on stored multi-vectors ──► results
+```
+
+整体形态与 PLAID 相同（低成本近似候选生成，再对少数几百个候选项计算完整 MaxSim），但候选生成阶段运行在团队已经维护的基础设施上。FDE 向量很长（数千维），因此通常需要量化。
+
+**截至 2026 年 10 月的引擎支持情况：**
+
+| 引擎 | 多向量支持 | 状态 |
+|--------|----------------------|--------|
+| **Milvus 3.0** | 磁盘上的 EmbList 与面向嵌入列表的 DiskANN 索引，支持 MUVERA 和 LEMUR 加速 | 2026 年 7 月 29 日正式发布（3.0.2 于 9 月 20 日发布） |
+| **Weaviate** | 原生多向量嵌入（1.29+）；自 1.31（2025）起可选用 HNSW 上的 MUVERA 编码；磁盘型 HFresh 索引的 MUVERA 支持则是 1.40 的新功能 | 多向量和 HNSW 上的 MUVERA 已发布；HFresh 的 MUVERA 路径仍在 1.40 候选版（2026 年 9 月 30 日为 rc.2），尚未正式发布 |
+| **Qdrant** | 原生多向量字段，使用 MaxSim 打分 | 已发布；Qdrant 开放的 PubMed-Multi-Vector 数据集（83.7 亿个 BGE-M3 token 向量）用于比较稠密、稀疏与 ColBERT 检索 |
+| **Vespa** | 原生 ColBERT 张量排序 | 已发布 |
+
+模型侧，Answer.AI 于 2026 年 9 月 18 日发布了 NeuML 的 ColBERT-MUVERA micro 和 small 模型的 ONNX 导出版本。
+
+### 压缩向量本身
+
+另一个手段是减少每篇文档所存的向量数。对于页面图像检索器（ColPali 类），GLIE 论文（arXiv 2609.11808，2026 年 9 月）发现，视觉文档 token 向量靠近单位球面上内在维度为五到六的流形。两个实用结果是：把 k-means 质心重新归一化到球面，相对原始质心可免费提升最多 +0.093 nDCG@5；每页只保存 4 个学习得到的向量，再用一个 415K 参数的解码器为顶层候选项重建完整向量集，在 ViDoRe v1 上仍能保持未压缩 nDCG@5 的近 80%，而此前最佳事后方法为 70%。这只是单篇研究结果，尚非引擎功能，但指向同一方向：候选生成使用紧凑表示，完整多向量打分只用于最靠前的结果。
 
 ---
 
@@ -266,7 +299,7 @@ PLAID（Performance-optimized Late Interaction Driver，性能优化的 Late Int
                       10   100  1K   10K  100K
 ```
 
-**ColBERT 处在最佳平衡点**：在领域特定基准上，它比 bi-encoder 准确 3-5 倍（在专门数据集上最高可提升 +13.8% mAP），同时又比 cross-encoder 快 10-50 倍。
+**ColBERT 处在最佳平衡点**：相比规模相近的 bi-encoder，它通常能增加几个 NDCG 点，在域外、术语密集的语料库上收益最大（专门数据集上最高可提升 +13.8% mAP），同时又比 cross-encoder 快 10-50 倍。
 
 ---
 
@@ -346,6 +379,7 @@ response = chain.invoke("What features does the Enterprise plan include?")
 | **Vespa** | 生产级部署 | 托管基础设施，原生支持 ColBERT |
 | **PyLate** | 灵活训练/微调 | 基于 Sentence Transformers，适合自定义模型 |
 | **Jina ColBERT v2** | 多语言（89 种语言） | 输出维度灵活，可直接用于生产 |
+| **Milvus 3.0 / Weaviate / Qdrant** | 通用向量数据库中的多向量检索 | MUVERA 或原生 MaxSim；参见上方引擎表 |
 
 ---
 
@@ -407,7 +441,7 @@ Query ──┬──► BM25 (Top 50) ────────┐
 | 10M 篇文档 | ~30 GB | ~60-120 GB | 需要 1-2 张 GPU |
 | 100M 篇文档 | ~300 GB | ~600 GB - 1.2 TB | 需要多 GPU / 分布式 |
 
-**现实检验**：ColBERT 的存储开销通常是 bi-encoder 的 2-4 倍。对于大多数 RAG 用例（少于 10M 篇文档），这是可以接受的。对于 Web 级搜索（数十亿网页），bi-encoder 或学习型稀疏方法在第一阶段检索中仍然更实用。
+**现实检验**：ColBERT 的存储开销通常是 bi-encoder 的 2-4 倍。对于大多数 RAG 用例（少于 10M 篇文档），这是可以接受的。对于 Web 级搜索（数十亿网页），bi-encoder 或学习型稀疏方法在第一阶段检索中仍然更实用。使用磁盘常驻索引进行 MUVERA 式候选生成（目前有 Milvus 3.0 DiskANN；Weaviate HFresh 则需等 1.40 正式发布）会提高内存上限，因为只有单向量 FDE 索引需要保持热驻留。
 
 ---
 
@@ -426,7 +460,11 @@ Is your corpus < 100M documents?
         │
         Can you afford 2-4x storage vs. bi-encoder?
         ├── No  ──► Use Bi-Encoder + Cross-Encoder reranker
-        └── Yes ──► Use ColBERT (PLAID) as primary retriever
+        └── Yes
+            │
+            Do you want to run a separate retrieval engine?
+            ├── No  ──► MUVERA / native multi-vector in your vector DB
+            └── Yes ──► Use ColBERT (PLAID) as primary retriever
 ```
 
 ### ColBERT vs. Dense Retrieval vs. Hybrid Search
@@ -460,13 +498,13 @@ Is your corpus < 100M documents?
 ### Q: ColBERT 每个 token 存一个向量。它如何扩展，存储上的权衡是什么？
 
 **优秀回答：**
-ColBERT 的朴素存储成本很高。一个 200 token 的文档需要存储 200 个 128 维向量，而 bi-encoder 只需要 1 个 768-1024 维向量。这意味着每篇文档大约有 3-5 倍的存储开销。
+ColBERT 的朴素存储成本很高。一个 200 token 的文档需要存储 200 个 128 维向量（共 25,600 个浮点数），而 bi-encoder 只需要 1 个 768-1024 维向量。压缩前，每篇文档的存储开销大约是后者的 25-33 倍。
 
-ColBERTv2 通过**残差压缩**解决这个问题：token 向量会聚类到中心点，只存储中心点 ID 加上量化后的残差。这样每个 token 向量可以实现 16-32 倍压缩，实际存储量大约是 bi-encoder 的 2-4 倍。
+ColBERTv2 通过**残差压缩**解决这个问题：token 向量会聚类到中心点，只存储中心点 ID 加上量化后的残差。这样每个 token 向量可以实现 16-32 倍压缩，实际存储量大约是 float32 bi-encoder 的 2-4 倍。
 
-PLAID 索引引擎通过多阶段流水线进一步提升查询时效率。它从中心点剪枝开始（快速、粗粒度），先排除 99% 的候选，然后只对更有希望的候选逐步解压残差。最终的精确 MaxSim 只会在少于 100 篇文档上计算，即使在 50-100ms 内也能保持低延迟，即便语料规模达到 10M+ 篇文档。
+PLAID 索引引擎通过多阶段流水线进一步提升查询时效率。它先从最接近每个查询 token 的质心生成候选，再仅根据质心 ID 打分（先剪掉低分质心），排除语料库中 99% 的文档，并只对最后的候选解压残差。最终在少于 100 篇文档的解压残差向量上计算完整 MaxSim，即使语料规模达到 10M+ 篇文档，延迟仍可保持在 50-100ms。由于候选生成阶段是近似的，我会先在样本上与穷举 MaxSim 比较召回率，再激进地调整剪枝参数。
 
-当规模超过 100M 篇文档时，我会把 ColBERT 作为重排序器，而不是主检索器 - 让 bi-encoder 或 BM25 先做第一阶段检索，把候选集缩小到 1,000 篇文档，然后再用 ColBERT 的 MaxSim 做高质量重排。
+当规模超过 100M 篇文档时，我会把 ColBERT 作为重排序器，而不是主检索器：让 bi-encoder 或 BM25 先做第一阶段检索，把候选集缩小到 1,000 篇文档，然后再用 ColBERT 的 MaxSim 做高质量重排。如果团队已运行 Milvus、Qdrant 或 Weaviate，中间路径则是 MUVERA：每篇文档索引一个定长编码以生成 ANN 候选，并将压缩后的 token 向量存放在磁盘上，只对排名前几百的候选做完整 MaxSim。
 
 ### Q: 你正在设计一个包含 5M 篇文档的法律文档检索系统。团队正在比较“带 cross-encoder 重排序器的 dense bi-encoder 检索”和 ColBERT。你会推荐什么？
 
@@ -475,7 +513,7 @@ PLAID 索引引擎通过多阶段流水线进一步提升查询时效率。它�
 
 第一，**法律文本对术语非常敏感**。合同条款会引用特定的章节编号、定义术语（例如 “Force Majeure”）以及精确短语。ColBERT 的 token 级 MaxSim 匹配保留了这些稀有但关键的术语，而它们在单向量 bi-encoder embedding 中容易被稀释。
 
-第二，**5M 篇文档正好落在 ColBERT 的最佳区间**。借助 ColBERTv2 压缩，索引体积大约会是 30-60 GB - 这完全可以放进一张 GPU。这个规模已经足够做主检索，不需要单独的第一阶段检索器。
+第二，**5M 篇文档正好落在 ColBERT 的最佳区间**。借助 ColBERTv2 压缩，索引体积大约会是 30-60 GB，可以放进一张 80 GB GPU。这个规模已经足够做主检索，不需要单独的第一阶段检索器。
 
 第三，**cross-encoder 重排序会增加延迟**。每个查询-文档对都需要一次完整的 transformer 前向传播。对 100 个候选做 cross-encoder 重排序可能需要 500ms-2s。ColBERT 在文档 token 预计算的前提下，可以在保持总延迟低于 100ms 的同时实现相近准确率。
 
@@ -489,9 +527,12 @@ PLAID 索引引擎通过多阶段流水线进一步提升查询时效率。它�
 - Santhanam et al. "PLAID: An Efficient Engine for Late Interaction Retrieval" (CIKM 2022)
 - Answer.AI. "RAGatouille: State-of-the-art Late Interaction Retrieval" (GitHub, 2024)
 - Jina AI. "Jina-ColBERT-v2: General-Purpose Multilingual Late Interaction Retriever" (2024)
+- Dhulipala 等. "MUVERA: Multi-Vector Retrieval via Fixed Dimensional Encodings"（NeurIPS 2024）
 - Weaviate. "An Overview of Late Interaction Retrieval Models" (2025)
+- Milvus. “v3.0.0 release notes”（GitHub，2026 年 7 月）
+- GLIE，arXiv 2609.11808：视觉文档多向量嵌入的压缩（2026 年 9 月）
 - ECIR 2026. "Late Interaction Workshop" (2026)
 
 ---
 
-*上一篇: [Contextual Retrieval](10-contextual-retrieval.md)*
+*上一篇：[Contextual Retrieval](10-contextual-retrieval.md) | 下一篇：[多模态 RAG](12-multimodal-rag.md)*

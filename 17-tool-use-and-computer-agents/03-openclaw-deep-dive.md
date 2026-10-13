@@ -8,16 +8,17 @@ OpenClaw 是一个**开源、自托管的个人 AI 智能体**，它以消息平
 - [历史：从 Clawdbot 到 Moltbot 再到 OpenClaw](#历史)
 - [架构深度解析](#架构)
 - [AgentSkills 系统](#agentskills-系统)
-- [LLM 提供商配置](#example-response-format)
-- [消息平台集成](#response-format)
+- [LLM 提供商配置](#llm-大语言模型-provider-提供商-配置)
+- [消息平台集成](#消息平台集成)
 - [安全模型](#安全模型)
 - [部署模式](#部署模式)
 - [性能优化与扩展](#安全模型)
 - [真实世界用例](#部署模式)
 - [局限性以及何时不该使用 OpenClaw](#性能优化与扩展)
+- [2026 年 Anthropic 订阅政策事件](#_2026-年-anthropic-订阅政策事件)
 - [与替代方案对比](#真实世界用例)
 - [入门：快速设置指南](#入门)
-- [系统设计面试视角](#四月-2026-anthropic-封禁与回滚事件)
+- [系统设计面试视角](#系统设计面试角度)
 - [参考资料](#参考资料)
 
 ---
@@ -28,25 +29,29 @@ OpenClaw 是：
 
 - **一个个人 AI 智能体**：不是聊天机器人，而是一个能代表你行动的自主智能体
 - **自托管**：运行在你的机器、VPS 或 Raspberry Pi 上，由你控制自己的数据
-- **消息原生**：存在于你已经使用的聊天应用中（WhatsApp、Telegram、Slack、Discord、Signal、iMessage，以及 20+ 个其他平台）
-- **LLM 无关**：可与 Claude、GPT-4、Gemini、DeepSeek 或本地模型配合使用
-- **可通过 Skill（技能）扩展**：内置 100+ 个预配置技能，并提供简单格式用于编写自定义技能
-- **开源**：采用 MIT 许可证，截至 2026 年初拥有 250K+ GitHub 星标
+- **消息原生**：接入你已使用的聊天应用（WhatsApp、Telegram、Slack、Discord、Signal、iMessage、Teams 等 20 多个平台）
+- **LLM 无关**：支持 Claude、GPT、Gemini、Muse Spark、DeepSeek 或本地模型（近期版本新增 GPT-6.1 Sol、GPT-6 Astra、Fable 5.1 和 Muse Spark 1.3）
+- **可通过技能扩展**：约 50 个内置技能（内置插件还提供更多技能）、公开注册表 ClawHub，以及便于编写自定义技能的格式
+- **开源**：采用 MIT 许可；截至 2026 年 10 月 1 日约有 39.1 万 GitHub stars 和 8.2 万 forks
+- **基金会治理**：由独立的 501(c)(3) OpenClaw Foundation 管理，该基金会雇用核心团队并签署版本；没有付费档、托管服务或代币。README 称 OpenAI“是捐助者，不是所有者”（Amazon、Red Hat、NVIDIA 和 GitHub 等也提供捐助或基础设施支持）
+- **两条发布线**：按日历标版本的构建（2026 年 9 月 30 日发布 2026.9.7）以及仅面向 Gateway、项目视作 LTS 的扩展稳定构建（10 月 2 日发布 2026.8.35）。生产网关应固定到扩展稳定线
 
 ```
-# The simplest way to start
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
-docker compose up -d
+# The simplest way to start (macOS / Linux / WSL2)
+curl -fsSL https://openclaw.ai/install.sh | bash
 
-# Or via npm
-npm install -g openclaw
-openclaw start
+# Or via npm (Node 24.16+ or 26.1+; Node 26 recommended)
+# --allow-scripts needs npm 11.16+; drop it on older npm
+npm install -g openclaw@latest --allow-scripts=openclaw
+openclaw onboard --install-daemon
+openclaw gateway status
 ```
 
 **与聊天机器人的关键区别：**
-- ChatGPT/Claude.ai：你输入内容，它用文本回复
+- 普通聊天助手：你输入内容，它用文本回复
 - OpenClaw：你输入内容，它会**做事**，例如运行命令、编辑文件、发送电子邮件、控制智能家居设备、管理你的日历
+
+聊天助手也正从另一侧缩小差距。OpenAI dots（2026 年 9 月 29 日宣布）和 Meta Muse（9 月 8 日推出）为托管助手提供独立云端计算机；Anthropic 则把 Cowork 并入 Claude 应用，Claude 默认在行动前请求批准。OpenClaw 如今的区分点是自托管、模型选择和消息平台覆盖面，而不再只是行动能力。
 
 ---
 
@@ -61,8 +66,9 @@ openclaw start
 | 2026 年 1 月 27 日 | **Moltbot** | 因 Anthropic 商标投诉而改名（保留龙虾主题） |
 | 2026 年 1 月 30 日 | **OpenClaw** | 再次改名，Steinberger 觉得“Moltbot”说起来别扭 |
 | 2026 年 2 月 | 145,000+ 星标 | 爆发式增长，超过许多成熟开源项目 |
-| 2026 年 2 月 14 日 | -- | Steinberger 加入 OpenAI，理由是需要获得扩展所需的资源 |
+| 2026 年 2 月 14 日 | （未更名） | Steinberger 加入 OpenAI，称需要获得扩展所需资源 |
 | 2026 年 3 月 | 250,000+ 星标 | 在 GitHub 上超过 React；成为有史以来增长最快的开源项目之一 |
+| 2026 年 9 月 30 日 | 约 391,000 星标 | 由独立的 OpenClaw Foundation 管理；扩展稳定（相当于 LTS）网关构建与日历版本并行发布 |
 
 ### 创建者
 
@@ -88,7 +94,7 @@ OpenClaw 击中了痛点，因为它解决了一个真实问题：LLM 很强大�
  │  (Baileys)   │  │           │   GATEWAY            │     │  (Claude)    │
  ├──────────────┤  │  Channel  │   ┌──────────────┐  │     ├──────────────┤
  │  Telegram    │──┼──Adapters─┼──>│  Router      │  │     │  OpenAI      │
- │  (grammY)    │  │           │   │  (sessions,  │  │     │  (GPT-4)     │
+ │  (grammY)    │  │           │   │  (sessions,  │  │     │  (GPT-6)     │
  ├──────────────┤  │           │   │   bindings)  │  │     ├──────────────┤
  │  Slack       │──┤           │   └──────┬───────┘  │     │  Google      │
  │  (Bolt)      │  │           │          │          │     │  (Gemini)    │
@@ -100,7 +106,7 @@ OpenClaw 击中了痛点，因为它解决了一个真实问题：LLM 很强大�
  │  (signal-cli)│  │           │   └──────┬───────┘  │     └──────────────┘
  ├──────────────┤  │           │          │          │
  │  iMessage    │──┤           │   ┌──────▼───────┐  │     Tools & Skills
- │  (BlueBubbles│  │           │   │  Tool Layer  │  │     ┌──────────────┐
+ │  (imsg)      │  │           │   │  Tool Layer  │  │     ┌──────────────┐
  ├──────────────┤  │           │   │  (skills,    │──┼────>│  Shell exec  │
  │  Teams       │──┘           │   │   browser,   │  │     │  Browser     │
  │  IRC, Matrix │              │   │   files,     │  │     │  File I/O    │
@@ -140,8 +146,8 @@ Gateway 是一个长期运行的 WebSocket 服务器（默认：`localhost:18789
 | Telegram | grammY | Bot API |
 | Slack | Bolt | Events API |
 | Discord | discord.js | Gateway API |
-| Signal | signal-cli | D-Bus |
-| iMessage | BlueBubbles | REST API |
+| Signal | signal-cli | signal-cli 守护进程（原生或容器） |
+| iMessage | imsg（官方插件；已移除 BlueBubbles 支持） | 通过 stdio 传输的 JSON-RPC |
 | IRC | irc-framework | IRC 协议 |
 | Matrix | matrix-js-sdk | Matrix 协议 |
 | Microsoft Teams | Bot Framework | REST API |
@@ -159,31 +165,27 @@ Agent Runtime 是 AI 循环。对于每条传入消息，它会：
 
 **4. Multi-Agent Routing（多智能体路由）**
 
-OpenClaw 支持在一个 Gateway 进程中运行多个智能体。每个智能体都有自己的工作区、agentDir、会话和工具配置。传入消息通过绑定路由到智能体：
+OpenClaw 支持在一个 Gateway 进程中运行多个智能体。每个智能体都有自己的工作区、agentDir、会话和工具配置。智能体在 `agents.entries` 下声明；顶层 `bindings` 根据通道、账户或对话对象匹配传入消息：
 
-```json
+```json5
 {
-  "agents": {
-    "list": [
-      {
-        "name": "work-assistant",
-        "agentDir": "./agents/work",
-        "channels": ["slack-work"]
-      },
-      {
-        "name": "home-assistant",
-        "agentDir": "./agents/home",
-        "channels": ["whatsapp-personal", "telegram"]
-      },
-      {
-        "name": "devops-bot",
-        "agentDir": "./agents/devops",
-        "channels": ["discord-infra"]
-      }
-    ]
-  }
+  agents: {
+    entries: {
+      work: { workspace: "~/.openclaw/workspace-work" },
+      home: { workspace: "~/.openclaw/workspace-home" },
+      devops: { workspace: "~/.openclaw/workspace-devops" },
+    },
+  },
+  bindings: [
+    { agentId: "work", match: { channel: "slack", accountId: "*" } },
+    { agentId: "home", match: { channel: "whatsapp", accountId: "personal" } },
+    { agentId: "home", match: { channel: "telegram", accountId: "*" } },
+    { agentId: "devops", match: { channel: "discord", accountId: "*" } },
+  ],
 }
 ```
+
+运行 `openclaw agents list --bindings` 可以查看每条路由最终对应的智能体。使用 `agents.list` 数组的旧配置可通过 `openclaw doctor --fix` 迁移。
 
 这意味着你可以在 Slack 上拥有一个工作助手，在 WhatsApp 上拥有一个个人助手，在 Discord 上拥有一个 DevOps 机器人，并且它们全部运行在同一个 Gateway 中，同时拥有完全隔离的记忆和权限。
 
@@ -193,7 +195,7 @@ OpenClaw 支持在一个 Gateway 进程中运行多个智能体。每个智能�
 
 ### Skill（技能）的工作方式
 
-Skill（技能）是 OpenClaw 获得基础对话之外能力的机制。每个 Skill 都是一个目录，其中包含一个 `SKILL.md` 文件，文件内有 YAML frontmatter（元数据）和 Markdown 指令（行为）。
+技能是 OpenClaw 获得基础对话之外能力的机制。每个技能都是包含 `SKILL.md` 的目录，文件中有 YAML frontmatter 元数据和 Markdown 行为指令。只有 `name` 和 `description` 是必需字段；可选的 `metadata.openclaw` 块可根据主机实际具备的条件启用技能。
 
 ```
 ~/.openclaw/skills/
@@ -216,16 +218,9 @@ Skill（技能）是 OpenClaw 获得基础对话之外能力的机制。每个 S
 ---
 name: weather-lookup
 description: >
-  Fetch current weather and forecasts for any location.
-  Responds to queries about temperature, rain, and conditions.
-triggers:
-  - weather
-  - temperature
-  - forecast
-  - "is it going to rain"
-tools:
-  - web_search
-  - bash
+  Fetch current weather and forecasts for any location. Use when the user
+  asks about temperature, rain, wind, or whether to bring an umbrella.
+metadata: {"openclaw": {"requires": {"bins": ["curl"]}, "os": ["darwin", "linux"]}}
 ---
 
 # Weather Lookup Skill
@@ -243,21 +238,28 @@ When the user asks about weather:
 Forecast: Clear skies through Thursday, rain expected Friday."
 ```
 
+不存在触发词字段。模型根据 `description` 匹配技能，所以应写清“技能做什么、何时使用”。
+
 ### Skill 解析顺序
 
 Skill 可以位于多个位置。当发生名称冲突时，最本地的副本优先：
 
 ```
 Priority (highest first):
-  1. <workspace>/skills/        # Project-specific skills
-  2. ~/.openclaw/skills/        # User-global skills
-  3. <installed-packages>/      # npm-installed skills
-  4. <bundled>/skills/          # Ships with OpenClaw
+  1. <workspace>/skills/             # Project-specific skills
+  2. <workspace>/.agents/skills/     # Project agent skills
+  3. ~/.agents/skills/               # Personal agent skills
+  4. ~/.openclaw/skills/             # Managed/local skills (state directory)
+  5. Per-agent workshop skills       # Under the agent's directory
+  6. Bundled skills                  # Ship with OpenClaw
+  7. skills.load.extraDirs, plugins  # Extra directories and plugin-provided skills
 ```
+
+如果某个智能体配置了非空的技能允许列表（`agents.entries.<id>.skills`），它就是该智能体最终使用的集合，会替换而非合并 `agents.defaults.skills`。
 
 ### 选择性注入
 
-OpenClaw **不会**把每个 Skill 都注入到每个 prompt（提示词）中。runtime（运行时）会根据 Skill 描述和触发关键词，只选择性注入与当前轮次相关的 Skill。这可以防止 prompt 膨胀，并保持较高的模型性能。
+OpenClaw **不会**把每个技能的完整指令都注入每次提示。首先有两层过滤：加载时校验会排除不满足 `metadata.openclaw` 要求的技能（缺少二进制、环境变量或配置键，或操作系统不符），智能体的技能允许列表再排除其余不允许的技能。合格技能以精简 XML 列表进入系统提示，包含名称、描述和路径；文档估算每个技能约 24 个 token，再加这些字段的长度。完整 `SKILL.md` 按需读取；`skills_search` 可找到未装入提示预算的技能。这与其他 Agent Skills 的渐进披露设计相同：单技能开销虽小，却在每轮重复支付。粗略估计，200 个描述为一两句话的合格技能会增加 1 万到 1.5 万个常驻提示 token，因此允许列表很重要。
 
 ### 创建自定义 Skill
 
@@ -271,16 +273,10 @@ cat > SKILL.md << 'EOF'
 ---
 name: deploy-checker
 description: >
-  Monitor deployment status across staging and production.
-  Checks health endpoints, recent commits, and CI status.
-triggers:
-  - deploy
-  - deployment
-  - "is staging up"
-  - "prod status"
-tools:
-  - bash
-  - web_search
+  Monitor deployment status across staging and production: health endpoints,
+  recent commits, and CI status. Use when asked whether staging or prod is up,
+  or what was deployed last.
+metadata: {"openclaw": {"requires": {"bins": ["curl", "git"]}}}
 ---
 
 # Deploy Checker
@@ -302,7 +298,7 @@ EOF
 
 ### 社区 Skill 生态系统
 
-OpenClaw 的 Skill 生态系统增长迅速，社区维护的集合中包含数千个 Skill，覆盖 DevOps（开发运维）、home automation（家庭自动化）、content creation（内容创作）、data analysis（数据分析）等类别。然而，这种开放性也带来了风险——安装前务必审查第三方 Skill，因为早期目录中曾出现过恶意脚本事件。
+OpenClaw 的技能生态增长迅速，社区集合包含覆盖 DevOps、家庭自动化、内容创作和数据分析等领域的数千个技能。公开注册表是 ClawHub，可用 `openclaw skills install @owner/<slug>` 安装。不过开放性也带来风险：文档要求将第三方技能视为不可信代码，启用前阅读其内容，优先在沙箱内运行；早期目录中曾出现恶意脚本。
 
 ---
 
@@ -312,69 +308,45 @@ OpenClaw 的 Skill 生态系统增长迅速，社区维护的集合中包含数�
 
 OpenClaw 从 `~/.openclaw/openclaw.json` 读取配置（JSON5 格式——允许注释和尾随逗号）。Gateway（网关）会监视该文件，并通过 hot reload（热重载）自动应用变更。
 
+官方提供商插件（Anthropic、OpenAI、Google、DeepSeek、Ollama 等）只需要凭据，可由 `openclaw onboard` 保存，或从 `ANTHROPIC_API_KEY`、`OPENAI_API_KEY`、`DEEPSEEK_API_KEY` 等环境变量获取；DeepSeek 等少数插件还需先运行一行 `openclaw plugins install`。模型引用采用 `provider/model` 形式。`models.providers` 块用于自定义基础 URL、代理及自托管的 OpenAI 兼容服务器：
+
 ```json5
 {
-  // Model provider configuration
-  "models": {
-    "providers": {
-      "anthropic": {
-        "baseUrl": "https://api.anthropic.com",
-        "apiKey": "${ANTHROPIC_API_KEY}",  // env var substitution
-        "models": {
-          "claude-sonnet-4": {
-            "maxTokens": 8192
-          }
-        }
+  // Default model plus a cross-vendor fallback chain
+  agents: {
+    defaults: {
+      model: {
+        primary: "anthropic/claude-sonnet-5-5",
+        fallbacks: ["openai/gpt-6-sol", "deepseek/deepseek-flash"],  // deepseek-flash = V4.1-Flash
       },
-      "openai": {
-        "baseUrl": "https://api.openai.com/v1",
-        "apiKey": "${OPENAI_API_KEY}",
-        "models": {
-          "gpt-4o": {
-            "maxTokens": 4096
-          }
-        }
-      },
-      "custom-deepseek": {
-        "api": "openai",  // OpenAI-compatible API
-        "baseUrl": "https://api.deepseek.com/v1",
-        "apiKey": "${DEEPSEEK_API_KEY}",
-        "models": {
-          "deepseek-chat": {
-            "maxTokens": 4096
-          }
-        }
-      },
-      "local-ollama": {
-        "api": "openai",
-        "baseUrl": "http://localhost:11434/v1",
-        "apiKey": "ollama",  // Ollama accepts any key
-        "models": {
-          "llama3.1:70b": {
-            "maxTokens": 2048
-          }
-        }
-      }
-    }
+    },
   },
 
-  // Default agent model
-  "agents": {
-    "defaults": {
-      "model": "anthropic/claude-sonnet-4"
-    }
-  }
+  // Custom provider: an internal OpenAI-compatible gateway
+  models: {
+    mode: "merge",
+    providers: {
+      "corp-gateway": {
+        baseUrl: "https://llm-gateway.internal.example.com/v1",
+        apiKey: "${CORP_GATEWAY_KEY}",  // env var substitution
+        api: "openai-completions",
+        models: [{ id: "qwen3.8-27b", name: "Qwen3.8 27B", maxTokens: 4096 }],
+      },
+    },
+  },
 }
 ```
+
+有两个容易踩的坑。Ollama 应使用原生 URL（`http://localhost:11434`），而不是 OpenAI 兼容的 `/v1` 路径；文档警告 `/v1` 会破坏工具调用，让模型把原始工具调用 JSON 当作文字输出。另外，回退模型只附着在已配置的默认模型上；针对单个智能体配置的模型是严格的，除非该智能体条目也列出自己的 `fallbacks`。
 
 ### Provider 选择策略
 
 | Provider | 最适合 | 取舍 |
 |----------|----------|------------|
-| Anthropic (Claude) | 复杂推理、编码任务、长上下文 | 成本更高，质量最佳 |
-| OpenAI (GPT-4o) | 通用用途、快速响应 | 速度与质量平衡良好 |
-| Google (Gemini) | 注重预算的测试、慷慨的免费层级 | 推理质量较低 |
-| DeepSeek | 最便宜的前沿级选项（V4 Flash 每 1M 为 $0.14/$0.28，V4 Pro 在 22 年 5 月永久 2026 折扣后为 $0.435/$0.87）；1M 上下文；最适合高容量、缓存友好的工作负载 | 可用性不稳定；开放权重也可自托管 |
+| Anthropic (Claude) | 复杂推理、编程和长上下文任务（100 万 token 上下文不加价） | 成本较高，质量最佳：Opus 5.5 每百万 token 标价 $4/$20，Fable 5.1 为 $10/$50；Opus 5.5 无法关闭思考 |
+| OpenAI（GPT-6 系列） | 通用任务；GPT-6 Luna（$0.10/$0.50）用于低成本路由，GPT-6 Sol 或 GPT-6.1 Sol（$2/$10）作为主力 | 输入超过 27.2 万 token 的请求整体按长上下文价格计费 |
+| Google (Gemini) | 注重预算的测试与较宽松免费档；Gemini 3.8 Flash 到 2026 年 12 月 31 日的入门价为 $0.75/$3.75 | 2027 年 1 月 1 日价格翻倍至 $1.50/$7.50；Flash 档推理落后于顶尖 Claude 与 GPT 模型（AA Intelligence Index v4.3：41 分，Opus 5.5 为 58 分） |
+| DeepSeek | 最便宜的托管选择：V4.1-Flash（`deepseek-flash`）高峰时每百万 token $0.30/$1.20，非高峰时减半；V4-Pro 高峰价仍为 $1.32/$3.96；100 万 token 上下文，适合高吞吐且缓存友好的负载 | 工作日 UTC 01:00–04:00 与 06:00–10:00 为高峰时段，价格翻倍；旧模型名可能实际指向新模型，应固定并验证；MIT 权重也可自托管 |
 | Local (Ollama) | 对隐私要求极高、离线使用 | 需要强大的硬件，质量较低 |
 
 ### OpenClaw 内部的模型路由
@@ -383,29 +355,33 @@ OpenClaw 从 `~/.openclaw/openclaw.json` 读取配置（JSON5 格式——允许
 
 ```json5
 {
-  "agents": {
-    "defaults": {
-      "model": "openai/gpt-4o-mini"  // Cheap default
+  agents: {
+    defaults: {
+      model: "openai/gpt-6-luna",  // Cheap default
     },
-    "list": [
-      {
-        "name": "coding-agent",
-        "model": "anthropic/claude-sonnet-4"  // Premium for code
+    entries: {
+      coding: {
+        workspace: "~/.openclaw/workspace-coding",
+        // Premium for code, with its own fallback (per-agent models are strict otherwise)
+        model: { primary: "anthropic/claude-sonnet-5-5", fallbacks: ["openai/gpt-6.1-sol"] },
       },
-      {
-        "name": "reminder-bot",
-        "model": "google/gemini-2.0-flash"  // Cheap for simple tasks
-      }
-    ]
-  }
+      reminders: {
+        workspace: "~/.openclaw/workspace-reminders",
+        model: "google/gemini-3.8-flash",  // Cheap for simple tasks
+      },
+    },
+  },
+  // Route channels or peers to these agents with top-level bindings (see Multi-Agent Routing)
 }
 ```
+
+`agents.defaults.utilityModel` 用于处理另一项成本泄漏：会话标题、进度叙述等短小的内部调用。如果不设置，OpenClaw 会在主提供商声明了小模型时使用该模型。
 
 ---
 
 ## 消息平台集成
 
-OpenClaw 通过其 channel adapter（通道适配器）架构支持 20+ 个消息平台：
+OpenClaw 通过通道适配器支持 20 多个消息平台。Telegram 随核心安装包提供，也是文档推荐的首个通道（只需 bot token，无需插件）。其他大多数通道是按需安装的官方插件（`openclaw plugins install @openclaw/<id>`，或在 `openclaw onboard` 期间安装）；WeChat 等少数插件由仓库外部维护。每个插件都是在 Gateway 进程内运行的代码，审查方式应与技能相同。
 
 ### 支持的平台
 
@@ -415,19 +391,20 @@ OpenClaw 通过其 channel adapter（通道适配器）架构支持 20+ 个消�
 | Telegram | grammY | 稳定 | 官方 Bot API；最可靠的通道 |
 | Slack | Bolt | 稳定 | 需要安装 Workspace（工作区）应用 |
 | Discord | discord.js | 稳定 | 需要 Bot token（机器人令牌） |
-| Signal | signal-cli | 稳定 | 需要已关联设备 |
-| iMessage | BlueBubbles | 稳定 | 仅限 macOS；需要 BlueBubbles server（服务器） |
+| Signal | signal-cli | 稳定 | 需要已关联设备；可用原生守护进程或容器 |
+| iMessage | imsg | 稳定 | 仅 macOS；官方插件通过 JSON-RPC 通信（已移除 BlueBubbles 支持） |
 | Google Chat | Chat API | 稳定 | 需要 Workspace 管理员批准 |
-| Microsoft Teams | Bot Framework | Beta | 2026 年第二季度完整发布 |
+| Microsoft Teams | Bot Framework | 已支持 | 官方插件；2026 年初为测试版，现为 README 重点列出的通道 |
 | IRC | irc-framework | 稳定 | 支持经典协议 |
 | Matrix | matrix-js-sdk | 稳定 | Federated（联邦式），适合自托管 |
 | Mattermost | API | 稳定 | 自托管 Slack 替代方案 |
 | LINE | Messaging API | 稳定 | 在日本/东南亚流行 |
 | Feishu (Lark) | Open API | 稳定 | 在中国流行 |
 | Twitch | TMI.js | 稳定 | 仅聊天 |
-| WeChat | -- | Beta | 需要自定义桥接 |
-| Nostr | -- | Beta | 去中心化协议 |
+| WeChat | openclaw-weixin（外部插件） | 测试版 | 在 OpenClaw 仓库外维护 |
+| Nostr | NIP-04 | 测试版 | 去中心化协议上的加密私信 |
 | WebChat | Built-in | 稳定 | 基于浏览器的后备方案 |
+| A2A | A2A 1.0 JSON-RPC（内置插件） | 已支持 | 不是聊天应用；可让外部代理给 OpenClaw 代理发消息，应采用与人类发送者相同的允许列表 |
 
 ### 跨渠道统一上下文
 
@@ -461,11 +438,13 @@ OpenClaw 的安全模型假设一种“个人助理”威胁模型：一个受�
  ─────────────────────────────────
  Who can message the bot?
  Configured per-channel with allowlists.
+ Unknown DM senders get a pairing code
+ by default, not a response.
 
  Layer 2: Agent Tool Allow/Deny
  ─────────────────────────────────
  Which tools can this agent use?
- Configured per-agent in agents.list[].tools.
+ Configured per-agent in agents.entries.<id>.tools.
 
  Layer 3: Sandbox Tool Policy
  ─────────────────────────────────
@@ -475,40 +454,54 @@ OpenClaw 的安全模型假设一种“个人助理”威胁模型：一个受�
  Layer 4: Elevated Access
  ─────────────────────────────────
  Some tools require host-level access.
- Gated per-channel and per-user with allowFrom lists.
+ Gated globally and per agent with allowFrom
+ lists; the agent gate can only narrow the
+ global one, and a sender must pass both.
 ```
 
 ### 沙箱隔离
 
-对于非主会话（子代理、定时任务、隔离任务），OpenClaw 支持 Docker 沙箱隔离：
+沙箱默认**关闭**：除非自行配置，主会话工具直接在宿主机运行。至少应为非主会话（子代理、定时任务、隔离任务）启用，也可对全部会话启用：
 
-```yaml
-# docker-compose.sandbox.yml
-services:
-  openclaw-sandbox:
-    image: openclaw/sandbox:latest
-    network_mode: "none"        # No network access
-    read_only: true             # Read-only root filesystem
-    volumes:
-      - ./workspace:/workspace  # Restricted workspace only
-    security_opt:
-      - no-new-privileges:true
+```json5
+// ~/.openclaw/openclaw.json
+{
+  agents: {
+    defaults: {
+      sandbox: {
+        mode: "non-main",          // "off" (default) | "non-main" | "all"
+        backend: "docker",
+        scope: "session",          // one container per session; "agent" shares one per agent
+        workspaceAccess: "none",   // the agent workspace is not visible inside the sandbox
+        docker: {
+          image: "openclaw-sandbox:bookworm-slim",
+          network: "none",         // no egress
+          readOnlyRoot: true,
+          capDrop: ["ALL"],
+        },
+      },
+    },
+  },
+}
 ```
 
-使用 `network: "none"` 时，处于沙箱中的子代理无法发起出站请求，无法外泄数据，也无法访问外部服务，即使它正在运行恶意代码也是如此。
+使用 `network: "none"`（Docker 后端的默认值）时，沙箱中的子代理即便运行恶意代码，也无法发起出站请求、外传数据或访问外部服务。代价是选择 `non-main` 时，上下文最多、权限也最多的主会话仍在宿主机运行。
 
 ### 关键安全警告
 
-**默认信任 localhost**：默认情况下，OpenClaw 会信任来自 localhost 的连接且不进行身份验证。如果网关位于配置不当的反向代理之后，而该代理将所有请求转发到 localhost，外部攻击者将获得完整访问权限。远程部署时务必配置身份验证。
+**回环地址是第一道防线**：宿主机安装会把 Gateway 绑定到回环地址，网络可达性承担了很大一部分安全防护。若配置不当的反向代理把全部请求转发到 localhost，所有外部调用者看起来都会来自回环地址，Gateway 对本地连接授予的权限也就暴露到互联网。容器镜像绑定在对外接口上，依赖生成的 Gateway 令牌。远程部署应始终启用 Gateway 认证；项目支持的是每个 Gateway 一个可信操作者，而不是彼此敌对的租户。
 
-**技能供应链**：社区技能目录曾发生过恶意包事件。安装第三方技能前务必进行审查。固定技能版本。对不受信任的技能使用沙箱。
+**技能供应链**：社区技能目录曾出现恶意软件包。安装第三方技能前务必审查，并按内容而非仅按引用固定版本：Plugin4Shell（AIR Security，2026 年 9 月）表明，代理安装固定到提交 SHA 的插件时仍可能检出攻击者代码——仓库所有者可创建一个以 SHA 命名的分支并将其设为默认分支，而代理没有核验实际检出的提交。MCP 技能扩展（`io.modelcontextprotocol/skills`，2026 年 9 月 13 日定稿）也采用相同思路：用 SHA-256 文件清单审批，任一文件修改、增加或删除都会撤销审批。不可信技能应在沙箱中运行。
 
 ### 加固检查清单
 
 ```
+[x] Run `openclaw security audit` after every config change
 [x] Set state directory permissions to 700
 [x] Configure channel allowlists (do not leave open)
-[x] Enable sandbox for sub-agents and cron jobs
+[x] Keep DM pairing on; approve senders explicitly
+[x] Enable sandbox for sub-agents and cron jobs (mode: "non-main" or "all")
+[x] Pin the gateway to the extended-stable release train
 [x] Use environment variables for API keys, never hardcode
 [x] Put Gateway behind authenticated reverse proxy for remote access
 [x] Review all third-party skills before installation
@@ -522,37 +515,35 @@ services:
 
 ## 部署模式
 
-### 选项 1：本地开发（最快开始）
+### 选项 1：本地安装（最快开始）
 
 ```bash
-# Clone and run
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
-cp .env.example .env
-# Edit .env: add ANTHROPIC_API_KEY or OPENAI_API_KEY
-
-npm install
-npm start
+# Install the CLI, then let onboarding set up keys, channels and the background service
+npm install -g openclaw@latest --allow-scripts=openclaw
+openclaw onboard --install-daemon
+openclaw gateway status
+openclaw security audit
 ```
 
-**要求**：Node.js 20+、512MB RAM、任意操作系统。
+**要求**：Node.js 24.16+ 或 26.1+（推荐 Node 26）、512MB RAM，macOS、Linux 或 Windows（WSL2 或 PowerShell 安装程序）。
 
 ### 选项 2：Docker（生产环境推荐）
 
+仓库的 `./scripts/docker/setup.sh` 会构建或拉取镜像，执行引导配置，并把 Gateway 令牌写入 `.env`。若自行管理 Compose，可使用类似下方的最小服务配置：
+
 ```yaml
 # docker-compose.yml
-version: "3.8"
 services:
-  openclaw:
-    image: openclaw/openclaw:latest
-    container_name: openclaw-gateway
+  openclaw-gateway:
+    image: ghcr.io/openclaw/openclaw:extended-stable  # LTS-style train; :latest tracks stable
+                                                      # releases; -browser variants bundle Chromium
     restart: unless-stopped
     ports:
-      - "18789:18789"
+      - "127.0.0.1:18789:18789"               # keep the port off public interfaces
     volumes:
-      - ./state:/app/state         # Persistent state
-      - ./openclaw.json:/app/openclaw.json  # Configuration
+      - ./openclaw-state:/home/node/.openclaw # Config, state and memory
     environment:
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}  # the image binds to an exposed interface
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     mem_limit: 2g
@@ -565,7 +556,7 @@ services:
 
 ```bash
 docker compose up -d
-docker logs -f openclaw-gateway  # Watch logs
+docker compose logs -f openclaw-gateway  # Watch logs
 ```
 
 ### 选项 3：云 VPS（始终在线）
@@ -613,7 +604,7 @@ OpenClaw 很轻量，任何具备 512MB RAM 和 1 个 CPU 核心的机器都足�
  │  │  network: none                  │ │
  │  └─────────────────────────────────┘ │
  │                                      │
- │  Volume: ./state (700 permissions)   │
+ │  Volume: ./openclaw-state (700)      │
  └──────────────────────────────────────┘
          │
          ▼
@@ -662,18 +653,20 @@ server {
 
 ### 上下文窗口管理
 
-LLM（大型语言模型）的注意力会随着上下文长度呈二次方增长。当上下文从 50K 个 token（词元）增加到 100K 个 token 时，模型需要完成四倍的工作量。实用优化：
+历史记录带来两类成本。注意力计算量随上下文长度近似呈二次方增长，长提示会增加延迟。账单也会增长：每一轮都会重新发送整段对话；若稳定前缀未命中提示缓存，每段对话的输入 token 总量大致随轮数平方增长。实用优化包括：
 
 - **限制上下文窗口**：100K 个 token 足以应对大多数任务
 - **开启新对话**：长历史会累积数百条消息；定期重启
 - **禁用未使用的技能**：每个已加载技能都会占用上下文预算
+- **保持前缀可缓存**：把 SOUL.md、AGENTS.md 和技能描述放在前面，并在各轮之间保持稳定。大多数 Claude 模型的缓存读取费用是普通输入的 0.1 倍（Opus 5.5 为 0.05 倍，Fable 5.1 为 0.025 倍）；OpenAI GPT-5.6 和 GPT-6 模型也为 0.1 倍（GPT-6.1 Sol 为 0.05 倍）。热缓存前缀成本很低，冷缓存则按完整输入价计费。
 
 ### 技能优化
 
 ```
  DO: Enable only skills you actively use
  DO: Write concise SKILL.md descriptions
- DO: Use specific trigger keywords
+ DO: Say in the description when to use the skill
+ DO: Set a per-agent skill allowlist
 
  DON'T: Enable everything "just in case"
  DON'T: Write verbose skill instructions
@@ -684,10 +677,10 @@ LLM（大型语言模型）的注意力会随着上下文长度呈二次方增�
 
 ### 延迟降低
 
-1. **禁用冗长思考**：`thinkingDefault` 设置控制内部推理。对于实时交互，跳过思维链可将处理时间大约减半
+1. **降低思考强度**：`thinkingDefault` 控制内部推理。实时交互跳过思维链可显著缩短响应时间。不过最新 Claude 模型已不允许完全关闭思考（Opus 5.5 始终思考；Sonnet 5.5 的最低档是 `between_tools`，`disabled` 会返回 HTTP 400），因此应降低推理强度，或把对延迟敏感的代理路由到允许关闭思考的模型
 2. **使用更快的模型**：将简单任务（提醒、查询）路由到更小的模型
 3. **就近部署提供商**：使用靠近你的服务器的 LLM 提供商和区域
-4. **使用 Docker 监控**：`docker stats openclaw-gateway` 用于实时资源使用情况
+4. **使用 Docker 监控**：对 Gateway 容器运行 `docker stats`，实时查看资源使用情况
 
 ---
 
@@ -749,7 +742,7 @@ Developer (phone)
 
 **配置复杂性**：良好运行 OpenClaw 涉及管理环境、权限、工具连接器和执行沙箱。许多用户反馈，配置系统花费的时间比使用系统还多。
 
-**记忆脆弱性**：会话内聊天历史是临时的，在 Gateway 重启后会丢失。工作区文件只会保留明确保存过的内容。如果某次对话从未保存到记忆文件，之后就没有任何可检索内容。
+**记忆脆弱性**：会话历史现已存入每个智能体独立的 SQLite 存储，Gateway 重启后仍在；但模型跨会话“记住”的内容只来自写入工作区记忆文件的信息。新建 `/new` 会话会加载 `MEMORY.md` 以及当天和前一天的每日日志，其他内容需要通过记忆搜索获取。若 `MEMORY.md` 超出启动上下文预算，磁盘文件不会损坏，但注入上下文的副本会被截断。默认的后台“做梦”整理会把每日日志提炼到 `MEMORY.md`，虽然便利，却也是写入所有未来提示的路径，投毒笔记可能长期留存。
 
 **资源消耗**：加载大量技能时，容器可能使用 2GB 以上内存。长对话历史会进一步加剧这一点。
 
@@ -768,38 +761,34 @@ Developer (phone)
 
 ---
 
-## 四月 2026 Anthropic 封禁与回滚事件
+## 2026 年 Anthropic 订阅政策事件
 
-OpenClaw 依赖 Claude Pro 和 Claude Max 订阅来驱动智能体工作。在 2026 年四月之前，这一直被视为一种成本控制特性：用户可以将 OpenClaw 接入自己现有的个人 Claude 计划，而不是支付 API 费率。4 年 2026 月，Anthropic 更改了政策。一项新的执行条款阻止第三方智能体框架作为 Pro 和 Max 订阅的程序化中介。在数小时内，指向 Pro 和 Max 账户的 OpenClaw 实例开始返回错误。大约 135,000 个活跃 OpenClaw 部署受到影响，其中相当一部分用户转向直接 API 计费，费率达到他们此前有效成本的 5 倍或更高。社区不满在 Hacker News 和 X 上持续发酵了近两周。
+到 2026 年 4 月之前，利用 Claude Pro 和 Max 订阅驱动 OpenClaw 曾被视为控制成本的办法：用户可接入已有个人套餐，而不按 API 价格付费。从 2026 年 4 月 4 日起，Anthropic 不再允许第三方运行框架（如 OpenClaw）使用订阅用量额度；它们只能继续通过按 API 费率计费的按量额外用量运行。Anthropic 将此举归因于容量压力，指出一些第三方工具绕过了提示缓存。对重度代理工作负载，有效价格增长数倍；媒体估算这类用量原先的订阅折扣相对 API 价格达到五倍或更多。
 
-Anthropic 在四月中旬通过一款名为 Agent SDK Credit 的新产品回滚了该政策。这是一种计量额度，捆绑在 Pro 和 Max 计划中（Max 额度更高），明确授权通过 Anthropic Agent SDK 进行程序化智能体使用。与 Agent SDK 集成的框架（包括 OpenClaw）现在可以再次驱动个人订阅，但需处于透明配额内，并且只能通过 Agent SDK 路径。直接抓取 Claude.ai 网页会话仍然被禁止。
+承诺的回调方案至今未定。5 月 13 日，Anthropic 宣布将于 6 月 15 日推出每月 Agent SDK 额度：Pro 为 20 美元、Max 5x 为 100 美元、Max 20x 为 200 美元，覆盖 Agent SDK、`claude -p`、Claude Code GitHub Actions 以及通过 Agent SDK 认证的第三方应用；只有开启额外用量时，超出额度的部分才按 API 费率计费。然而 6 月 15 日当天，Anthropic 暂停了计划。其帮助中心（最后更新于 6 月 16 日）表示，Agent SDK、`claude -p` 和第三方应用的用量仍计入订阅额度。OpenClaw 自己的 Anthropic 提供商文档也称额度在 Anthropic 修订期间不可用。实际使用中，OpenClaw 通过 Claude Code 自身凭据访问 Pro 或 Max 套餐，方式是 Claude CLI 后端或 `claude setup-token` 令牌，其用量计入套餐限额；针对共享的生产自动化，OpenClaw 文档建议使用按量计费的 Anthropic API 密钥。
 
 ### 事件时间线
 
 ```mermaid
 gantt
-    title April 2026 Anthropic OpenClaw incident
+    title 2026 年 Anthropic 订阅政策与 OpenClaw
     dateFormat  YYYY-MM-DD
     axisFormat  %b %d
-    section Policy actions
-    Block on Pro Max programmatic use      :done, a1, 2026-04-04, 1d
-    Community backlash and migration       :active, a2, 2026-04-05, 13d
-    Agent SDK Credit announcement          :crit, a3, 2026-04-18, 1d
-    Agent SDK Credit GA rollout            :a4, 2026-04-21, 9d
-    section User behavior
-    Mass move to direct API billing        :b1, 2026-04-05, 13d
-    Self-host and multi-provider migration :b2, 2026-04-07, 25d
+    section 政策动作
+    订阅不再覆盖第三方运行框架 :milestone, a1, 2026-04-04, 0d
+    宣布 Agent SDK 额度        :milestone, a2, 2026-05-13, 0d
+    额度计划在启动当日暂停      :milestone, a3, 2026-06-15, 0d
 ```
 
 ### 从架构上看意味着什么
 
 这起事件不是安全事件。它是一次产品政策事件，并带来了安全性和可靠性后果。由此得出三点教训：
 
-**提供商政策是你架构的一部分。** 从可用性的角度看，供应商“可接受使用”执行规则中的一行条款，在功能上等同于一次持续到该政策失效为止的服务中断。如果你的 Agent（智能体）平台经济性依赖某个特定提供商套餐，那么该提供商的政策团队就在你的关键路径上。要把他们的服务条款视为运行时依赖，而不是法律文书。
+**提供商政策是架构的一部分。** 在十周内，Anthropic 变更了第三方运行框架可使用的订阅额度范围，宣布替代方案，又在预定启动日暂停它。如果代理平台的经济性依赖某个套餐，套餐覆盖范围变化可在一夜之间带来价格冲击；没有备用计费方式时，请求还可能直接停止。提供商的政策团队就在关键路径上，应将其服务条款视为运行时依赖，而非纯法律文书。
 
-**多提供商抽象是运维卫生，而不是优化。** 那些同时配置了 Anthropic 和 OpenAI 提供商，并为每个 Agent 设置模型路由规则的 OpenClaw 用户，在封锁期间仍能以降级质量继续工作。那些在每个 Agent 定义中硬编码单一提供商的用户则完全无法运行。抽象层构建成本很低，而它覆盖的故障模式是真实存在的。
+**多提供商抽象是运维基础。** 为每个智能体配置第二提供商的 OpenClaw 用户，可在 Claude 价格机制变化时重新路由；把单一提供商硬编码到每个智能体定义中的用户只能支付新价格或停用。抽象层成本不高，却覆盖真实故障。普通服务中断也说明同样的问题：2026 年 8 月 16 日至 9 月 29 日间 Anthropic 至少记录了 12 起重大或严重事件；9 月 29 日 OpenAI API、ChatGPT 和 Codex 也发生了约 5 小时 20 分钟的中断。只在同一供应商内部设置回退，无法覆盖这些情况。
 
-**对于个人数据 Agent，自托管兜底很重要。** 相当一部分 OpenClaw 部署在两周内把默认 Agent 切换到了本地 Ollama 模型（Llama 3.3 70B 是最常见选择），接受较低质量以换取有保障的可用性。这里的教训不是本地模型可以与前沿模型竞争；而是即使质量降级，拥有一条可工作的备用路径也是严肃部署的一部分。
+**处理个人数据的代理需要自托管后备。** 至少保留一条不会被任何供应商套餐条款关停的回退路径，例如通过 Ollama 或 vLLM 提供的本地模型；为可用性接受该路径上较低的质量。教训并非本地模型可以与前沿模型竞争，而是认真部署需要一条即便降级也能工作的备用路径。
 
 ### 供应商风险检查清单
 
@@ -812,7 +801,9 @@ gantt
 
 **来源：**
 - [Axios：Anthropic 封锁 OpenClaw 第三方 Agent](https://www.axios.com/2026/04/06/anthropic-openclaw-subscription-openai)
-- [VentureBeat：OpenClaw 在 Agent SDK 积分条件下恢复使用](https://venturebeat.com/technology/anthropic-reinstates-openclaw-and-third-party-agent-usage-on-claude-subscriptions-with-a-catch)
+- [VentureBeat：Agent SDK 额度公告（2026 年 5 月 13 日）](https://venturebeat.com/technology/anthropic-reinstates-openclaw-and-third-party-agent-usage-on-claude-subscriptions-with-a-catch)
+- [Claude 帮助中心：在 Claude 套餐中使用 Claude Agent SDK（2026 年 6 月 15 日暂停通知）](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+- [OpenClaw 文档：Anthropic 提供商](https://docs.openclaw.ai/providers/anthropic)
 
 ---
 
@@ -821,15 +812,15 @@ gantt
 | 功能 | OpenClaw | Hermes Agent | Claude Code | Open Interpreter |
 |---------|----------|-------------|-------------|-----------------|
 | **主要界面** | 消息应用 | 消息应用 | 终端/CLI | 终端/CLI |
-| **架构** | 网关 + 渠道适配器 | 学习循环 + 技能记忆 | Agentic CLI（智能体式命令行界面） | 简单 REPL（交互式读取-求值-输出循环） |
-| **LLM（大语言模型）支持** | 任意（Claude、GPT、Gemini、本地） | 任意 | 仅 Claude | 任意 |
-| **消息平台** | 20+（WhatsApp、Telegram、Slack 等） | 6（Telegram、Discord、Slack、WhatsApp、Signal、电子邮件） | 无（仅终端） | 无（仅终端） |
-| **记忆** | 每个助手跨会话 | 多级（会话、持久化、技能） | 仅会话（CLAUDE.md 用于上下文） | 仅会话 |
-| **技能/插件** | 100+ 内置，社区生态 | 自学习技能系统 | MCP（模型上下文协议）工具 | 有限插件 |
-| **自托管** | 是（必需） | 是（必需） | 否（Anthropic 托管） | 是 |
-| **GitHub 星标** | 250K+ | 22K+ | N/A（闭源） | 55K+ |
-| **最适合** | 多渠道个人 AI 助手 | 能随时间学习的个人 Agent | 软件开发 | 快速本地自动化 |
-| **最薄弱** | 可预测性、企业使用 | 平台覆盖范围 | 非编码任务 | 复杂工作流 |
+| **架构** | 网关 + 渠道适配器 | 学习循环 + 技能记忆 | 智能体 CLI | 从 Codex 衍生的运行框架（2026 年 7 月 Rust 重写）；原 Python REPL 作为社区分支继续存在 |
+| **LLM（大语言模型）支持** | 任意（Claude、GPT、Gemini、本地） | 任意 | 仅 Claude | 任意；针对低成本开放模型优化 |
+| **消息平台** | 20+（WhatsApp、Telegram、Slack 等） | 6 个平台（Telegram、Discord、Slack、WhatsApp、Signal、电子邮件）加 CLI，由同一个 Gateway 进程提供 | 以终端为主；研究预览的渠道支持 Telegram、Discord、iMessage，并通过 Claude in Slack 接入 Slack | 无（仅终端） |
+| **记忆** | 每个助手跨会话 | 多级（会话、持久化、技能） | 用户编写的 CLAUDE.md 加 Claude 按仓库自动写入的记忆（本地会话默认启用） | 仅会话 |
+| **技能/插件** | 约 50 个内置技能及插件技能；ClawHub 注册表 | 自学习技能系统 | MCP 工具、技能、插件 | 技能（例如浏览器和应用测试的 QA 技能） |
+| **自托管** | 是（必需） | 是（必需） | 本地运行；模型由 Anthropic 或云提供商托管；Team 和 Enterprise 支持自托管运行器 | 是 |
+| **GitHub 星标（2026 年 10 月）** | 约 391K | 约 251K | 约 149K（issues 与插件仓库；核心不开源） | 约 68K |
+| **最适合** | 多渠道个人 AI 助手 | 随使用不断学习的个人代理 | 软件开发 | 使用低成本模型编程 |
+| **最薄弱** | 可预测性、企业使用 | 平台覆盖范围 | 非编程任务 | 成熟度（重写版推出仅数月） |
 
 ### 选择合适的工具
 
@@ -837,8 +828,10 @@ gantt
 Need multi-channel messaging?          --> OpenClaw
 Need an agent that learns from usage?  --> Hermes Agent
 Need autonomous coding specifically?   --> Claude Code
-Need quick one-off local automation?   --> Open Interpreter
-Need enterprise-grade reliability?     --> Custom solution or commercial platform
+Need a coding agent on cheap models?   --> Open Interpreter (Rust rewrite)
+Need always-on without running infra?  --> Managed persistent agents (OpenAI dots, Meta Muse)
+Need enterprise-grade reliability?     --> Custom solution or managed harness (Claude Managed Agents,
+                                           OpenAI Agents API, Bedrock Managed Agents)
 ```
 
 ---
@@ -852,56 +845,58 @@ Need enterprise-grade reliability?     --> Custom solution or commercial platfor
 git clone https://github.com/openclaw/openclaw.git
 cd openclaw
 
-# 2. Copy and edit environment file
-cp .env.example .env
-# Add your LLM API key:
-# ANTHROPIC_API_KEY=sk-ant-...
-# or OPENAI_API_KEY=sk-...
+# 2. Use the prebuilt image (skip to build locally as openclaw:local)
+export OPENCLAW_IMAGE="ghcr.io/openclaw/openclaw:latest"
 
-# 3. Start with Docker
-docker compose up -d
+# 3. Run setup: onboarding prompts for your LLM API key,
+#    and a gateway token is generated and written to .env
+./scripts/docker/setup.sh
 
 # 4. Check logs
-docker logs -f openclaw-gateway
+docker compose logs -f openclaw-gateway
 ```
 
 ### 连接你的第一个渠道（Telegram）
 
 Telegram 是最容易设置的渠道：
 
+```bash
+# Fastest path: the CLI writes the token into your config
+# (with the Docker setup, run CLI commands as: docker compose run --rm openclaw-cli <command>)
+openclaw channels add --channel telegram --token <bot-token-from-BotFather>
+```
+
+也可以手动配置：
+
 ```json5
 // ~/.openclaw/openclaw.json
 {
-  "channels": {
-    "telegram": {
-      "enabled": true,
-      "token": "${TELEGRAM_BOT_TOKEN}",  // From @BotFather
-      "allowedUsers": ["your_telegram_id"]
-    }
+  channels: {
+    telegram: {
+      enabled: true,
+      botToken: "${TELEGRAM_BOT_TOKEN}",  // From @BotFather
+      dmPolicy: "pairing",                // unknown senders get a pairing code, not a reply
+    },
   },
-  "models": {
-    "providers": {
-      "anthropic": {
-        "apiKey": "${ANTHROPIC_API_KEY}"
-      }
-    }
+  agents: {
+    defaults: {
+      model: "anthropic/claude-sonnet-5-5",  // key comes from ANTHROPIC_API_KEY or onboarding
+    },
   },
-  "agents": {
-    "defaults": {
-      "model": "anthropic/claude-sonnet-4"
-    }
-  }
 }
 ```
+
+然后给机器人发一条消息，并批准自己：先运行 `openclaw pairing list telegram`，再运行 `openclaw pairing approve telegram <CODE>`（配对码一小时后过期）。如果需要更严格的机器人，可改用 `dmPolicy: "allowlist"` 和 `allowFrom: ["tg:<your-user-id>"]`。
 
 ### 安装你的第一个技能
 
 ```bash
-# Install a community skill
-cd ~/.openclaw/skills
-git clone https://github.com/example/weather-skill.git weather
+# Install a community skill from ClawHub (read its SKILL.md and scripts first)
+openclaw skills install @owner/weather
+openclaw skills update --all
 
 # Or create your own (see AgentSkills section above)
+cd ~/.openclaw/skills
 mkdir my-skill && cat > my-skill/SKILL.md << 'EOF'
 ---
 name: my-first-skill
@@ -914,13 +909,16 @@ EOF
 ### 验证一切正常工作
 
 ```bash
-# Check Gateway health
-curl http://localhost:18789/health
+# Open the Control UI at http://127.0.0.1:18789/ and sign in with the token from .env
+# (npm installs: `openclaw gateway status` and `openclaw dashboard`)
 
 # Check logs for errors
-docker logs openclaw-gateway --tail 50
+docker compose logs openclaw-gateway --tail 50
 
-# Send a test message via Telegram to your bot
+# Confirm the channel is live
+openclaw channels status --probe
+
+# After pairing, send a test message via Telegram to your bot
 # It should respond within 2-5 seconds
 ```
 
@@ -1011,9 +1009,9 @@ OpenClaw 作为单一进程运行，因为个人助理这一使用场景不需�
 
 采用纵深防御方法：（a）Agent（智能体）级工具白名单定义一个 Agent 理论上可以使用哪些工具。（b）Sandbox（沙箱）级策略单独限制哪些工具实际可以执行。（c）提升权限需要按用户、按频道授权。（d）对子 Agent 使用 Docker 隔离，确保即使恶意提示诱导模型，影响范围也被限制住。
 
-**4. 如何在没有向量数据库的情况下管理记忆？**
+**4. 如何在没有独立向量数据库服务的情况下管理记忆？**
 
-OpenClaw 使用简单的基于文件的记忆系统（状态目录中的 Markdown 文件），而不是向量数据库。对于单用户 Agent，对几百个记忆文件进行全文搜索已经足够快。这避免了运行和维护向量数据库的运维负担。
+OpenClaw 将记忆保存为代理工作区里的纯 Markdown 文件：`MEMORY.md` 存放整理后的事实，`memory/YYYY-MM-DD.md` 存放每日日志；这些文件是事实来源。默认记忆引擎用嵌入式 SQLite 建立关键词、向量和混合搜索索引，因此无需运行独立向量数据库；LanceDB 和 Honcho 后端为可选插件。对单用户代理，数百个文件很适合嵌入式索引。面试中的设计要点是：人类可以阅读、比较并修正记忆，索引则可由文件重建。
 
 **5. 如何处理多频道会话连续性？**
 
@@ -1030,16 +1028,18 @@ OpenClaw 使用简单的基于文件的记忆系统（状态目录中的 Markdow
 
 从“个人助理”到“多租户平台”的架构跨越非常大。OpenClaw 有意不跨越这条边界，这既是优势（简单），也是限制（如果不进行重大架构重构，就无法扩展成 SaaS 产品）。
 
+2026 年 9 月推出的托管产品展示了这个表格另一端的设计：OpenAI dots、Meta Muse 和 Microsoft Copilot Autopilot 为每个代理提供自己的 VM（或客户租户内的计算机）及身份，并用声明式规则替代逐消息审批。例如 dots 可按动作允许、阻断或要求审批，对涉及账户或信息分享的动作自动审查，空闲时降为只读研究。凭据位于模型无法读取的保险库。面试时应将它们与 OpenClaw 的单进程、单操作者设计对照：扩展到十万用户并非只扩大 Gateway 规模，而是要改变信任模型。
+
 ### 面试官可能追问的问题
 
 **问：你会如何为长期记忆添加向量数据库？**
-添加 RAG（检索增强生成）流水线：当 Agent 保存记忆时，对其进行嵌入，并存储到向量数据库（Qdrant、Weaviate）中。每一轮对话时，检索 top-K 个相关记忆并注入上下文。这用存储复杂性换取更好的长期回忆能力，同时避免上下文窗口膨胀。
+对单用户通常无需另加服务：嵌入式索引（OpenClaw 的 SQLite 引擎已经做混合搜索）即可。到了平台规模，可添加 RAG 流水线：代理保存记忆时生成嵌入，按租户分区存入 Qdrant、Weaviate 等向量数据库；每一轮检索 top-K 条相关记忆并注入上下文。要注意两点：第一，保留人类可读文件作为事实来源，以便更换嵌入模型后重建索引；第二，先衡量检索是否真的有帮助。MemTrapBench（arXiv 2608.20202，2026 年 8 月，仍在完善的预印本）构造了准确存储且相关、却会扭曲推理的记忆任务；在这些任务上，它测试的所有记忆策略（两个模型家族、五个框架）都不如不用记忆。应控制记忆写入，并以无记忆基线评估回忆效果。
 
 **问：你会如何让它支持多租户？**
 在容器层面隔离：每个租户都有自己的 Gateway 容器，并配备独立的存储卷、网络命名空间和 API 密钥配置。使用 Kubernetes，并为每个租户配置独立命名空间。在前面添加一个路由层，将租户域名映射到容器。
 
 **问：你会如何处理速率限制以控制 LLM（大语言模型）成本？**
-三个层级：（a）在 Gateway 进行按用户的消息速率限制，（b）在编排器中跟踪按 Agent 的 token 预算，（c）模型路由，将简单查询发送到更便宜的模型。当用户接近预算时提醒用户，并允许配置每日/月度上限。
+三个层级：（a）在 Gateway 按用户限制消息速率；（b）在编排器跟踪每个代理的 token 预算；（c）把简单查询路由到低价模型。用户接近预算时提醒，并允许设置每日/月度上限。达到上限时应暂停代理而不只是提醒（Claude Managed Agents 的会话预算会以 `budget_reached` 停止）；预算还应按缓存未命中的标价计算，因为长历史代理遇到冷提示缓存时账单可能成倍增长。
 
 ---
 
@@ -1052,10 +1052,12 @@ OpenClaw 使用简单的基于文件的记忆系统（状态目录中的 Markdow
 - OpenClaw 安全架构 -- https://docs.openclaw.ai/gateway/security
 - OpenClaw 配置参考 -- https://docs.openclaw.ai/gateway/configuration
 - OpenClaw 多 Agent 路由 -- https://docs.openclaw.ai/concepts/multi-agent
+- OpenClaw 沙箱 -- https://docs.openclaw.ai/gateway/sandboxing
+- OpenClaw Docker 安装 -- https://docs.openclaw.ai/install/docker
 - Milvus 博客：OpenClaw 完整指南 -- https://milvus.io/blog/openclaw-formerly-clawdbot-moltbot-explained-a-complete-guide-to-the-autonomous-ai-agent.md
 - DigitalOcean：什么是 OpenClaw -- https://www.digitalocean.com/resources/articles/what-is-openclaw
 - awesome-openclaw-agents（社区技能）-- https://github.com/mergisi/awesome-openclaw-agents
 
 ---
 
-*下一篇：参见 [Claude Code 深入解析](../09-frameworks-and-tools/09-claude-code.md)，以对比 Anthropic 面向编码的 Agent 方法。*
+*下一篇：[计算机操作代理](04-computer-use-agents.md)。也可参见 [Claude Code 深入解析](../09-frameworks-and-tools/09-claude-code.md)，对比 Anthropic 面向编程的代理方法。*

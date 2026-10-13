@@ -1,14 +1,14 @@
 # AI 系统设计面试准备
 
-适用于高级工程师（senior）与资深工程师（staff）AI 工程岗位的面试准备：128 道系统设计题、可执行的答题框架及一段完整的模拟面试逐字稿、常见陷阱、九道白板练习、行为面准备、速答 FAQ，以及 2026 年 8 月的招聘趋势。
+适用于高级工程师（senior）与资深工程师（staff）AI 工程岗位的面试准备：147 道系统设计题（含专门的 Voice AI 题组）、可执行的答题框架及一段完整的模拟面试逐字稿、常见陷阱、十道白板练习、行为面准备、速答 FAQ，以及 2026 年 10 月的招聘趋势。
 
-> **新增内容（2026 年 8 月）：** 题库新增了 6 道 2026 年 8 月题目（首次大规模推理涨价后的成本模型重建、能力分层访问控制、Shai-Hulud 蠕虫事件后的编码智能体供应链防御、Agent Plugin 审查、无状态规范下多租户 MCP 服务器的安全设计，以及在欧盟和加州透明度规则已可执行后交付合成内容溯源），目前题目连续编号为 Q1–Q128。
+> **新增内容（2026 年 10 月）：** 题库新增了 7 道 2026 年 9 月题目（在网络安全评级为 Critical 的模型上运行智能体、委派给后端模型的全双工语音前端、供应商移除采样参数及强制工具调用、托管智能体平台、结合公开排行榜解读基准测试主张、开放权重许可证门槛，以及修补自托管推理栈），并新增一个含 12 道题的 [Voice AI](01-question-bank.md#语音-ai-问题) 章节，覆盖架构选择、延迟预算、电话音频中的轮次切换、每分钟成本、评估和呼叫合规。题库现已连续编号为 Q1–Q147，白板题组也新增了第十道练习：推理批处理。
 
 ## 开始前准备
 
 本文件夹假设你已经能够编写生产代码，并且熟悉 LLM（大语言模型）基础知识（tokens（令牌）、context windows（上下文窗口）、embeddings（嵌入向量）、RAG（检索增强生成）是什么）。如果这些基础不牢，建议先花一周学习 [01-foundations](../01-foundations/) 与 [Courses guide](../COURSES.md)；在缺少基础的前提下进行面试准备，往往会产出“听起来很流畅但实际上错误”的答案，这是高级轮次中最糟糕的结果。
 
-本文件夹中的内容建议按顺序阅读。每一部分都建立在前一部分之上：题库覆盖表层范围，框架指导如何组织答案，常见陷阱说明什么会毁掉 offer，白板练习用于反复演练，行为面覆盖 staff 级信号，岗位趋势说明当前招聘格局。
+本文件夹中的内容建议按顺序阅读。每一部分都建立在前一部分之上：题库覆盖表层范围，框架指导如何组织答案，常见陷阱说明什么会毁掉 offer，白板练习用于反复演练，行为面覆盖 staff 级信号，岗位趋势说明谁在招聘、招聘什么岗位以及薪酬水平。
 
 ## 阅读顺序
 
@@ -37,9 +37,13 @@ mindmap
       答题框架
       白板练习
     Staff 或 Principal 工程师
-      进阶题组 Q50 至 Q128
+      进阶题组 Q50 至 Q135
       行为面试 STAR-L
       评估与记忆练习
+    Voice AI 岗位
+      Voice AI 题组 Q130 和 Q136 至 Q147
+      延迟与电话通信
+      呼叫合规
     应用科学家
       模型选择题
       评估题
@@ -54,13 +58,19 @@ mindmap
 
 | 文件 | 用途 |
 |------|------|
-| [01-question-bank.md](01-question-bank.md) | 128 道真实面试题（Q1–Q128，连续编号），按主题分组，含标准答案与追问（更新至 2026 年 8 月）。 |
+| [01-question-bank.md](01-question-bank.md) | 147 道面试题（Q1–Q147，连续编号），取材自公开报道的面试流程、招聘信息、近期发布与事件，按主题分组，含标准答案与追问（更新至 2026 年 9 月），其中包括一个含 12 道题的 Voice AI 章节。 |
 | [02-answer-frameworks.md](02-answer-frameworks.md) | 五种结构化答题框架（SPIDER、ETA、tradeoff（权衡）、debugging（调试）、STAR-L）以及一段完整的 45 分钟 SPIDER 模拟面试逐字稿。 |
 | [03-common-pitfalls.md](03-common-pitfalls.md) | 会导致 staff 级 offer 落空的典型模式：在 tradeoff（权衡）上泛泛而谈、缺少 observability（可观测性）、忽略 failure modes（失败模式）。 |
-| [04-whiteboard-exercises.md](04-whiteboard-exercises.md) | 九道系统设计白板题及参考解法，包含 evaluation pipeline design（评估流水线设计）和 agent memory（代理记忆）练习。最接近真实面试流程的模拟。 |
-| [05-behavioral-for-ai-roles.md](05-behavioral-for-ai-roles.md) | 针对 AI 场景的行为面准备，含六个 STAR-L 实战示例、薪酬与职级问题，以及大声练习指南。 |
-| [06-job-market-trends-2026.md](06-job-market-trends-2026.md) | 角色分类、薪酬区间、面试流程模式，以及新兴职级（FDE、AI Eval Engineer、AI Reliability Engineer、MCP Engineer）。 |
+| [04-whiteboard-exercises.md](04-whiteboard-exercises.md) | 十道系统设计白板题及参考解法，包含 evaluation pipeline design（评估流水线设计）、agent memory（代理记忆）和 inference batching（推理批处理）练习。最接近真实面试流程的模拟。 |
+| [05-behavioral-for-ai-roles.md](05-behavioral-for-ai-roles.md) | 针对 AI 场景的行为面准备，涵盖 FDE 面试流程中面向客户的部署环节和过往项目技术深挖，含六个 STAR-L 实战示例、薪酬与职级问题，以及大声练习指南。 |
+| [06-job-market-trends-2026.md](06-job-market-trends-2026.md) | 角色分类、薪酬区间（标注重新核查过的 levels.fyi 数据行）、初级岗位与裁员数据、各公司对 AI 用于面试的政策，以及新兴职级（FDE、AI Eval Engineer、AI Reliability Engineer、MCP Engineer）。 |
 | [07-faq.md](07-faq.md) | 针对 AI 工程、RAG（检索增强生成）、agents（智能体）、模型、评估、推理（inference）、记忆（memory）、安全问题的高频简短问答，适合快速查阅与新手入门。 |
+
+## 与真实面试官练习
+
+本文件夹的所有内容都可以自学，但面试流程中有一部分无法独自完成：当面试官打断你、改变约束条件，并追问你为何没有选择另一种方案时，出声捍卫自己的设计。这是一项技能，通过反复练习和直接反馈能最快提升。
+
+如果你需要这些练习机会，Om 提供一对一 AI 系统设计模拟面试、书面答案和经历故事评审，以及面向转向高级或资深 AI 工程岗位工程师的持续辅导。可通过 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 预约。建议在完成答题框架学习和至少三道白板练习后再预约，这样会话检验的是你的表达，而非阅读成果。
 
 ## 配套资源
 
@@ -74,5 +84,5 @@ mindmap
 - 文件按顺序阅读；若只做题目而不先学习答题框架，答案结构会不完整。
 - 白板练习（04 号文件）是最接近真实面试的模拟，正式面试前至少做三题。
 - 行为面（05 号文件）是 staff 与 senior 的分水岭，不可跳过。
-- 2026 年 8 月岗位趋势（06 号文件）是关键优势：了解招聘格局能帮助你提更好的问题并更好地定制经历叙述。
+- 2026 年 10 月岗位趋势（06 号文件）是关键优势：了解当前招聘市场能帮助你提更好的问题并更好地定制经历叙述。
 - 建议每月回顾本文件夹；随着招聘趋势变化，题库将持续新增题组。

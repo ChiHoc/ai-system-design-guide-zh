@@ -1,17 +1,18 @@
 # 多智能体编排
 
-复杂系统很少只由一个智能体组成。它们是由专门化智能体构成的团队。编排已从“盲目管理者”演进为由 A2A 等互操作协议支持的**分层监督器**、**动态群体**和**跨供应商智能体网络**。Gartner 预计，到 2026 末，企业应用中将有 40% 配备任务特定 AI 智能体，高于 2025 年初不足 5% 的水平。
+复杂系统很少只由一个智能体组成。它们是由专门化智能体构成的团队。编排已从“盲目管理者”演进为由 A2A 等互操作协议支持的**分层监督器**、**动态群体**和**跨供应商智能体网络**。Gartner 于 2025 年 8 月预测，到 2026 年末，40% 的企业应用将配备任务特定 AI 智能体，高于 2025 年不足 5% 的水平。
 
 ## 目录
 
 - [为什么要用多智能体？](#为什么要用多智能体)
 - [监督器模式](#监督器模式-分层)
-- [流水线模式](#群体-openai-模式)
-- [群体与点对点（P2P）](#基于图的编排-2026-主导模式)
-- [基于图的编排（2026 主导模式）](#通过-a2a-进行跨供应商智能体编排)
-- [通过 A2A 进行跨供应商智能体编排](#多智能体的-2026-框架版图)
-- [多智能体的 2026 框架版图](#状态管理)
-- [智能体团队中的状态管理](#点对点-p2p-辩论)
+- [群体（OpenAI 模式）](#群体-openai-模式)
+- [流水线模式（以代码定义工作流）](#流水线模式-以代码定义工作流)
+- [基于图的编排（2026 主导模式）](#基于图的编排-2026-主导模式)
+- [通过 A2A 进行跨供应商智能体编排](#通过-a2a-进行跨供应商智能体编排)
+- [多智能体的 2026 框架版图](#多智能体的-2026-框架版图)
+- [智能体团队中的状态管理](#状态管理)
+- [点对点（P2P）辩论](#点对点-p2p-辩论)
 - [面试题](#面试题)
 - [参考资料](#参考资料)
 
@@ -30,21 +31,41 @@
 
 截至 2026，这是最常见的企业模式。
 
-- **监督器**：一个高推理模型（Claude Opus 4.7、GPT-5.5 reasoning、Gemini 3.1 Pro Deep Think），负责分解用户提示并将任务委派给工作器。
-- **工作器**：快速、成本高效的模型（Claude Haiku 4.5、Gemini 3.1 Flash、GPT-5.5-mini），负责执行工作。
+- **监督器**：高推理模型（Claude Opus 5.5 或 Fable 5.1、GPT-6 Astra 或 GPT-6.1 Sol），负责分解用户提示并将任务委派给工作器。
+- **工作器**：快速、成本高效的模型（Claude Sonnet 5.5 或 Haiku 4.5、GPT-6 Luna、Gemini 3.8 Flash），负责执行工作。
 - **审阅者**：一个独立智能体，根据监督器的原始计划验证汇总后的输出。
 
 **架构**：LangGraph 仍然是实现这类具备状态感知的分层循环的主导框架。截至 2026，Claude Agent SDK、Google ADK 和 Microsoft Agent Framework 都原生支持这种模式。
+
+**付费前重新核对模型档位划分。**曾支持以廉价工作器配昂贵监督器的价差已经收窄：Claude Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol 的标价都是每 1M 词元 $2/$10，Opus 5.5 降至 $4/$20；Anthropic 自家的智能体评测（厂商报告）显示，Sonnet 5.5 与 Opus 5.5 只差几个百分点。如果工作器能力相近而成本仅便宜一半，监督器树的协调开销可能超过节省的费用。每一代模型都应重新运行路由评测。
+
+**监督器如今也成为产品功能。**编程产品和托管运行时已提供协调器：Cursor 的 Projects beta（2026 年 9 月 10 日）由协调智能体规划工作，并按需委派给多个并行子智能体；Cursor 报告（内部使用的厂商数据）新 Projects 用户合并的 PR 增加 30%。OpenAI Agents API 使用 `max_concurrent_subagents` 限制扇出（默认 6）；Claude Managed Agents 在多智能体名册中加入 `advisor`，供主线程在轮次中途咨询。平台级并发上限是监督器模式一直需要的预算控制，应主动设置，而非沿用默认值。
 
 ---
 
 ## 群体（OpenAI 模式）
 
-在 2024 年末流行起来的**群体**，聚焦于“转交”。
+由 OpenAI 于 2024 年末推出的实验性 Swarm 库推广，并延续到 OpenAI Agents SDK 的**群体**模式，聚焦于“转交”。
 
 - 一个智能体将对话“转交”给另一个智能体。
 - **关键概念**：`Handoff(TargetAgent)`。
 - **收益**：没有中心“管理者”瓶颈。对话在专门化实体之间自然流动。
+
+---
+
+## 流水线模式（以代码定义工作流）
+
+流水线在代码中固定阶段，让智能体填充各阶段：第一阶段收集，第二阶段起草，第三阶段验证；各阶段之间传递结构化结果，并设置明确的检查点。模型决定每一阶段*如何*完成，代码决定*哪些*阶段运行及其顺序。
+
+关键区别是**谁掌握控制流**：
+
+| 方法 | 控制流归属 | 优势 | 弱点 | 2026 年已发布示例 |
+|----------|----------------------|----------|----------|-------------------------|
+| **以代码定义工作流** | 程序 | 阶段确定、可审计、可测试；在固定位置设置人工检查点 | 任务形态变化时不够灵活 | GitHub Copilot 动态工作流（10 月 1 日公开预览）：顺序或并行阶段、阶段间结构化结果、子智能体相互验证、暂停供人工审查 |
+| **模型驱动的委派** | 协调模型 | 能适应事先未知的任务形态 | 成本更难限制、审计更难 | GitHub 的 `/fleet`、Cursor Projects |
+| **带质量关口的级联** | 代码，辅以模型评分关口 | 廉价模型起草；只有未通过关口时才升级 | 关口校准成为关键组件 | GitHub HydraFusion 的“cascade”模式（9 月 30 日研究预览） |
+
+阶段已知且审计轨迹重要时，使用以代码定义的工作流；阶段未知时，使用模型驱动的委派；如果大多数输入都很简单，可在两者前面加一层级联。
 
 ---
 
@@ -62,8 +83,8 @@
 
 | 框架 | 图模型 | 关键差异化 |
 |-----------|-------------|-------------------|
-| **LangGraph** (24k stars) | 带类型化状态的命令式 DAG | 最成熟，社区最广 |
-| **Google ADK** (17k stars) | 内置 A2A 的智能体图 | 原生 Google Cloud 集成 |
+| **LangGraph**（约 42.6k stars） | 带类型化状态的命令式 DAG | 最成熟，社区最广 |
+| **Google ADK**（约 21.7k stars） | 内置 A2A 的图工作流（2.x） | 原生 Google Cloud 集成；ADK TypeScript 2.0 弃用 Sequential、Parallel 和 Loop 智能体，转向图 |
 | **Microsoft Agent Framework** | 工作流图（顺序、并发、转交） | 统一 .NET + Python，企业治理 |
 | **Claude Agent SDK** | 基于监督器的分层树 | 内置工具（bash、editor），可直接用于生产 |
 
@@ -71,42 +92,38 @@
 
 一个值得注意的 2026 发展是 **Paperclip**（在其 2026 月发布后的三周内获得 44,900 个 GitHub stars）。它采用分层模型：CEO 智能体接收顶层目标，将其拆解，并委派给经理智能体；经理智能体再生成并协调工作器智能体。这个模式展示了深度分层的多智能体树如何处理复杂的现实世界任务。
 
-> *已于 2026 验证。*
-
 ---
 
 ## 通过 A2A 进行跨供应商智能体编排
 
-**Agent-to-Agent（A2A）协议**（参见 [工具使用与 MCP](03-tool-use-and-mcp.md#流式工具调用)）启用了一个新的多智能体模式：**跨供应商编排**。在 A2A 之前，多智能体系统要求所有智能体共享同一框架和运行时。现在：
+**Agent-to-Agent（A2A）协议**（参见[工具使用与 MCP](03-tool-use-and-mcp.md#agent-to-agent-协议-a2a)）启用了一个新的多智能体模式：**跨供应商编排**。在 A2A 之前，多智能体系统要求所有智能体共享同一框架和运行时。现在：
 
-1。**智能体发现**：编排器通过 **Agent Cards**（描述能力的 JSON 元数据）找到专门智能体
-2。**任务委派**：编排器通过 HTTP/SSE 向远程智能体发送结构化任务
+1。**智能体发现**：编排器通过 **Agent Cards**（由 `/.well-known/agent-card.json` 提供、描述能力的 JSON 元数据）找到专门智能体
+2。**任务委派**：编排器发送消息（通过 JSON-RPC、gRPC 或 REST `POST /message:send` 调用 `SendMessage`），由远程智能体决定直接回答还是创建任务
 3。**异步进度**：远程智能体流式回传状态更新；编排器可以并行委派给其他智能体
 4。**结果收集**：最终产物被返回并集成到编排器的状态中
 
 **生产示例**：一个采购系统中，编排器（LangGraph）将合规检查委派给一个专门智能体（Google ADK），将库存查询委派给一个 MCP 连接工具，并将合同生成委派给一个 CrewAI crew - 它们分别通过 A2A 和 MCP 通信。
 
-> *已于 2026 验证。来源：a2a-protocol.org*
+**多客户端操控同一远程任务时**，更新丢失成为主要失败模式。尚未发布的 A2A v1.1 将加入单调递增的 `Task.generation`，让客户端检测遗漏事件并进行比较并设置（`if_generation_match`；版本过期时返回 HTTP 412）。在它发布前，应通过单一所有者串行化操控操作。A2A v1.0.1（2026 年 5 月 28 日）是当前规范版本；A2A 于 2026 年 8 月加入 Agentic AI Foundation。
 
 ---
 
 ## 多智能体的 2026 框架版图
 
-现在每个主要 AI 实验室都在提供智能体框架。截至 May 2026，多智能体编排版图如下：
+现在每个主要 AI 实验室都在提供智能体框架。截至 2026 年 10 月，多智能体编排版图如下（star 数截至 10 月 1 日）：
 
 | 框架 | 提供方 | 多智能体模型 | 状态 |
 |-----------|----------|-------------------|--------|
-| **LangGraph** | LangChain | 基于图，最灵活 | 生产中（126k stars） |
+| **LangGraph** | LangChain | 基于图，最灵活 | 生产中；LangGraph 1.2.12（约 42.6k stars） |
 | **Claude Agent SDK** | Anthropic | 带内置工具的监督器树 | GA（Python + TypeScript） |
-| **Google ADK** | Google | 原生支持 A2A 的基于图模型 | GA（Python、TS、Java、Go） |
-| **Microsoft Agent Framework** | Microsoft | 工作流 + 群聊模式 | RC 1.0（Feb 2026），GA Q2 2026 |
-| **OpenAI Agents SDK** | OpenAI | 带护栏的基于转交群体 | GA（Python + TypeScript） |
-| **CrewAI** | CrewAI Inc. | 基于角色的 crew 与 Flows | v1.13（60%+ Fortune 500） |
-| **Smolagents** | HuggingFace | 轻量级、开源 | 持续开发中 |
+| **Google ADK** | Google | 原生支持 A2A 的图工作流 | Python 2.10.0、TypeScript 2.0.0、Go 2.0、Java 1.10.1 |
+| **Microsoft Agent Framework** | Microsoft | 工作流 + 群聊模式、A2A 和 MCP 互操作 | 2026 年 4 月 2 日 GA；Python 1.19.0、.NET 1.23.0；AutoGen 进入维护模式 |
+| **OpenAI Agents SDK** | OpenAI | 带护栏的基于转交群体 | Python 0.22.3（约 29.8k stars）；Python + TypeScript |
+| **CrewAI** | CrewAI Inc. | 基于角色的 crew 与 Flows | 1.15.23（约 59.3k stars；厂商称覆盖 60% 以上的《财富》500 强企业） |
+| **Smolagents** | HuggingFace | 轻量级、开源 | 1.26.0（2026 年 5 月 29 日）；此后未发布新版本 |
 
-**关键趋势**：没有任何单一框架能在所有四种多智能体模式（监督器、群体、流水线、辩论）上都表现出色。团队越来越多地组合框架使用，例如用 LangGraph 处理复杂编排，用 CrewAI 处理面向业务用户的自动化。
-
-> *已于 2026 验证。*
+**关键趋势**：没有任何单一框架能在所有四种多智能体模式（监督器、群体、流水线、辩论）上都表现出色。团队越来越多地组合框架使用，例如用 LangGraph 处理复杂编排，用 CrewAI 处理面向业务用户的自动化。另一个趋势是托管运行时：OpenAI Agents API、Claude Managed Agents 和 Amazon Bedrock Managed Agents（预览）托管运行框架本身，使“自建还是租用”的决策上移一层（参见[持久执行](11-durable-execution.md)）。
 
 ---
 
@@ -117,7 +134,7 @@
 1。**局部状态**：仅对特定智能体可见的上下文。
 2。**全局状态**：所有智能体都可见的共享内存（例如最终草稿）。
 3。**写入冲突**：当两个智能体试图修改同一个全局状态时。
-   - **最佳实践**：使用**事务性交接**。只有当某个智能体“拥有”锁时，它才能写入全局状态。
+   - **最佳实践**：使用**事务性交接**。只有当某个智能体“拥有”锁时，它才能写入全局状态。如果锁粒度过粗，就使用乐观并发：为状态标注版本，并拒绝基于过期版本的写入；这与 A2A v1.1 对远程任务应用的比较并设置思想相同。
 
 ---
 
@@ -128,6 +145,8 @@
 - **智能体 B**：尝试找出智能体 A 答案中的缺陷。
 - **智能体 A**：根据 B 的批评完善答案。
 - **结果**：收敛到比任何单个智能体都能产生的更高质量结果。
+
+**让不同模型家族担任评审者。**同一家族的评审模型会共享盲点。GitHub HydraFusion 的“critique”模式（2026 年 9 月 30 日研究预览）将此纳入设计：由另一模型家族的评审者审查草稿，起草者只修改一次。把讨论限制为一次修订同样重要；无限辩论只会变成两个智能体的循环失控。
 
 ---
 
@@ -148,15 +167,21 @@
 **强答案：**
 当团队拥有所有智能体、它们共享同一运行时，并且智能体调用之间的低延迟至关重要时，我会把智能体放在单一框架中。当跨越**组织或供应商边界**时，我会引入 A2A - 例如，当我的编排器需要委派给由另一个团队维护的合规智能体，或者需要集成第三方专门智能体（例如法律审查服务）时。A2A 会增加 HTTP 开销，但提供了**供应商中立性**、**独立扩展**以及通过 Agent Cards 实现的**能力发现**。经验法则是：同一团队，同一框架；不同团队或供应商，使用 A2A。
 
+### 问：何时用代码定义多智能体工作流，何时让协调模型自行委派？
+
+**强答案：**
+这取决于任务开始前是否已知工作形态。如果阶段已知（收集、起草、验证、批准），我会将其写成代码：按固定顺序运行阶段，传递结构化结果，在人工检查点停下，让成本有上限且每次运行都可审计。GitHub 的动态工作流就是这一模式的产品化。如果任务形态只能在执行中发现（大型重构、开放式研究），我会让协调模型委派，例如 Cursor Projects 或 GitHub 的 `/fleet`，同时在外部设限：子智能体并发上限、扇出总预算，以及独立于协调器的验证者。实践中可以混合两者：外层流水线由代码定义，“执行工作”阶段使用模型驱动的协调器，只在值得自适应的地方保持灵活，其余部分保持确定性。
+
 ---
 
 ## 参考资料
-- Wu 等. "AutoGPT: An Autonomous GPT-4 Experiment"（历史/2025 更新）
-- Li 等. "Camel: Communicative Agents for 'Mind' Exploration"（2023/2025）
-- OpenAI. "Swarms Framework"（2024/2025）
-- Google. "Agent2Agent Protocol"（2025/2026）
-- Gartner. "Predicts 2026: AI Agent Market"（2025）
-- Andrew Ng. "Agentic Design Patterns"（2025/2026）
+- Significant Gravitas. “AutoGPT”（开源项目，2023）
+- Li 等. “CAMEL: Communicative Agents for 'Mind' Exploration of Large Language Model Society”（2023）。https://arxiv.org/abs/2303.17760
+- OpenAI. “Swarm”（实验性库，2024），后由 OpenAI Agents SDK（2025）接续
+- A2A Project. “Agent2Agent Protocol Specification v1.0.1”（2026）。https://github.com/a2aproject/A2A
+- Gartner. “Gartner Predicts 40% of Enterprise Apps Will Feature Task-Specific AI Agents by 2026, Up from Less Than 5% in 2025”（新闻稿，2025 年 8 月 26 日）。https://www.gartner.com/en/newsroom/press-releases/2025-08-26-gartner-predicts-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026-up-from-less-than-5-percent-in-2025
+- Andrew Ng. “Agentic Design Patterns”（The Batch，2024）
+- GitHub Changelog. “Dynamic workflows in Copilot CLI and the Copilot app”（2026 年 10 月 1 日）。https://github.blog/changelog/2026-10-01-dynamic-workflows-in-copilot-cli-and-the-copilot-app
 
 ---
 

@@ -7,7 +7,7 @@
 ## 目录
 
 - [系统设计框架（SPIDER）](#系统设计框架-spider)
-- [实战示例：45 分钟环节中的 SPIDER](#实战示例-45-分钟环节中的-spider) ⭐ *NEW*
+- [实战示例：45 分钟环节中的 SPIDER](#实战示例-45-分钟环节中的-spider)
 - [概念解释框架（ETA）](#概念解释框架-eta)
 - [取舍分析框架](#取舍分析框架)
 - [调试与故障排查框架](#调试与故障排查框架)
@@ -148,9 +148,10 @@ Cost optimization will be a second-order concern once we have the basic system w
 **目的：** 处理故障模式和增长问题。
 
 **要讨论的故障模式：**
-- LLM provider（大模型服务提供商）故障
+- LLM provider（大模型服务提供商）故障（同一供应商的备用模型通常也会受到同一故障影响）
 - 限流（rate limiting）
 - 模型输出不佳
+- 模型退役，或供应商在相同模型 ID 下发布的变更
 - 数据流水线故障
 - 缓存失效（cache invalidation）
 
@@ -181,14 +182,16 @@ with maybe 5% daily active. That's roughly 500-2,000 queries/hour
 at peak. Sound right?"
 Interviewer: "Works."
 
-[0:05 - P: Plan the architecture out loud]
-You: "I'll draw the full pipeline first, then deep dive where you
+[0:05 - P: Prioritize, then plan out loud]
+You: "Given that, my priorities are permission correctness first,
+answer quality second, latency third. Cost is second-order at this
+volume. I'll draw the full pipeline first, then deep dive where you
 want. Ingestion on the left: connectors, parsing, chunking,
 embedding, vector store. Serving on the right: query, hybrid
 retrieval, rerank, generation with citations, response. Eval and
 monitoring underneath as a cross-cutting layer."
 
-[0:08 - I: Identify components, draw and narrate]
+[0:08 - I: Initial architecture, drawn and narrated]
 You: "Ingestion: connectors pull from SharePoint and Confluence
 nightly. Parsing handles PDFs with a document-AI tier first and a
 vision-LLM fallback for complex layouts. Chunking is structure-
@@ -210,23 +213,23 @@ time filtering breaks the moment permissions change; retrieval-time
 filtering follows the source of truth. Cache keys include the
 permission set so a cached answer never leaks across groups."
 
-[0:30 - E: Evaluate your own design]
+[0:33 - E: Evaluation and observability]
+You: "For quality, I'd stand up a 200-case golden set from real
+employee questions, score faithfulness and citation accuracy with
+an LLM judge calibrated monthly against human review, and sample
+2% of production traffic. Dashboards: p95 latency per stage,
+empty-retrieval rate, citation click-through, cost per query."
+
+[0:38 - R: Reliability, scale, and a self-critique]
 You: "Weaknesses I'd flag in my own design: nightly sync means up
 to 24h staleness, fine per requirements but I'd add webhook-based
-invalidation for the wikis later. The reranker adds ~150ms at p95,
-worth it for quality. Failure modes: provider outage falls back to
-a second model with provider-specific prompts; retrieval returning
-nothing returns 'not found in our docs' rather than letting the
-model improvise."
-
-[0:38 - R: Requirements check and evaluation story]
-You: "Back to the requirements: 3s p95 gives me a budget of
-~400ms retrieval, ~150ms rerank, ~2s generation, with streaming so
-perceived latency is under a second. For quality, I'd stand up a
-200-case golden set from real employee questions, score
-faithfulness and citation accuracy with an LLM judge calibrated
-monthly against human review, and sample 2% of production traffic.
-Anything else you'd like me to go deeper on?"
+invalidation for the wikis later. Failure modes: a provider outage
+falls back to a second vendor's model with its own tested prompt;
+retrieval returning nothing returns 'not found in our docs' rather
+than letting the model improvise. Back to the requirements: 3s p95
+gives me ~400ms retrieval, ~150ms rerank (worth it for quality),
+~2s generation, with streaming so perceived latency is under a
+second. Anything else you'd like me to go deeper on?"
 ```
 
 **这段逐字稿展示了：**
@@ -235,6 +238,8 @@ Anything else you'd like me to go deeper on?"
 - 深挖回答遵循“先给决策，再给原因，然后给失败模式”的顺序。
 - 候选人先于面试官主动审视了自己的设计。
 - 评估是设计的一部分，而不是事后补充。
+
+在真实条件下练习时，可让一位搭档扮演面试官，并允许其随时打断。如果你希望由经验丰富的面试官陪练，Om 在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 和 [Topmate](https://topmate.io/ombharatiya) 提供一对一模拟面试。
 
 ---
 
@@ -264,9 +269,11 @@ do not have to redo work for previous tokens when generating each new token."
 Value tensors for all positions. On each new token, we only compute K 
 and V for the new position and concatenate with the cache. 
 
-The memory scales as: 2 × layers × heads × head_dim × sequence_length × batch_size
+The memory scales as: 2 × layers × kv_heads × head_dim × bytes_per_value
+× sequence_length × batch_size
 
-For a 70B model with 8K context, that is roughly 10GB per request."
+For Llama 3.1 70B (80 layers, 8 KV heads, head_dim 128, BF16), that is
+320 KiB per token, so one 8K-token request holds about 2.5 GiB."
 ```
 
 ---
@@ -282,10 +289,14 @@ quadratic in sequence length.
 
 The tradeoff is memory usage. This is why techniques like PagedAttention 
 and Grouped Query Attention exist: to reduce KV cache memory while 
-preserving the benefits.
+preserving the benefits. Without GQA, that 70B model would store all 64
+heads and need 8x the memory, about 20 GiB per request. Newer attention
+designs (MLA, sliding-window and sparse layers) shrink it further, so I
+size KV from the model config, not the parameter count.
 
-Context caching features from OpenAI and Anthropic are essentially 
-server-side KV cache persistence for shared prefixes."
+Prompt caching from OpenAI, Anthropic and Google is essentially
+server-side KV cache persistence for shared prefixes, which is why cache
+reads bill at 0.1x the input price or less on current models."
 ```
 
 ---
@@ -298,9 +309,11 @@ server-side KV cache persistence for shared prefixes."
 
 ```
 "For embedding models, we have three main options:
-1. OpenAI text-embedding-3-large: Highest quality, API cost
-2. Cohere embed-v3: Good quality, better pricing
-3. Self-hosted BGE: Full control, operational overhead"
+1. OpenAI text-embedding-3-large: mature and widely deployed, $0.13/1M tokens
+2. Cohere Embed 5 (embed-v5.0-pro / -fast): newer, multimodal, $0.12 / $0.08
+   per 1M, and Pro and Fast share one embedding space
+3. Self-hosted open model (Nemotron 3 Embed 8B, Qwen3-Embedding-8B, or a
+   BGE variant): full control, operational overhead"
 ```
 
 ### 第 2 步：定义评估标准
@@ -316,25 +329,32 @@ server-side KV cache persistence for shared prefixes."
 
 ### 第 3 步：分析每个选项
 
-创建对比矩阵：
+创建对比矩阵（分数为加权平均值，其中“高”权重标准按双倍计算）：
 
 | 方案 | 质量 | 成本 | 延迟 | 运维 | 总分 |
 |--------|---------|------|---------|-----|-------|
-| OpenAI | ★★★★★ | ★★ | ★★★★ | ★★★★★ | 4.2 |
-| Cohere | ★★★★ | ★★★★ | ★★★★ | ★★★★★ | 4.2 |
-| BGE | ★★★★ | ★★★★★ | ★★★ | ★★ | 3.6 |
+| OpenAI | ★★★★ | ★★★ | ★★★★ | ★★★★★ | 3.8 |
+| Cohere | ★★★★★ | ★★★★ | ★★★★ | ★★★★★ | 4.5 |
+| Self-hosted | ★★★★ | ★★★★★ | ★★★ | ★★ | 3.8 |
 
 ### 第 4 步：给出带有理由的建议
 
 ```
-"I would recommend Cohere for this use case because:
-1. Quality is close to OpenAI based on MTEB scores
-2. Better pricing at our volume (100M embeddings/month)
-3. No operational overhead vs self-hosting
-4. We can switch to self-hosted later if costs become prohibitive
+"I would recommend Cohere Embed 5 for this use case because:
+1. On our own 300-query domain eval it matches or beats
+   text-embedding-3-large. Vendor benchmarks and MTEB averages only
+   build the shortlist; RTEB, with private held-out sets, is the
+   better public signal
+2. Cost at our volume: 100M embeddings/month at ~500 tokens is 50B
+   tokens, about $4K/month on embed-v5.0-fast vs $6.5K on
+   text-embedding-3-large
+3. Pro and Fast share one embedding space, so moving between tiers
+   later does not force a full re-index
+4. No operational overhead vs self-hosting
 
-The risk is vendor dependency, which we mitigate by 
-abstracting the embedding interface."
+The risk is vendor dependency: switching providers means re-embedding
+50B tokens. We mitigate it by abstracting the embedding interface and
+keeping the raw chunks so a re-embed is a batch job, not a project."
 ```
 
 ---
@@ -486,7 +506,7 @@ find them and what questions to ask when evaluating it."
 **错误：**
 ```
 Interviewer: "How would you design a document Q&A system?"
-You: "I would use LangChain with Pinecone and GPT-5.5."
+You: "I would use LangChain with Pinecone and GPT-6.1 Sol."
 ```
 
 **正确：**
@@ -507,10 +527,12 @@ What types of documents? What volume? What accuracy is needed?"
 **正确:**
 ```
 "Model selection depends on the quality bar and volume. For high-volume, 
-lower-stakes queries, I might use Claude Haiku 4.5, GPT-5.5-mini, or 
-DeepSeek V4 Flash and reserve Claude Sonnet 4.6 or GPT-5.5 for complex 
-cases. At 1M queries/day, this could save $50K/month without meaningful 
-quality loss."
+lower-stakes queries, I might use GPT-6 Luna ($0.10/$0.50 per 1M),
+Gemini 3.8 Flash, or DeepSeek V4.1-Flash and reserve Claude Sonnet 5.5
+or GPT-6.1 Sol ($2/$10) for complex cases. At 1M queries/day with ~1.5K
+input and 300 output tokens, sending everything to a $2/$10 model costs
+about $180K/month; routing 70% to a $0.10/$0.50 tier brings that to
+about $60K, provided evals show the cheap tier holds the bar on that 70%."
 ```
 
 ---

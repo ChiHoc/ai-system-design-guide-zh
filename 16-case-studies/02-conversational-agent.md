@@ -46,7 +46,7 @@
 | 响应生成 | 自然、准确、有帮助的回复 | P0 |
 | 对话记忆 | 多轮上下文 | P0 |
 | 动作执行 | 创建工单、触发工作流 | P1 |
-| 人工升级 | 必要时无缝交接 | P0 |
+| 人工升级 | 必要时带完整上下文交接 | P0 |
 | 计费咨询 | 处理敏感财务数据 | P1 |
 
 ### 非功能性需求
@@ -66,6 +66,7 @@
 - 租户隔离（客户只能看到自己的数据）
 - 所有动作都要有审计追踪
 - SOC 2 合规
+- 告知用户正在与 AI 对话：欧盟 AI Act 第 50 条透明度义务自 2026 年 8 月 2 日起适用，委员会指南指出，公众普遍知道 AI 的存在，并不意味着某次具体互动显而易见
 
 ---
 
@@ -198,50 +199,82 @@ stateDiagram-v2
 
 ## 组件深入解析
 
-### 意图分类（Intent Classification，2025 年 12 月）
+### 意图分类
 
 ```python
+INTENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "intent": {"type": "string",
+                   "enum": ["billing", "technical", "account", "general", "escalation_request"]},
+        "entities": {"type": "array", "items": {
+            "type": "object",
+            "properties": {"type": {"type": "string"}, "value": {"type": "string"}},
+            "required": ["type", "value"],
+            "additionalProperties": False,
+        }},
+        "confidence": {"type": "number"},
+    },
+    "required": ["intent", "entities", "confidence"],
+    "additionalProperties": False,
+}
+
 class IntentClassifier:
     async def classify(self, message: str, history: list[dict]) -> dict:
-        # Using GPT-5.5-mini for <100ms classification latency
-        result = await client.chat.completions.create(
-            model="gpt-5.2-mini",
-            messages=[{"role": "user", "content": message}],
-            response_format={"type": "json_object"}
+        # Smallest tier: GPT-6 Luna ($0.10 / $0.50 per 1M tokens). Track p95
+        # latency and use the lowest reasoning effort that holds accuracy.
+        result = await client.responses.create(
+            model="gpt-6-luna",
+            instructions="Classify the customer's latest message.",
+            input=[*history[-4:], {"role": "user", "content": message}],
+            text={"format": {"type": "json_schema", "name": "intent",
+                             "schema": INTENT_SCHEMA, "strict": True}},
         )
-        return json.loads(result.choices[0].message.content)
+        return json.loads(result.output_text)
 ```
 
-### 知识库（Gemini 3 Flash RAG）
+### 知识库（混合检索与重排序）
 
 ```python
 class SupportKnowledgeBase:
-    async def retrieve(self, query: str, context_window: int = 1_000_000) -> list[dict]:
-        # Using Gemini 3 Flash for massive context retrieval
-        # No more 'reranking' needed for many standard support tasks
-        results = await self.sources.search(query, limit=50) 
-        return results
+    async def retrieve(self, query: str, tenant_id: str, top_k: int = 8) -> list[dict]:
+        # Long-context models tempt teams to skip reranking and pass 50 chunks.
+        # At 500K conversations a month, a reranker (about $0.001 per turn) is
+        # far cheaper than paying for 40 extra chunks of input on every turn.
+        candidates = await self.sources.search(
+            query, filters={"tenant_id": tenant_id}, limit=50
+        )
+        return await self.reranker.rerank(query, candidates, top_k=top_k)
 ```
 
-### 响应生成（Claude Sonnet 4.6）
+### 响应生成（Claude Haiku 4.5 与 Sonnet 5.5 分层）
+
+这个设计的 2025 版会在单个模型上按请求切换扩展思考。最新模型上，这个开关已经不复存在：Sonnet 5.5 默认运行自适应思考，对 `thinking: {type: "disabled"}` 返回 400，深度通过 `output_config.effort` 设置。Haiku 4.5 则拒绝 effort 参数。如今的按请求调节方式是**模型路由加 effort**。
 
 ```python
 class ResponseGenerator:
+    ROUTINE_MODEL = "claude-haiku-4-5"   # $1 / $5 per 1M; no thinking unless enabled
+    COMPLEX_MODEL = "claude-sonnet-5-5"  # $2 / $10 per 1M; adaptive thinking on by default
+
     async def generate(self, query: str, context: list[dict]) -> dict:
-        # Claude Sonnet 4.6 for 'Hybrid Reasoning'
-        # Toggle 'Thinking' mode for complex billing issues
-        is_complex = self.detect_complexity(query)
-        
-        response = await self.anthropic.messages.create(
-            model="claude-3-7-sonnet-20250219",
-            thinking={"enabled": is_complex, "budget_tokens": 2048},
-            messages=[{"role": "user", "content": f"Context: {context}\nQuery: {query}"}]
-        )
-        return {"response": response.content[0].text}
+        is_complex = self.detect_complexity(query)  # billing disputes, multi-account issues
+        request = {
+            "model": self.COMPLEX_MODEL if is_complex else self.ROUTINE_MODEL,
+            "max_tokens": 4096,
+            "system": SUPPORT_SYSTEM_PROMPT,
+            "messages": [{"role": "user", "content": f"Context: {context}\nQuery: {query}"}],
+        }
+        if is_complex:
+            request["output_config"] = {"effort": "medium"}
+        response = await self.anthropic.messages.create(**request)
+        text = "".join(b.text for b in response.content if b.type == "text")
+        return {"response": text, "model": request["model"]}
 ```
 
+要按路径而非整个系统设置延迟预算。思考 token 会在第一个可见 token 前产生，以常见输出速度生成约 1K 个 token 需要数秒，因此复杂路径无法满足 1 秒 TTFT 目标。应为复杂计费轮次设置独立延迟目标，并在模型工作时流式输出状态信息；对于无需事先推理的路径，也可发送 `thinking: {type: "between_tools"}`，同时实测质量是否保持。
+
 > [!NOTE]
-> **生产经验：** 虽然 Gemini 3 Flash 非常适合高吞吐检索，但对于许多已经围绕其特定性格和拒绝模式花了数月时间微调 guardrails（安全护栏）的支持团队来说，**Claude 3.5 Sonnet** 仍然是最“稳定”的生成器。
+> **生产经验：为强制迁移预留预算。** 支持团队需要数月才能围绕某个模型的语气和拒绝模式调好护栏，这些调校不会免费迁移。Sonnet 4.5 将于 2026 年 11 月 30 日退役。Haiku 4.5 在 Claude API 上的最早退役日期为 2026 年 10 月 15 日（尚未发布通知，Anthropic 至少提前 60 天通知），在 Foundry 上于 11 月 15 日退役；Haiku 5.5 已预告但尚未发布。应保存真实对话的回归集，包含预期语气、升级交接和拒绝行为，并在每次模型变化时运行。
 
 ---
 
@@ -379,6 +412,9 @@ class QualityMonitor:
             metrics.record(f"quality_{criterion}", score)
 ```
 
+> [!WARNING]
+> **确认追踪仍能观测到模型调用。** OpenAI Python SDK 3.0（2026 年 8 月 12 日）和 Anthropic Python SDK 1.0（2026 年 8 月 20 日）都转向 `httpx2`。Anthropic 的迁移指南指出，除非在任何代码导入 httpx 前运行 `httpx2.alias_httpx()`，OpenTelemetry 的 HTTPX 埋点、Sentry 的 httpx 集成、respx、pytest-httpx 和 vcrpy 可能悄然漏掉 SDK 请求。上面这样的抽样监控器会在样本不断缩小时仍报告健康数字。应一起升级 SDK，并在升级前后比较 span 数量与请求数。
+
 ### 仪表盘指标
 
 | 指标 | 目标 | 实际 |
@@ -394,26 +430,32 @@ class QualityMonitor:
 
 ## 成本分析
 
-### 每次对话成本拆解（2025 年 12 月）
+### 每次对话成本拆解（2026 年 10 月标价）
+
+假设每次对话 4 轮，每轮约 3K 个输入 token（系统提示、检索片段、账户上下文及历史）。
 
 | 组件 | 成本 | 说明 |
 |-----------|------|-------|
-| 意图分类 | $0.0001 | GPT-5.5-mini ($0.10/1M) |
-| RAG 检索 | $0.0001 | Gemini 3 Flash ($0.05/1M) |
-| Thinking mode | $0.0050 | Claude Sonnet 4.6 Thinking（平均 250 tokens） |
-| 响应生成 | $0.0030 | Claude Sonnet 4.6 ($3/1M in) |
-| 质量抽样 | $0.0001 | GPT-5.5 的 5% 抽样率 |
-| **总计** | **~$0.0083** | **每次对话（较 2024 年下降 62%）** |
+| 意图分类 | $0.0003 | GPT-6 Luna（$0.10/$0.50）：每轮一次调用，约 500 输入/50 输出 token |
+| 检索与重排序 | $0.0040 | 每轮查询嵌入及 50 个候选 × 每个约 400 token 的重排（Voyage rerank-3，每百万 token $0.05）：每轮约 $0.001 |
+| 生成，常规路径 | $0.0136 | Claude Haiku 4.5 处理 80% 的对话：4 ×（3K 输入/250 输出）= $0.017，加权后为 $0.0136 |
+| 生成，复杂路径 | $0.0148 | Claude Sonnet 5.5 处理 20%：相同轮次，每轮另有约 1K 思考 token = $0.074，加权后为 $0.0148 |
+| 质量抽样 | $0.0013 | 5% 的对话由中档裁决模型评分 |
+| **总计** | **约 $0.034** | **每次对话，尚未计入提示缓存** |
+
+复杂路径只占 20% 流量，却占模型支出的 40% 以上，主要来自按输出价格计费的思考 token。缓存静态系统提示和工具定义可以削减输入成本（两种模型的缓存读取价格均为输入价的 0.1 倍）。
 
 ### 月度成本预测
 
 | 项目 | 计算 | 成本 |
 |------|-------------|------|
-| 对话量 | 500K × $0.022 | $11,000 |
+| 对话量 | 500K × $0.034 | $17,000 |
 | 基础设施 | 固定 | $2,000 |
 | 人工升级 | 190K × $5（人工成本） | $950,000 |
-| **总计** | | $963,000 |
-| **相较全人工的节省** | 500K × $5 - $963K | $1.5M/year |
+| **总计** | | $969,000 |
+| **相较全人工的节省** | 500K × $5 - $969K | 每月约 $1.53M |
+
+模型支出不到总额的 2%。真正重要的杠杆是升级率：每有 1 个百分点的升级请求被正确自动解决，每月就能节省约 $25,000（5,000 次对话 × $5），超过整笔模型费用。
 
 ---
 
@@ -424,7 +466,7 @@ class QualityMonitor:
 1. **基于意图的路由（Intent-based routing）** 通过聚焦相关来源进行检索，降低了延迟
 2. **基于置信度的升级（Confidence-based escalation）** 在降低人工负载的同时保持了质量
 3. **账户上下文（Account context）** 让回复更个性化且更准确
-4. **较低温度（0.3）** 提升了支持回复的一致性
+4. **结构化输出与固定版本的提示词**比采样设置更能提高一致性。temperature 已不再是可靠旋钮：最新 Claude 模型对非默认值返回 400，GPT-6 Astra 则不接受该参数
 
 ### 初期未奏效的做法
 
@@ -451,7 +493,7 @@ class QualityMonitor:
    - "What's the ticket volume? What channels? What's the current CSAT?"（工单量是多少？有哪些渠道？当前 CSAT 是多少？）
 
 2. **明确约束**
-   - "关键约束：准确性高于速度、无缝升级、租户隔离"
+   - "关键约束：准确性高于速度、升级交接不丢失上下文、租户隔离"
 
 3. **高层架构**（3 分钟）
    - 画出流程：意图 → 路由 → RAG → 生成 → 安全性 → 回复/升级
@@ -460,7 +502,7 @@ class QualityMonitor:
    - "让我详细讲一下基于置信度的升级..."
 
 5. **说明可靠性**（3 分钟）
-   - "在可靠性方面，我会对计费查询使用 self-consistency（自一致性），并采用多供应商兜底"
+   - "在可靠性方面，我会对计费查询使用 self-consistency（自一致性），并采用跨厂商的多供应商兜底。Anthropic 状态源显示，从 2026 年 8 月中旬至 9 月末至少发生 12 次重大或严重事件；OpenAI 在 9 月 29 日的一次事故使 API 降级超过 5 小时，因此 99.9% 的目标不能只依赖一家供应商"
 
 6. **指标与监控**（2 分钟）
    - "关键指标：CSAT、解决率、升级率、准确率抽样"
@@ -472,9 +514,9 @@ class QualityMonitor:
 
 ## 参考资料
 
-- Anthropic Customer Support Best Practices: https://docs.anthropic.com/claude/docs/customer-service
-- LangChain Conversational Agents: https://python.langchain.com/docs/use_cases/chatbots
+- Anthropic 客户支持智能体指南：https://platform.claude.com/docs/en/about-claude/use-case-guides/customer-support-chat
+- LangChain Agents：https://docs.langchain.com/oss/python/langchain/agents
 
 ---
 
-*Next: [Code Assistant Case Study](04-code-assistant.md)*
+*下一篇：[金融分析案例研究](03-financial-analysis.md)*

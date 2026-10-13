@@ -218,6 +218,21 @@ RAG Triad 评估的是端到端系统。组件级评估则会隔离每个阶段�
 | NDCG@10 | 0.50 | 0.70 | 0.85+ |
 | Precision@5 | 0.40 | 0.60 | 0.80+ |
 
+### 区分嵌入模型与索引的问题
+
+检索遗漏可能由两处造成，必须分别测试：
+
+| 问题 | 指标 | 真实基准 | 未通过时的修复方向 |
+|----------|--------|--------------|-----------------|
+| **嵌入模型**是否把正确分块排在前面？ | 使用**精确**（暴力搜索）kNN 的 Recall@K | 人工相关性标注 | 模型、分块、上下文化 |
+| **ANN 索引**是否返回精确 kNN 的结果？ | ANN recall@K 与精确 kNN 对比 | 精确近邻，无需人工标签 | 索引参数（`ef`、探针数）、量化、重打分 |
+
+在同一组查询上运行两项测试。如果精确 kNN 的召回正常，而 ANN 召回只有 0.85，升级嵌入模型也无济于事。量化使这项测试成为必要环节：向量数据库在 2026 年新增的基于旋转的 1 至 4 bit 方案（Qdrant TurboQuant 和 Turbo4、Weaviate 4-bit RQ 预览版）以召回率换取内存，并且需要主动开启或仍处于预览阶段，并非默认配置。
+
+对于规模大到无法人工标注的索引行为，可使用带有精确真实基准的开放基准。Qdrant-FineWeb-10B（2026 年 9 月 1 日）提供 100.7 亿个稠密向量、100.7 亿个稀疏向量，以及 10 万条带精确前 1,000 个近邻的查询；配套的 PubMed-Multi-Vector 数据集则在同一语料上比较稠密、稀疏和 ColBERT 式检索。供应商在 1,000 万向量、较浅 top-k 且无过滤条件下测得的延迟，对 10 亿规模下带过滤的 top-100 查询参考价值有限。
+
+**公开排行榜只能用于初筛，不能代替结果。** 如果模型训练数据与公开测试集重叠，MTEB 分数可能偏高。MTEB 团队于 2025 年 10 月推出的 RTEB 混合公开数据集与由维护者评估的私有留出集，因此更适合筛选候选模型。NVIDIA 报告，开放权重的 Nemotron 3 Embed 8B（OpenMDW-1.1）于 2026 年 7 月以 78.5 分位列 RTEB Multilingual 第一（供应商报告）。先用 RTEB 初筛，再用自己的黄金测试集决定。
+
 ### 生成器评估
 
 通过固定检索上下文，仅变化生成部分，来隔离生成器。
@@ -297,7 +312,21 @@ RAG Triad 评估的是端到端系统。组件级评估则会隔离每个阶段�
 2. **拆解为原子级评估**：一次只评估一个断言或一个维度。
 3. **要求证据**：强制评审引用支持或反驳每个断言的具体上下文片段。
 4. **用人工一致性做校准**：将 100+ 个样例同时交给 LLM 和人工评审。计算 Cohen's Kappa（科恩卡帕）。目标值 > 0.7。
-5. **使用最强可用模型**：评审时用 Claude Opus 或 GPT-4o；绝不要用生成答案的同一个模型。
+5. **强模型校准，低价模型处理大规模流量**：人工一致性校准集和 CI 使用前沿评审模型（Claude Opus 5.5、GPT-6 Sol）；小模型只有在该校准集上的裁决与前沿模型一致后，才用于抽样生产流量。绝不要用生成答案的同一个模型。
+6. **固定并版本化评审模型**：更换评审模型就相当于更换指标。Claude Sonnet 4.5 将于 2026 年 11 月 30 日从 Claude API 和 Foundry 退役，Claude Haiku 4.5 将于 11 月 15 日从 Foundry 退役；在那里使用这些模型作评审的团队须在本季度切换。跨切换点比较分数前，重做人工一致性校准，并重新确定阈值基线。
+
+### 第三类评审模型：类型化决策模型
+
+很多 RAG 检查是二元问题（“这个断言有依据吗？是/否”）。2026 年出现了一类直接返回决策、无需生成文本的模型。TypeSafe 的 **Jev**（2026 年 9 月起早期访问）以每百万输入 token $0.042 的价格返回带概率的类型化决策（是/否、选项或分数），输出不单独计费；发布两周内便集成到 LangSmith、Langfuse、Braintrust、Opik 和 DeepEval。
+
+| | 前沿 LLM 评审 | 小型 LLM 评审 | 决策模型评审 |
+|---|---|---|---|
+| **示例** | Claude Opus 5.5、GPT-6 Sol | GPT-6 Luna、Claude Haiku 4.5 | Jev |
+| **输出** | 裁决和文字理由 | 裁决和理由 | 带概率的类型化决策；不提供理由，也不弃权 |
+| **适用场景** | 校准、CI、模糊案例 | 抽样生产流量 | 对全部流量做二元断言检查 |
+| **无法胜任** | 低价处理海量请求 | 最难的边界案例 | 断言提取、问题生成、开放式评议 |
+
+独立核查比价格更关键。2026 年 9 月的一项研究（Rao 和 Callison-Burch，arXiv 2609.29769）发现，LLM 评分规则评审的成本为 Jev 的 16 至 325 倍，而在 27 项对比中至多 8 项的准确率有显著差异；但在 Jev 最有把握却判断错误的案例中，约 96% 的 LLM 裁决也重复了同样的错误，且没有任何级联方案比分数最高的单一评审模型高出 2.7 分以上。**从低价评审升级到高价评审可以节省成本，不能捕捉相关性错误。** 只有人工标注的样本能做到这一点。另外两项已报告限制直接影响 RAG：无关上下文会降低准确率（而长检索上下文正会包含这类内容），独立基准也发现其在分级相关性判断上存在弱点。在依赖它评估忠实性或上下文相关性前，应按实际上下文长度测试。
 
 ---
 
@@ -341,7 +370,7 @@ RAG Triad 评估的是端到端系统。组件级评估则会隔离每个阶段�
   +-------------------------------------------------------+
   | Store in version control (golden_set_v3.json)           |
   | FREEZE the set for each evaluation cycle                |
-  | Never modify a frozen set -- create a new version       |
+  | Never modify a frozen set; create a new version         |
   +-------------------------------------------------------+
 ```
 
@@ -358,18 +387,33 @@ RAG Triad 评估的是端到端系统。组件级评估则会隔离每个阶段�
 ### 使用 RAGAS 生成合成测试
 
 ```python
-# Pseudocode: Generate synthetic test queries from your corpus
-from ragas.testset.generator import TestsetGenerator
-from ragas.testset.evolutions import simple, reasoning, multi_context
-
-generator = TestsetGenerator.from_langchain(
-    generator_llm=ChatOpenAI(model="gpt-4o"),
-    critic_llm=ChatOpenAI(model="gpt-4o"),
+# Generate synthetic test queries from your corpus (RAGAS 0.2+ API;
+# the 0.1-era ragas.testset.generator / evolutions imports no longer exist)
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.testset import TestsetGenerator
+from ragas.testset.synthesizers import (
+    SingleHopSpecificQuerySynthesizer,
+    MultiHopSpecificQuerySynthesizer,
+    MultiHopAbstractQuerySynthesizer,
 )
+
+generator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o"))
+generator_embeddings = LangchainEmbeddingsWrapper(
+    OpenAIEmbeddings(model="text-embedding-3-large")
+)
+generator = TestsetGenerator(llm=generator_llm, embedding_model=generator_embeddings)
+
+query_distribution = [
+    (SingleHopSpecificQuerySynthesizer(llm=generator_llm), 0.40),
+    (MultiHopSpecificQuerySynthesizer(llm=generator_llm), 0.35),
+    (MultiHopAbstractQuerySynthesizer(llm=generator_llm), 0.25),
+]
 testset = generator.generate_with_langchain_docs(
-    documents=load_documents("./knowledge_base/"),
-    test_size=200,
-    distributions={simple: 0.4, reasoning: 0.35, multi_context: 0.25}
+    load_documents("./knowledge_base/"),
+    testset_size=200,
+    query_distribution=query_distribution,
 )
 # CRITICAL: Always human-review synthetic data before using as ground truth
 testset.to_pandas().to_csv("golden_set_draft_v4.csv")
@@ -403,6 +447,8 @@ testset.to_pandas().to_csv("golden_set_draft_v4.csv")
 
 任何低于绝对最低值的指标都会阻止 PR。任何超过阈值的回归都会触发警告，并标记出具体退化的查询。
 
+同一套评估还应按计划在生产环境定期运行，而不只在自己的 PR 上运行。**固定模型 ID 不等于固定模型行为**：2026 年 9 月 25 日，OpenAI 在模型 ID 未改变的情况下修复了 GPT-6 Sol 和 GPT-6 Luna 的图像编码缺陷，并告知客户重跑图像评估。修复前测得的依赖图像的 RAG 分数，可能反映的是模型缺陷，而非你的流水线质量。
+
 ---
 
 ## 生产监控
@@ -432,23 +478,29 @@ LLM-as-judge 评估很强大，但也很昂贵。理解成本结构对于预算�
 
 ### 每个查询的成本（完整 RAG 三元组）
 
-| 指标 | LLM 调用次数 | Token | GPT-4o 成本 | Claude Haiku 成本 |
-|--------|-----------|--------|-------------|-------------------|
-| Faithfulness（忠实性） | ~3（提取 + 验证） | ~3k | $0.0075 | $0.00075 |
-| Context Relevance（上下文相关性） | ~5（每个 chunk） | ~2.5k | $0.00625 | $0.000625 |
-| Answer Relevance（答案相关性） | ~2（生成问题） | ~1.6k | $0.004 | $0.0004 |
-| **完整三元组** | **~10** | **~7k** | **~$0.018** | **~$0.002** |
+按 2026 年 10 月 1 日标价估算，假设 90% 的 token 用于输入、10% 用于输出，且尚未计入推理 token：
+
+| 指标 | LLM 调用次数 | Token | Claude Opus 5.5（$4 / $20） | Claude Haiku 4.5（$1 / $5） | GPT-6 Luna（$0.10 / $0.50） |
+|--------|-----------|--------|----------------------------|----------------------------|----------------------------|
+| Faithfulness（忠实性） | ~3（提取 + 验证） | ~3k | $0.017 | $0.0042 | $0.00042 |
+| Context Relevance（上下文相关性） | ~5（每个 chunk） | ~2.5k | $0.014 | $0.0035 | $0.00035 |
+| Answer Relevance（答案相关性） | ~2（生成问题） | ~1.6k | $0.009 | $0.0022 | $0.00022 |
+| **完整三元组** | **~10** | **~7k** | **~$0.04** | **~$0.01** | **~$0.001** |
+
+有两个因素会改变实际账单。Claude Opus 5.5 无法关闭思考模式（默认 effort 为 `medium`），因此评审调用应设置为 `low` 并计量推理 token。二元验证调用也可交给决策模型评审（按 Jev 每百万输入 token $0.042 估算，每次查询约 $0.0003），仅把断言提取和问题生成留给生成式模型。
 
 ### 扩展策略
 
 | 评估类型 | 频率 | 规模 | 评判模型 | 月成本（每天 10k 查询） |
 |----------------|-----------|--------|-------------|-------------------------------|
-| **CI 回归** | 每个 PR | 黄金集（500 个查询） | GPT-4o | ~$/9/次 |
-| **夜间批处理** | 每日 | 随机 1k 生产查询 | Claude Haiku | ~$60/月 |
-| **生产抽样** | 实时 | 流量的 5% | Claude Haiku | ~$300/月 |
-| **深度审计** | 每周 | 完整黄金集 + 分析 | GPT-4o | ~$36/月 |
+| **CI 回归** | 每个 PR | 黄金集（500 个查询） | 前沿模型（Claude Opus 5.5 / GPT-6 Sol） | ~$20/次 |
+| **夜间批处理** | 每日 | 随机 1k 生产查询 | 小模型（GPT-6 Luna），批处理 API | ~$15/月 |
+| **生产抽样** | 实时 | 流量的 5%（每天 500 次） | 小模型（GPT-6 Luna） | ~$15/月 |
+| **深度审计** | 每周 | 完整黄金集 + 分析 | 前沿模型，批处理 API | ~$45/月 |
 
-**洞见**：对高吞吐量的生产抽样，使用 Claude Haiku 4.5 或 GPT-5.5-mini。将 Claude Opus 4.7 或 GPT-5.5 保留给 CI 回归测试和深度审计，因为这些场景里准确性比成本更重要。
+前沿模型行按 Claude Opus 5.5 价格计算；GPT-6 Sol 每百万 token 收费 $2 / $10，成本约为其一半。
+
+**洞见**：评审调用的账单比人工标注小得多；真正昂贵的错误，是低价评审与标注人员的判断不一致。小模型（GPT-6 Luna、Claude Haiku 4.5）只有在校准集上与前沿评审一致后，才用于高流量抽样；Claude Opus 5.5 或 GPT-6 Sol 留给 CI 和深度审计。夜间及每周任务可通过批处理 API 以半价运行。
 
 ---
 
@@ -463,7 +515,10 @@ LLM-as-judge 评估很强大，但也很昂贵。理解成本结构对于预算�
 | **TruLens** | RAG 三元组评估、可观测性 | 是 | 提出了 RAG Triad，追踪能力好 | 维护活跃度较低 |
 | **UpTrain** | 生产监控、漂移检测 | 是 | 混合评估（LLM + 启发式）、漂移告警 | 排序准确率较低 |
 | **Braintrust** | 团队协作、实验跟踪 | 商业 | 最佳 UI/UX、实验对比 | 高级功能付费 |
-| **LangSmith** | LangChain 生态、追踪 | 商业 | 与 LangChain 深度集成、追踪能力强 | 绑定 LangChain 生态 |
+| **LangSmith** | 追踪、评估、从追踪到微调的闭环 | 商业 | 与 LangChain/LangGraph 集成最深；其他技术栈也可通过 SDK 和 OTel 接入 | 自 2026 年 9 月 14 日起，SaaS 延长保留期的追踪记录最多保存 180 天：不能当作审计日志 |
+| **Langfuse** | 自托管追踪与评估 | 是 | 原生支持 OTel，可导出；Python SDK 4.x 使用 `@observe()`（v2 的 `trace()` API 已移除） | 自托管除 Postgres 外还需运维 ClickHouse、Redis 和对象存储 |
+| **Arize Phoenix** | 自托管追踪与 RAG 评估 | 源码可用（Elastic-2.0） | 原生支持 OTel，检索视图强 | Dynatrace 于 2026 年 8 月 13 日同意收购 Arize：需关注后续路线 |
+| **Promptfoo** | CI 断言、红队测试 | 是（MIT） | 声明式测试套件；OpenAI Evals 的迁移目标（2026 年 10 月 31 日只读、11 月 30 日关闭） | OpenAI 于 2026 年 3 月宣布同意收购：需权衡供应商中立性 |
 
 ### 何时使用什么
 
@@ -478,7 +533,11 @@ LLM-as-judge 评估很强大，但也很昂贵。理解成本结构对于预算�
     --> UpTrain or Braintrust (drift detection, alerting)
 
   Want end-to-end observability?
-    --> LangSmith (if LangChain) or Braintrust (if framework-agnostic)
+    --> LangSmith or Braintrust (SaaS), Langfuse or Phoenix (self-hosted, OTel)
+
+  Still on OpenAI Evals?
+    --> It goes read-only on October 31, 2026 and shuts down November 30:
+        export results and move to Promptfoo or your own harness before then
 
   Building custom eval pipeline?
     --> Roll your own with LLM-as-judge + the RAG Triad structure
@@ -522,7 +581,7 @@ def evaluate_faithfulness(answer: str, context: str, judge) -> float:
 
 2. **运行三元组评估**：
    - **Context Relevance 低？** --> 检索问题。系统抓取了错误文档。修复方式：检查 embedding 相似度分数，确认查询语言是否与文档语言匹配，尝试混合检索（BM25 + dense），添加 reranker。
-   - **Groundedness 低？** --> 幻觉问题。尽管上下文不错，LLM 还是在编造。修复方式：加强系统 prompt（“只能基于提供的上下文回答”）、降低 temperature、切换到更擅长遵循指令的模型，或增加引用要求。
+   - **Groundedness 低？** --> 幻觉问题。尽管上下文不错，LLM 还是在编造。修复方式：加强系统 prompt（“只能基于提供的上下文回答”）、要求引用分块 ID 并验证引用，或切换到更擅长遵循指令的模型。降低 temperature 不再通用：GPT-6 Astra 会拒绝 `temperature`，最新的 Claude 模型也会拒绝非默认采样参数。
    - **Answer Relevance 低？** --> 系统检索到了相关内容并且忠实总结了它，但没有命中真实问题。修复方式：改进查询理解（query rewriting、HyDE），增加查询分类，把请求路由到正确的索引。
 
 3. **构建回归测试**：取出 50 个失败查询，标注期望答案，并加入黄金测试集。今后每次流水线变更都必须通过这些用例。
@@ -549,9 +608,9 @@ def evaluate_faithfulness(answer: str, context: str, judge) -> float:
 
 **强回答：**
 
-按影响从大到小，有四种策略：
+按影响从大到小，有五种策略：
 
-1. **分层 judge 模型**：生产采样使用 Claude Haiku（每次查询 $0.002）；覆盖 90% 的流量。把 GPT-4o（每次查询 $0.018）保留给 CI（持续集成）回归测试和每周深度审计。仅这一项就能把成本降低 80%。
+1. **分层 judge 模型**：生产采样可使用 GPT-6 Luna 等小型评审模型（完整三元组每次查询约 $0.001），覆盖 90% 的流量；前提是它在校准集上的裁决与前沿评审一致。Claude Opus 5.5（约 $0.04/查询）或 GPT-6 Sol（约 $0.02/查询）留给 CI（持续集成）回归测试和每周深度审计。两层价格相差 20 至 40 倍，仅此一项就可节省远超 80% 的成本。
 
 2. **智能采样**：不要评估每个查询。只对生产流量抽样 5%，并按查询类型和用户分群做分层抽样。对于 CI，只运行 golden set（黄金集，500 个查询），而不是完整的 synthetic set（合成集）。
 
@@ -559,7 +618,9 @@ def evaluate_faithfulness(answer: str, context: str, judge) -> float:
 
 4. **启发式预过滤**：在调用 LLM judge 之前先运行廉价的启发式检查。如果答案包含 “I don't know” 或与上下文完全没有重叠（ROUGE-L < 0.1），就跳过昂贵的 faithfulness evaluation（忠实度评估）并直接赋分。
 
-目标是把评估预算花在最有信号的地方：那些模糊、临界的案例上，因为这时 LLM judge 的细致推理最有价值。
+5. **批处理与决策模型**：把夜间和每周任务迁移到批处理 API（半价），将二元断言验证交给 Jev 等类型化决策模型。但不应期待它提高准确率：2026 年 9 月的研究发现，它有把握却判断错误的案例大多也会被 LLM 评审判错。因此，级联能省钱，人工标注样本仍是实际核查依据。
+
+目标是把评估预算花在最有信号的地方：需要 LLM 评审细致推理的模糊边界案例，以及用来校验所有评审模型的人工标签。
 
 ---
 
@@ -571,7 +632,11 @@ def evaluate_faithfulness(answer: str, context: str, judge) -> float:
 - Confident AI。《RAG 评估指标》（2025）
 - Microsoft。《通往黄金数据集之路》（2025）
 - Prem AI。《RAG 评估：指标、框架与测试》（2026）
+- Rao 和 Callison-Burch。《JEV vs. LLMs as Rubric Judges: Cheaper, Faster, and Wrong in the Same Places》（arXiv 2609.29769，2026）
+- MTEB 团队。《RTEB: Retrieval Embedding Benchmark》（2025 年 10 月）
+- Qdrant。《Qdrant-FineWeb-10B》（2026 年 9 月）
+- RAGAS 文档。《Testset Generation for RAG》（docs.ragas.io）
 
 ---
 
-*上一篇：[多模态 RAG](12-multimodal-rag.md) | 下一篇：即将推出*
+*上一篇：[多模态 RAG](12-multimodal-rag.md) | 下一篇：[大规模生产 RAG](14-production-rag-at-scale.md)*

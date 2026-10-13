@@ -40,7 +40,7 @@ flowchart TB
         FDA --> RETRIEVE
         PRECEDENT --> RETRIEVE
         INTERNAL --> RETRIEVE
-        RETRIEVE --> EVALUATE[Evaluate Compliance<br/>Claude Sonnet 4.6]
+        RETRIEVE --> EVALUATE[Evaluate Compliance<br/>Claude Sonnet 5.5]
     end
 
     subgraph Output["Compliance Report"]
@@ -70,6 +70,8 @@ claims = extract_claims(document)
 ```
 
 然后再将每个主张独立与相关法规进行检查。
+
+主张列表应通过结构化输出（JSON schema）生成，而不是强制工具调用：在最新 Claude 模型（Fable 5.1、Opus 5.5、Sonnet 5.5）上，将 `tool_choice` 设为 `any` 或指定工具会返回 HTTP 400，使为旧模型编写的提取代码失效。
 
 ### 2. 为什么法规用 RAG（检索增强生成）而不是微调？
 
@@ -131,8 +133,9 @@ compliance_decision = {
     "regulation_text": "Advertisements shall not contain claims that...",
     "precedent_cited": "Warning Letter 2023-FDA-04521",
     "reasoning": "Claim implies absolute safety, which contradicts...",
-    "model_used": "claude-3-7-sonnet-20251022",
-    "timestamp": "2025-12-21T10:30:00Z",
+    "model_used": "claude-sonnet-5-5",
+    "effort": "high",  # Record it: effort defaults change between model versions
+    "timestamp": "2026-10-01T10:30:00Z",
     "reviewer_id": null,  # Filled when human reviews
     "final_decision": null  # Filled after legal review
 }
@@ -146,7 +149,7 @@ compliance_decision = {
 
 ```mermaid
 flowchart LR
-    IMAGE[Marketing Image] --> VISION[Vision-LLM<br/>GPT-4o]
+    IMAGE[Marketing Image] --> VISION[Vision-LLM<br/>Claude Sonnet 5.5]
     VISION --> DESCRIBE[Image Description]
     DESCRIBE --> CLAIMS_V[Visual Claims Extraction]
     CLAIMS_V --> CHECK_V[Compliance Check]
@@ -158,17 +161,19 @@ flowchart LR
 
 ## 成本分析
 
+按 Claude Sonnet 5.5 标价计算（每 100 万输入/输出 token 为 $2/$10），其中 `high` effort 的思考 token 也按输出计费：
+
 | 阶段 | 每个资产成本 |
 |-----|-------------|
 | 文档解析 | $0.05 |
-| 主张提取 | $0.15 |
+| 主张提取 | $0.10 |
 | 法规检索 | $0.02 |
-| 合规评估（每个主张，平均 12 个主张） | $1.80 |
-| 图片分析（平均 5 张图片） | $0.75 |
-| 报告生成 | $0.10 |
-| **总计** | **$2.87** |
+| 合规评估（每个主张，平均 12 个主张） | $1.44 |
+| 图片分析（平均 5 张图片） | $0.50 |
+| 报告生成 | $0.07 |
+| **总计** | **$2.18** |
 
-对于每月 500 个资产：**$1,435/月**（对比等量法务工时的 $50K+/月）
+对于每月 500 个资产：**约 $1,090/月**（对比等量法务工时的 $50K+/月）。审查 SLA 为两天，因此无需实时推理：通过 Batch API（Sonnet 5.5 的输入/输出价格为每 100 万 token $1/$5）运行评估，可使模型相关成本大致减半。在这个规模下，模型应依据带标注违规样本集上的召回率来选，而不是只看价格。
 
 ---
 

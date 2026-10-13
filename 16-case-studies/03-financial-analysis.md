@@ -86,7 +86,7 @@
 
 ```mermaid
 flowchart LR
-    S1[Stage 1: Extraction<br/>Gemini 3 Pro<br/>Self-Consistency k=5] --> S2
+    S1[Stage 1: Extraction<br/>Gemini 3.8 Flash<br/>Self-Consistency k=5] --> S2
     S2[Stage 2: Analysis<br/>Mixture of Agents<br/>Quant + Narrative + Risk] --> S3
     S3[Stage 3: Verification<br/>Multi-Agent Debate<br/>3 models per claim] --> S4
     S4[Stage 4: Final Review<br/>Panel of Judges<br/>Quality score] --> D{Auto-publish<br/>threshold met}
@@ -168,64 +168,82 @@ flowchart TD
 
 ## 集成流水线
 
-### 阶段 1：多模态数据提取（Gemini 3 Pro）
+### 阶段 1：多模态数据提取（Gemini 3.8 Flash）
 
 ```python
+from google import genai
+from google.genai import types
+
 class FinancialDataExtractor:
     """
-    Using Gemini 3 Pro to handle complex 10-K tables and charts natively.
+    Gemini 3.8 Flash (GA) reads 10-K tables and charts as page images plus text.
+    Gemini 3.1 Pro is still a preview model, and preview models carry weaker
+    lifecycle guarantees than a compliance pipeline should depend on.
     """
+    def __init__(self):
+        self.client = genai.Client()
+
     async def extract_metrics(self, doc_pages: list[bytes]) -> dict:
-        # Gemini 3 Pro processes charts/tables as images + text natively
-        response = await genai.GenerativeModel("gemini-3.0-pro").generate_content(
-            [{"text": "Extract all balance sheet items into JSON."}, *doc_pages]
+        response = await self.client.aio.models.generate_content(
+            model="gemini-3.8-flash",
+            contents=[
+                "Extract all balance sheet items into JSON.",
+                *[types.Part.from_bytes(data=p, mime_type="image/png") for p in doc_pages],
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=BalanceSheet,  # Pydantic model: fixed field names and types
+            ),
         )
         return json.loads(response.text)
 ```
 
-### 阶段 2：分析生成（Claude 4.5 Opus）
+### 阶段 2：分析生成（Claude Opus 5.5）
 
 ```python
 class AnalysisEngine:
     """
-    Claude 4.5 Opus for deep qualitative synthesis and narrative coherence.
+    Claude Opus 5.5 for qualitative synthesis and narrative coherence.
     """
     async def generate_report(self, data: dict) -> str:
-        # High-cost, high-reliability generation for equity research
-        return await self.anthropic.messages.create(
-            model="claude-4.5-opus-20251101",
-            messages=[{"role": "user", "content": f"Analyze: {data}"}]
+        response = await self.anthropic.messages.create(
+            model="claude-opus-5-5",
+            max_tokens=16000,
+            output_config={"effort": "high"},  # Opus 5.5 defaults to medium; set it explicitly
+            messages=[{"role": "user", "content": f"Analyze: {data}"}],
         )
+        return "".join(b.text for b in response.content if b.type == "text")
 ```
 
-### 阶段 3：审计与验证（o3 推理模型）
+### 阶段 3a：推理审计（GPT-6.1 Sol）
 
 ```python
 class AuditorAgent:
     """
-    Using o3 (OpenAI) with high reasoning budget to audit claims.
-    Thinking mode is used to detect subtle accounting contradictions.
+    GPT-6.1 Sol at high reasoning effort audits claims for subtle accounting
+    contradictions. A different model family from the generator is less
+    likely to share the generator's blind spots.
     """
     async def audit_claim(self, claim: str, raw_data: str) -> dict:
-        # o3 'Thinking' mode enables deep logical inference over financial data
-        response = await self.openai.chat.completions.create(
-            model="o3-2025-12",
-            reasoning_effort="high",
-            messages=[{"role": "user", "content": f"Find any contradiction in: {claim} vs {raw_data}"}]
+        response = await self.openai.responses.create(
+            model="gpt-6.1-sol",
+            reasoning={"effort": "high"},
+            input=f"Find any contradiction between the claim and the data.\n"
+                  f"Claim: {claim}\nData: {raw_data}",
         )
-        return self.parse_audit(response)
+        return self.parse_audit(response.output_text)
 ```
 
-### 阶段 3：基于多智能体辩论的事实验证
+### 阶段 3b：基于多智能体辩论的事实验证
 
 辩论阶段用于捕捉单个模型会遗漏的细微幻觉。三个独立辩手并行核验每个主张；一致则通过，分歧则将该主张标记为人工审核：
 
 ```mermaid
 sequenceDiagram
     participant CE as Claim Extractor
-    participant D1 as Debater A<br/>Claude 4.5 Opus
-    participant D2 as Debater B<br/>GPT-5.2
-    participant D3 as Debater C<br/>Gemini 3 Pro
+    participant D1 as Debater A<br/>Claude Opus 5.5
+    participant D2 as Debater B<br/>GPT-6.1 Sol
+    participant D3 as Debater C<br/>Gemini 3.8 Flash
     participant CON as Consensus Logic
     participant OUT as Verification Result
 
@@ -397,7 +415,7 @@ class HumanReviewQueue:
 | 指标 | 人工流程 | AI 流水线 | 改进 |
 |--------|---------------|-------------|-------------|
 | 每份报告耗时 | 8 小时 | 25 分钟 | 快 19 倍 |
-| 每份报告成本 | $500 | $42 | 92% 降低 |
+| 每份报告成本 | $500 | $41 | 92% 降低 |
 | 事实错误率 | 2.1% | 0.4% | 81% 降低 |
 | 人工审核负载 | 100% | 28% | 72% 降低 |
 
@@ -410,17 +428,21 @@ class HumanReviewQueue:
 | 面板质量评分 | 4.0/5.0 | 4.2/5.0 |
 | 监管合规性 | 100% | 100% |
 
-### 成本拆分（12 月 2025）
+### 成本拆分（2026 年 10 月标价）
 
-| 组件 | 成本 | 占比 |
-|-----------|------|------------|
-| 数据抽取（Gemini 3 Pro） | $5 | 11% |
-| 分析（Claude 4.5 Opus） | $20 | 44% |
-| o3 思考审计（高） | $15 | 33% |
-| 基础设施与向量运维 | $5 | 12% |
-| **总计** | **$45** | 100% |
+假设每份报告约有 200K token 的来源材料（10-K、两份 10-Q、一份业绩电话会议记录），以及约 150 条抽取出的主张。Gemini 3.8 Flash 按 2027 年 1 月 1 日的标价（$1.50/$7.50）计算，而非推广价。
 
-*注：o3 审计只占 33% 的成本，但能捕获 98% 的幻觉，而 Claude 4.5 会遗漏，因此值得支付“思考”令牌溢价。*
+| 组件 | 假设 | 成本 | 占比 |
+|-----------|------------|------|-------|
+| 抽取（Gemini 3.8 Flash，k=5） | 5 × 200K 输入 token，总计约 75K 输出 token | $2.06 | 5% |
+| 分析（Claude Opus 5.5，Mixture of Agents） | 3 个提议者各输入 220K token，另有汇总者；含思考约 48K 输出 token | $3.78 | 9% |
+| 推理审计（GPT-6.1 Sol，高 effort） | 按主张调用，总输入约 300K token（每次均远低于 272K 长上下文阈值），输出约 50K | $1.10 | 3% |
+| 辩论核验（3 个模型家族） | 150 条主张 × 3 个辩手 × 2 轮 × 每轮约 8K 输入/1K 输出 token | $29.25 | 70% |
+| 面板评审 | 3 个中档裁决模型 × 约 40K 输入/2K 输出 token | $0.28 | 1% |
+| 基础设施与向量运维 | | $5.00 | 12% |
+| **总计** | | **约 $41** | 100% |
+
+*注：生成很便宜，核验才是主要账单。辩论扇出（主张数 × 辩手数 × 轮数）约占支出的 70%，其中仅 Opus 5.5 就占 $15.60。关键杠杆是主张数量：去重主张，对已经与第一阶段结构化数据完全吻合的数字跳过辩论。辩论轮次间缓存来源摘录还能减少输入成本（缓存按模型隔离，每个辩手保有自己的缓存）。*
 
 ---
 

@@ -42,6 +42,21 @@ LLM 是概率性的，可能产生：
 | 不安全动作 | 执行危险操作 | 系统损坏、数据丢失 |
 | 偏题回复 | 无关答案 | 不佳的用户体验 |
 | 格式错误 | 无效的输出结构 | 应用崩溃 |
+| 缺少法定防护措施 | 法律要求披露、危机干预流程或输出过滤时却未提供 | 罚款、私人诉讼 |
+
+### 护栏正成为法律要求
+
+部分护栏已不再只是产品选择。下表每一行都对应监管机构可能要求举证的控制措施（截至 2026 年 10 月 1 日；完整情况见 [AI 治理与合规](04-ai-governance-and-compliance.md)）：
+
+| 要求 | 状态 | 对应的护栏 |
+|-------------|--------|----------------------|
+| 欧盟《人工智能法》第 50 条交互披露 | 自 2026 年 8 月 2 日起适用 | 告知用户正在与 AI 交谈；按欧盟委员会指引，智能体还应说明代表谁行动 |
+| 欧盟《人工智能法》第 5 条禁止生成未经同意的私密影像及儿童性虐待材料（欧盟条例 2026/1744） | 自 2026 年 12 月 2 日起适用 | 只要合理可预见生成此类内容，图像和视频生成器就须设置输出防护，并提供有效性的红队测试证据 |
+| 加州 SB 1119，儿童使用的陪伴聊天机器人 | 2026 年 9 月 10 日签署 | 自杀意念危机干预流程、家长控制、独立儿童安全审计 |
+| 另外九个州的陪伴聊天机器人法律（科罗拉多、康涅狄格、佐治亚、夏威夷、爱达荷、爱荷华、内布拉斯加、俄勒冈、华盛顿） | 夏威夷自 2026 年 7 月起生效；其余在 2027 年 | 对未成年人提供 AI 披露，以及自伤和性内容防护；俄勒冈州还赋予私人诉权 |
+| 加州 SB 947，职场 AI | 2026 年 9 月 30 日签署 | 不得仅凭 AI 决定处分或解雇；最终决定须由人作出 |
+
+设计上的后果是：面向消费者的聊天机器人需要一套同时满足上述要求的披露和危机干预设计。触发日志、经测试的升级路径等有效性证据，与护栏本身同样重要。
 
 ---
 
@@ -103,7 +118,7 @@ class TopicGuardrail:
         "violence_against_individuals"
     ]
 
-    def __init__(self, allowed_topics: list[str], model: str = "gpt-4o-mini"):
+    def __init__(self, allowed_topics: list[str], model: str = "gpt-6-luna"):
         self.allowed_topics = allowed_topics
         self.classifier = TopicClassifier(model)
 
@@ -234,13 +249,20 @@ class ContentSafetyGuardrail:
 
         return GuardrailResult(passed=True)
 
-# Using OpenAI Moderation API
-def check_with_openai(text: str) -> GuardrailResult:
-    response = openai.Moderation.create(input=text)
-    result = response["results"][0]
+# Using the OpenAI Moderation API
+from openai import OpenAI
 
-    if result["flagged"]:
-        categories = [k for k, v in result["categories"].items() if v]
+client = OpenAI()
+
+def check_with_openai(text: str) -> GuardrailResult:
+    response = client.moderations.create(
+        model="omni-moderation-latest",
+        input=text,
+    )
+    result = response.results[0]
+
+    if result.flagged:
+        categories = [k for k, v in result.categories.model_dump().items() if v]
         return GuardrailResult(
             passed=False,
             reason=f"Flagged categories: {categories}"
@@ -409,6 +431,16 @@ Provide a helpful response.
         return self.llm.generate(response_prompt)
 ```
 
+### 检测无法保证什么
+
+模式列表和提示词包装只能设置初级障碍。可把它们作为低成本的第一层，而不能当作核心控制：
+
+- **前沿模型抵御能力更强，但仍非完美。** 在 Gray Swan 基准测试中，每个场景尝试 15 次，供应商报告的间接注入成功率为 Claude Opus 5.5 的 1.0% 和 GPT-6 Astra 的 8.5%（两家供应商各自运行测试，因此这些数字只能表示量级，不宜直接比较；见 [LLM 安全](../12-security-and-access/01-llm-security.md#间接提示注入-ipi-纵深防御)）。即使成功率只有 1%，每天读取数千份攻击者可触及文档的智能体仍会每天放过攻击。
+- **用户粘贴的内容同样不可信。** Anthropic 报告称，早期 Claude Opus 5.5 快照曾出现回归，将用户轮次中粘贴的文本视为不可能包含注入。用户粘贴的文档应与检索到的网页一样谨慎对待。
+- **外传不需要可疑的 URL。** LLMLeak（arXiv 2610.01768）把秘密编码到看似普通的引用 URL 中，让模型的正常网页抓取工具去请求；在 11 个开放权重模型上的攻击成功率达到 79.7%。只查找 Markdown 图片的输出过滤器会漏检；抓取工具的出站白名单则能阻止。
+
+有效的控制是结构性的：工具最小权限、出站白名单、沙箱执行，以及绑定到具体动作的审批（见[行动安全](#行动安全)）。
+
 ---
 
 ## 幻觉缓解（Hallucination Mitigation）
@@ -460,6 +492,7 @@ class HallucinationGuard:
 
     def check_self_consistency(self, query, response, context) -> GuardrailResult:
         # Generate multiple responses and check consistency
+        # (omit temperature on models with fixed sampling; default sampling still varies)
         responses = [
             llm.generate(query, context=context, temperature=0.7)
             for _ in range(3)
@@ -636,8 +669,8 @@ class ActionSafetyGuard:
 
         # High-risk actions need additional validation
         if risk_level == "high":
-            # Require confirmation
-            if not action.get("confirmed"):
+            # Require a confirmation bound to this exact action, not a boolean flag
+            if not self.approval_matches(action):
                 return ValidationResult(
                     allowed=False,
                     reason="requires_confirmation",
@@ -660,7 +693,19 @@ class ActionSafetyGuard:
             )
 
         return ValidationResult(allowed=True)
+
+    def approval_matches(self, action: dict) -> bool:
+        # The approval service stored a digest of exactly what the human saw.
+        # Any change to the tool or its arguments after approval invalidates it,
+        # and consume() makes each approval single-use.
+        canonical = json.dumps(
+            {"type": action["type"], "args": action["args"]}, sort_keys=True
+        )
+        digest = hashlib.sha256(canonical.encode()).hexdigest()
+        return self.approval_store.consume(action.get("approval_id"), digest)
 ```
+
+**把审批绑定到动作。** 若智能体自己能设置 `confirmed: true` 标记，或执行框架核对审批的动作与实际执行的动作不同，就会发生**审批洗白（approval laundering）**。2026 年 9 月的一篇论文（arXiv 2609.38983）将其分为范围、参数、时间、工具、委托和语义六类。将一次性审批绑定到具体调用的摘要可以堵住其中部分漏洞；论文中的加密审批令牌消除了委托洗白及所植入的时间漏洞，但没有消除范围洗白，也未显著减少参数洗白，因为这些偏差发生在字段级检查无法看到的层次。审批是沙箱的补充，不能替代沙箱。见[人在回路中的模式](../07-agentic-systems/08-human-in-the-loop-patterns.md#审批洗白)。
 
 ### 沙箱执行
 
@@ -718,6 +763,7 @@ class FallbackChain:
             try:
                 result = strategy.generate(query, context)
 
+                # A provider refusal (HTTP 200, empty content) must fail this check
                 if self.is_acceptable(result):
                     return Response(
                         content=result,
@@ -735,16 +781,48 @@ class FallbackChain:
             confidence="none"
         )
 
-# Usage
+# Usage: the backup is a different vendor, so one outage cannot take out both
 fallback = FallbackChain([
-    PrimaryLLM(model="gpt-4o"),
-    SecondaryLLM(model="claude-3.5-sonnet"),
+    PrimaryLLM(model="claude-sonnet-5-5"),
+    SecondaryLLM(model="gpt-6.1-sol"),
     CachedResponses(),
     HumanEscalation()
 ])
 ```
 
+### 供应商防护措施与拒绝响应
+
+护栏栈已经不是请求路径上唯一的防护层。最新的 Claude 模型（Fable 5.1 和 5、Opus 5.5 和 5、Sonnet 5.5）会运行供应商安全分类器；拒绝请求时，HTTP 仍返回成功状态 200，但 `stop_reason: "refusal"`、内容为空，且带有 `stop_details.category`。应像处理其他护栏结果一样处理它：
+
+```python
+def check_provider_refusal(response) -> GuardrailResult:
+    if response.stop_reason != "refusal":
+        return GuardrailResult(passed=True)
+
+    category = response.stop_details.category  # may be None
+    metrics.counter("provider_refusal", labels={"category": category or "none"}).inc()
+
+    if category == "reasoning_extraction":
+        # The prompt asked the model to write out its reasoning: fix the prompt
+        return GuardrailResult(passed=False, reason="prompt_requests_reasoning",
+                               suggested_action="fix_prompt")
+
+    # Discard any partial output; route to an approved fallback model
+    return GuardrailResult(passed=False, reason=f"provider_refusal:{category}",
+                           suggested_action="fallback_model")
+```
+
+关于这一层，需要注意：
+
+- **存在你无法控制的误报。** Anthropic 文档指出，无害的网络安全和生命科学工作也可能触发 `cyber`、`bio` 类别。Anthropic 报告其最新网络安全防护的误报比之前少约 60%，最新生物学防护对基础生物学和医学良性问题的触发次数减少约 85%（均为供应商数据）。
+- **拒绝也会产生费用。** 自 2026 年 9 月 24 日起，所有平台上 `bio`、`frontier_llm`、`reasoning_extraction` 类别的输出前拒绝均会计费，所有拒绝也计入速率限制。护栏仪表盘应按类别拆分拒绝次数与花费，红队套件探测这些类别时也须预留预算。
+- **你自己的护栏提示词也可能触发拒绝。** 若评判或核验提示词要求 JSON 中包含 `reasoning` 字段或 `<thinking>` 段落，可能被判为 `reasoning_extraction`。可改为要求简短说明或证据。
+- **回退须明确配置。** Anthropic 服务端回退（Claude API 上的测试版 `fallbacks: "default"`）会重试供应商为该类别推荐的模型，或你从允许列表中指定的至多三个目标模型。Bedrock、Google Cloud 和 Foundry 不支持此功能；这些平台由 Anthropic SDK 的拒绝回退中间件在客户端进行相同重试。设置了 `fallbacks` 的 Message Batches 条目会返回错误结果。无论最终由哪个模型回答，都要运行自己的输出护栏；响应中会标明模型。见[可靠性模式](03-reliability-patterns.md#处理安全拒绝)。
+- **某些任务类别按设计就会被拒绝。** GPT-6 Astra 的通用版本限制规模化漏洞研究与漏洞利用链；OpenAI 的 Daybreak 可信访问计划提供限制较少的访问。Claude Fable 5.1 可以发现漏洞但不能开发利用程序；防护限制较少的同款 Mythos 5.1 仅向经过审查的项目开放。若产品涉及安全或生命科学，应规划经过核验的访问层级，而非使用提示词变通。
+
 ### 人工升级
+
+置信度分数必须来自你能控制的信号。Token logprobs 并非可靠来源：GPT-6 Astra 完全不返回该值。跨样本投票比例、评判模型分数，或检索覆盖率（有多少声明能追溯到检索来源）可以跨供应商使用。
 
 ```python
 class HumanEscalationGuardrail:
@@ -868,6 +946,8 @@ class GuardrailMetrics:
         ).observe(result.latency_ms)
 ```
 
+**升级后仪表盘归零，可能代表监控失明，而非系统更安全。** OpenAI Python SDK 3.0（2026 年 8 月 12 日）和 Anthropic Python SDK 1.0（2026 年 8 月 20 日）都把 HTTP 层迁移到 `httpx2`。Anthropic 的迁移指南警告，除非在任何代码导入 httpx 之前运行 `httpx2.alias_httpx()`，否则基于 httpx 的工具（OpenTelemetry 的 HTTPX instrumentor、Sentry 的 httpx 集成、respx、pytest-httpx、vcrpy）可能悄悄漏掉 SDK 请求。LLM 调用 span 及由此派生的护栏或成本信号会无报错地归零，测试 mock 也不再拦截，导致护栏测试直接调用真实 API。每次升级供应商 SDK 后，都要断言一条已知违规的金丝雀请求仍会触发护栏，并仍出现在指标中。
+
 ---
 
 ## 护栏框架
@@ -899,32 +979,39 @@ response = rails.generate(messages=[{"role": "user", "content": user_message}])
 
 ### Guardrails AI
 
+校验器以独立包发布（例如先 `pip install guardrails-ai guardrails-ai-toxic-language`，再运行 `python -m guardrails_ai.toxic_language.post_install` 下载其本地模型，因此应在构建容器镜像时完成这一步，而非等到首个请求）。直接校验已有输出，可使护栏独立于生成内容的供应商：
+
 ```python
-from guardrails import Guard
-from guardrails.validators import ValidJSON, ToxicLanguage
+from guardrails import Guard, OnFailAction
+from guardrails_ai.toxic_language import ToxicLanguage
+from pydantic import BaseModel, Field
 
-guard = Guard.from_string(
-    validators=[
-        ValidJSON(on_fail="reask"),
-        ToxicLanguage(threshold=0.8, on_fail="filter")
-    ],
-    prompt="""
-    Extract product information as JSON:
-    {
-        "name": string,
-        "price": number
-    }
+class Product(BaseModel):
+    name: str = Field(description="Product name")
+    price: float = Field(description="Price in USD", ge=0)
 
-    Product description: ${description}
-    """
+# Structure: parse the model's JSON against the schema
+product_guard = Guard.for_pydantic(output_class=Product)
+outcome = product_guard.parse(llm_output)  # llm_output from any provider's client
+if not outcome.validation_passed:
+    ...  # retry with the validation error, as in StructuredOutputRetry above
+
+# Content: check free text sentence by sentence
+toxicity_guard = Guard().use(
+    ToxicLanguage(threshold=0.8, validation_method="sentence", on_fail=OnFailAction.EXCEPTION)
 )
-
-result = guard(
-    llm_api=openai.chat.completions.create,
-    model="gpt-4o",
-    description=product_description
-)
+toxicity_guard.validate(response_text)  # raises on toxic sentences
 ```
+
+### 选择各项检查的运行位置
+
+| 层级 | 示例 | 适用场景 |
+|-------|----------|------------|
+| 进程内库 | Guardrails AI 校验器、NeMo Guardrails 规则 | 无需额外网络跳转的 schema、主题和格式检查 |
+| 自托管安全分类器 | Llama Guard 4 12B（多模态，基于 Llama 4）；Mistral Shieldstral 1.0 3B（Apache 2.0、文本与图像，按推理时传入的自然语言策略评分） | 在自有 GPU 上进行高吞吐内容安全检查并自行设阈值；可适配策略的分类器无需重新训练即可调整策略 |
+| 托管审核端点 | OpenAI `omni-moderation-latest` | 可以向供应商发送内容、但不想自托管分类器的内容安全检查 |
+| 智能体 SDK 钩子 | openai-agents 0.22.1（2026 年 9 月 8 日）新增 MCP 服务器级护栏 | 智能体循环中检查工具调用及工具结果 |
+| 供应商防护措施 | Claude 安全分类器、受限网络安全访问层级 | 无法自行调节：监控、预算并规划路由 |
 
 ---
 
@@ -943,7 +1030,7 @@ result = guard(
 **2. 提示词工程（Prompt engineering）：**
 - 明确指令：“仅根据上下文回答”
 - 鼓励拒答：“如果不在上下文中，请说你不知道”
-- 低温度（0.1-0.3）
+- 在 API 仍接受的情况下使用低温度（0.1-0.3）；较新的 Claude 模型（Opus 4.7 及更新版本、Sonnet 5 及更新版本）拒绝非默认采样值，Gemini 于 2026 年 7 月弃用这些参数，GPT-6 Astra 也不支持，因此回答有据可依必须依靠检索、指令和核验
 
 **3. 输出校验：**
 - 事实性检查：NLI 模型或 LLM judge
@@ -979,7 +1066,8 @@ result = guard(
 
 **架构：**
 - 最小权限原则：代理只拥有所需权限
-- 动作验证：在执行前校验动作
+- 动作验证：在执行前校验动作，并将审批绑定到具体调用
+- 出站控制：限制抓取和浏览工具可访问的地址，因为秘密可能藏在看似普通的 URL 中外传
 - 输出过滤：拦截泄露系统提示词的响应
 
 没有任何单一防御是完美的。目标是让攻击者必须绕过多层防护。我也会监控注入尝试并更新防护措施。
@@ -1007,12 +1095,15 @@ result = guard(
 **行为护栏（Behavioral guardrails）：**
 - 置信度阈值：不确定时升级给人工
 - 拒答模式：对超范围请求进行友好拒绝
-- 公开披露：在合适场景明确告知是 AI
+- 公开披露：事先明确告知是 AI（欧盟《人工智能法》第 50 条及越来越多美国州聊天机器人法律要求）
+- 危机干预流程：检测自伤信号并移交人工和危机援助资源；多个州的法律已要求陪伴类机器人具备此能力
 
 **回退链路（Fallback chain）：**
 ```
-Primary LLM -> Backup LLM -> Canned responses -> Human escalation
+Primary LLM -> Backup LLM (different vendor) -> Canned responses -> Human escalation
 ```
+
+最新 Claude 模型的供应商安全拒绝（HTTP 200 且 `stop_reason: "refusal"`）应视作失败，而非成功：将其路由至供应商允许的回退模型，再视情况进入备用步骤。
 
 **监控（Monitoring）：**
 - 记录所有护栏触发事件
@@ -1021,7 +1112,7 @@ Primary LLM -> Backup LLM -> Canned responses -> Human escalation
 - 采样被拦截会话用于人工复核
 - 跟踪用户满意度
 
-关键平衡在于：护栏要足够安全，但又不能多到让机器人失去可用性。应根据风险画像调整阈值 - 金融服务要比普通闲聊更严格。
+关键平衡在于：护栏要足够安全，但又不能多到让机器人失去可用性。应根据风险画像调整阈值：金融服务要比普通闲聊更严格。
 
 ---
 
@@ -1029,10 +1120,16 @@ Primary LLM -> Backup LLM -> Canned responses -> Human escalation
 
 - NeMo Guardrails: https://github.com/NVIDIA/NeMo-Guardrails
 - Guardrails AI: https://github.com/guardrails-ai/guardrails
-- OpenAI Moderation: https://platform.openai.com/docs/guides/moderation
+- OpenAI Moderation: https://developers.openai.com/api/docs/guides/moderation
 - Llama Guard: https://ai.meta.com/research/publications/llama-guard/
-- OWASP LLM Top 10: https://owasp.org/www-project-top-10-for-large-language-model-applications/
-- Anthropic Safety: https://docs.anthropic.com/claude/docs/content-moderation
+- Mistral Shieldstral 1.0 3B model card: https://huggingface.co/mistralai/Shieldstral-1.0-3B
+- OWASP LLM Top 10: https://genai.owasp.org/llm-top-10/
+- Anthropic, content moderation guide: https://platform.claude.com/docs/en/about-claude/use-case-guides/content-moderation
+- Anthropic, refusals and fallback: https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback
+- Approval laundering in coding-agent harnesses (arXiv 2609.38983): https://arxiv.org/abs/2609.38983
+- LLMLeak, "The Innocent Courier" (arXiv 2610.01768): https://arxiv.org/abs/2610.01768
+- OpenAI Python SDK, httpx2 notes: https://github.com/openai/openai-python/blob/main/httpx2.md
+- Anthropic Python SDK v1.0.0 release notes: https://github.com/anthropics/anthropic-sdk-python/releases/tag/v1.0.0
 
 ---
 

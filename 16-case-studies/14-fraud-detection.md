@@ -37,8 +37,8 @@ flowchart TB
         RULES --> DECISION[Final Decision]
     end
 
-    subgraph Explain["Explanation Layer"]
-        REJECT --> LLM[GPT-4o-mini<br/>Explain Decision]
+    subgraph Explain["解释层（异步，不占用 100ms 决策路径）"]
+        REJECT --> LLM[GPT-6 Luna<br/>解释决策]
         LLM --> REASON[Human-Readable Reason]
     end
 
@@ -74,8 +74,9 @@ def decide(transaction, fraud_score):
     if fraud_score < 0.3:
         return "APPROVE", None
     elif fraud_score > 0.7:
-        reason = explain_rejection(transaction, fraud_score)
-        return "REJECT", reason
+        # Return the decision now; the narrative is generated off the hot path
+        enqueue_explanation(transaction, fraud_score)
+        return "REJECT", "Model score above threshold"
     else:
         # Gray zone: apply business rules
         if check_velocity_rules(transaction):
@@ -89,7 +90,7 @@ def decide(transaction, fraud_score):
 
 **答案：** SHAP 值会告诉你“特征 X 对分数的贡献是 0.3”。客户和监管机构想要的是“这笔交易被标记，是因为它来自一个你从未访问过的国家的新设备，而且金额是你平时消费的 10 倍。”
 
-我们将特征重要性作为输入，生成自然语言解释：
+我们将特征重要性作为输入，生成自然语言解释。LLM 调用不进入 100ms 决策路径：决策先返回原因代码，面向持卡人的解释再根据记录的特征异步生成（GPT-6 Luna 等小模型每 100 万输入/输出 token 的价格分别为 $0.10/$0.50，速度和成本足以支持为每笔拒绝交易生成解释）：
 
 ```python
 prompt = f"""
@@ -109,6 +110,8 @@ Top contributing factors:
 Write a 2-sentence explanation for the cardholder.
 """
 ```
+
+生成后校验会拒绝引用了输入列表之外因素的解释，并回退到模板化原因，因为在争议处理中，编造的原因比笼统的原因更糟。
 
 ---
 

@@ -1,6 +1,6 @@
 # 混合检索（Hybrid Search）
 
-混合检索（Hybrid Search）将密集检索（dense / semantic retrieval）和稀疏检索（sparse / keyword retrieval）结合，以兼顾两者优势。它是生产环境 RAG 的基线：Elasticsearch 的 `rrf` 检索器、OpenSearch hybrid search、Weaviate、Qdrant 和 Azure AI Search 都默认提供原生混合检索流程。
+混合检索（Hybrid Search）将密集检索（dense / semantic retrieval）和稀疏检索（sparse / keyword retrieval）结合，以兼顾两者优势。它是生产环境 RAG 的基线：Elasticsearch 的 `rrf` 和 `linear` 检索器、OpenSearch hybrid search、Weaviate、Qdrant、Milvus 和 Azure AI Search 都默认提供原生混合检索流程。Pinecone 于 2026 年 9 月 9 日正式发布 BM25 全文检索，但每次请求只按一种评分方式排序，因此词汇和向量结果须在客户端融合。
 
 ## 目录
 
@@ -147,18 +147,29 @@ def sparse_search(query: str, top_k: int = 10) -> list[Result]:
 部分向量数据库原生支持混合检索：
 
 ```python
-# Weaviate
-results = client.query.get("Document", ["text"]).with_hybrid(
+# Weaviate (Python client v4)
+docs = client.collections.use("Document")
+results = docs.query.hybrid(
     query="Configure NVIDIA_VISIBLE_DEVICES",
-    alpha=0.5  # 0 = sparse only, 1 = dense only
-).do()
-
-# Qdrant (with sparse vectors)
-results = client.search(
-    collection_name="docs",
-    query_vector=NamedVector(name="dense", vector=dense_embedding),
-    query_sparse_vector=NamedSparseVector(name="sparse", vector=sparse_vector),
+    alpha=0.5,  # 0 = sparse only, 1 = dense only
 )
+
+# Qdrant (Query API: prefetch both arms, fuse server-side)
+from qdrant_client import models
+
+results = client.query_points(
+    collection_name="docs",
+    prefetch=[
+        models.Prefetch(query=dense_embedding, using="dense", limit=40),
+        models.Prefetch(
+            query=models.SparseVector(indices=sparse_indices, values=sparse_values),
+            using="sparse",
+            limit=40,
+        ),
+    ],
+    query=models.FusionQuery(fusion=models.Fusion.RRF),
+    limit=10,
+).points
 ```
 
 **优点：** 单一系统、运维更简单、延迟更低  
@@ -287,9 +298,12 @@ def z_score_normalize(results: list[Result]) -> list[Result]:
 | 方法 | 使用分值 | 查询自适应 | 复杂度 |
 |--------|-------------|----------------|------------|
 | RRF | 否（仅排序） | 否 | 低 |
+| 加权 RRF | 否（使用排名，并按检索分支加权） | 否 | 低 |
 | 加权 | 是 | 否 | 低 |
 | 相对分值 | 是 | 部分 | 中等 |
 | 学习式 | 是 | 是 | 高 |
+
+**各引擎现状：**Elasticsearch 使用 `rrf` 检索器或基于分数的 `linear` 检索器融合结果。Weaviate 默认使用相对分数融合。Qdrant 的 Query API 提供 RRF 和基于分数分布的融合。Milvus 3.0.1 增加了加权 RRF，既保留 RRF 不受分数尺度影响的特点，也能偏重某一检索分支。
 
 ---
 
@@ -304,6 +318,7 @@ def z_score_normalize(results: list[Result]) -> list[Result]:
 ### SPLADE 实现
 
 ```python
+import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 class SpladeEncoder:
@@ -334,6 +349,8 @@ class SpladeEncoder:
 
 **何时使用 SPLADE 而非 BM25 + 密集检索混合：** SPLADE 能生成可与稠密向量并列存储在现代向量数据库（如 Milvus 或 Qdrant）中的稀疏向量，从而在单次检索中完成混合检索，无需单独的 Elasticsearch 或 BM25 索引。如果你的数据集中存在极其稀有、非语言学型的词元（如独特序列号），且这些词可能在训练期间未出现过，则应坚持使用 BM25。
 
+**稀疏索引也已进步。**学习型稀疏向量每份文档的非零词项远多于 BM25，过去在为关键词搜索设计的倒排索引上速度较慢。Milvus 3.0 围绕 SINDI、Block-Max WAND 和 Block-Max MaxScore 重建了稀疏索引；Milvus 报告其压缩 BM25 索引约为 2.6 版的三分之一，在学习型稀疏向量上，SINDI 的 QPS 最高约为 MaxScore 的 10 倍（供应商基准）。
+
 ---
 
 ## 实现模式
@@ -341,19 +358,20 @@ class SpladeEncoder:
 ### 模式 1：Elasticsearch + 向量数据库
 
 ```python
+import asyncio
+
 class HybridSearcher:
     def __init__(self, es_client, vector_db, embedding_model):
         self.es = es_client
         self.vector_db = vector_db
         self.embedding_model = embedding_model
 
-    def search(self, query: str, top_k: int = 10, alpha: float = 0.5) -> list[Result]:
+    async def search(self, query: str, top_k: int = 10) -> list[Result]:
         # Parallel retrieval
-        dense_future = self.dense_search(query, top_k * 3)
-        sparse_future = self.sparse_search(query, top_k * 3)
-
-        dense_results = dense_future.result()
-        sparse_results = sparse_future.result()
+        dense_results, sparse_results = await asyncio.gather(
+            self.dense_search(query, top_k * 3),
+            self.sparse_search(query, top_k * 3),
+        )
 
         # Fusion
         combined = reciprocal_rank_fusion([
@@ -365,15 +383,14 @@ class HybridSearcher:
 
     async def dense_search(self, query: str, top_k: int) -> list[Result]:
         embedding = self.embedding_model.encode(query)
-        return self.vector_db.search(embedding, top_k=top_k)
+        return await self.vector_db.search(embedding, top_k=top_k)
 
     async def sparse_search(self, query: str, top_k: int) -> list[Result]:
-        response = self.es.search(
+        # es_client is an AsyncElasticsearch instance
+        response = await self.es.search(
             index="documents",
-            body={
-                "query": {"match": {"content": query}},
-                "size": top_k
-            }
+            query={"match": {"content": query}},
+            size=top_k,
         )
         return [
             Result(id=hit["_id"], score=hit["_score"])
@@ -385,23 +402,23 @@ class HybridSearcher:
 
 ```python
 import weaviate
+from weaviate.classes.query import HybridFusion
 
 def hybrid_search_weaviate(
-    client: weaviate.Client,
+    client: weaviate.WeaviateClient,
     query: str,
     alpha: float = 0.5,
     top_k: int = 10
 ) -> list[dict]:
-    result = client.query.get(
-        "Document",
-        ["text", "title", "source"]
-    ).with_hybrid(
+    docs = client.collections.use("Document")
+    response = docs.query.hybrid(
         query=query,
         alpha=alpha,  # 0 = BM25 only, 1 = vector only
-        fusion_type=weaviate.HybridFusion.RELATIVE_SCORE
-    ).with_limit(top_k).do()
+        fusion_type=HybridFusion.RELATIVE_SCORE,
+        limit=top_k,
+    )
 
-    return result["data"]["Get"]["Document"]
+    return [obj.properties for obj in response.objects]
 ```
 
 ---
@@ -464,6 +481,12 @@ def predict_alpha(query: str) -> float:
     return 0.5  # Default balanced
 ```
 
+### 多样性与业务规则
+
+融合会针对每份文档优化相关性，因此同一来源的近重复文本块可能占满 top-k。过去需要在应用代码中实现的两种控制，如今已是 Weaviate 1.39（2026 年 8 月）正式提供的引擎功能：
+- **MMR（最大边际相关性）**可用于混合和向量搜索，通过 0.0 至 1.0 的平衡参数在相关性与多样性之间取舍（混合搜索需 Python 客户端 4.23.0 或更新版本）。
+- **Boost API** 在查询时根据过滤匹配、属性值、时间衰减或数值衰减提升或降低结果排序，而不剔除任何结果。新鲜度和“优先官方文档”等规则应优先使用它，而非可能让结果集为空的硬性过滤。
+
 ### 检索深度
 
 融合前应抓取多少结果：
@@ -501,6 +524,10 @@ Total:                   60-100ms
 - 为常见查询预计算嵌入
 - 两端都使用近似检索
 - 对重复查询缓存融合结果
+
+### 多租户关键词评分
+
+BM25 依赖全语料库统计量（IDF）。在共享的多租户集合中，一个大租户的词汇会改变所有其他租户的关键词分数，因此同一查询和文档会因索引中其他租户的存在而改变排名，词项统计还可能跨租户泄露。Qdrant 1.19 为稀疏和 BM25 搜索增加了按租户计算的 IDF；其他引擎可让大租户使用独立索引，或接受漂移并逐租户评测。
 
 ### 缓存策略
 
@@ -567,7 +594,7 @@ def hybrid_search_with_fallback(query: str, top_k: int = 10) -> list[Result]:
 ### Q: 为什么 Reciprocal Rank Fusion（RRF）比“Simple Score Addition（简单分数相加）”更安全？
 
 **Strong answer（标准答案）:**
-Simple score addition（简单分数相加）不安全，因为向量分数（例如 Cosine Similarity（余弦相似度）：0.0 到 1.0）与关键词分数（例如 BM25：0 到无穷大）使用了完全不同的尺度。一次幸运的关键词高匹配可能产生极高 BM25 分数，把 10 个高相关的语义匹配结果“淹没”。RRF 会忽略绝对分数，只关注相对顺序（rank）。这使其在不同检索引擎中的异常值和“score-drift（分数漂移）”方面更具数学鲁棒性。
+Simple score addition（简单分数相加）不安全，因为向量分数与关键词分数使用完全不同的尺度。余弦相似度的范围为 -1 至 1，许多文本嵌入模型会将其压缩到狭窄的正值区间；BM25 没有上界，且会随语料库统计和查询长度变化。一次恰巧命中关键词的高 BM25 分数可能“淹没”10 个高度相关的语义匹配。RRF 忽略绝对分数，只关注相对顺序（rank），因此不受异常值及不同检索引擎间分数漂移的影响。
 
 ### Q: 什么时候会选择 SPLADE 而不是标准的 BM25 + Dense Hybrid（BM25+稠密混合）方案？
 
@@ -604,6 +631,9 @@ alpha 参数控制这种平衡（通常 alpha 表示 dense 的权重）：
 - Formal et al. "SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking"（2021/2025）
 - Weaviate Hybrid Search: https://weaviate.io/developers/weaviate/search/hybrid
 - Qdrant Hybrid Search: https://qdrant.tech/documentation/concepts/hybrid-queries/
+- [Elasticsearch 发布说明（9.5）](https://www.elastic.co/docs/release-notes/elasticsearch)
+- [Pinecone 全文搜索正式发布（2026 年 9 月）](https://www.pinecone.io/blog/full-text-search-generally-available/)
+- [Milvus 3.0.0 发布说明（2026 年 7 月）](https://github.com/milvus-io/milvus/releases/tag/v3.0.0)
 
 ---
 

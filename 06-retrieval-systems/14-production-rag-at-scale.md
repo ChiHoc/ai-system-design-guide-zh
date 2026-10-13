@@ -1,6 +1,6 @@
 # 生产级 RAG 规模化
 
-生产级 RAG 不再是一个周末项目。它是一个分布式系统，包含检索管线、缓存层、路由逻辑、自我纠错循环、多租户隔离以及成本控制，且所有这些都在严格的延迟 SLA 下运行。当 RAG 在生产中失败时，失败大约有 73% 的概率出在检索而不是生成，因此那些成功的企业级部署会把知识源（而不是模型）作为主要投资。
+生产级 RAG 不再是一个周末项目。它是一个分布式系统，包含检索管线、缓存层、路由逻辑、自我纠错循环、多租户隔离以及成本控制，且所有这些都在严格的延迟 SLA 下运行。当 RAG 在生产中失败时，原因通常位于模型上游：正确段落未被完整分块、索引或检索，因此生成器根本没有见到它。正因如此，成功的企业级部署会把知识源（而不是模型）作为主要投资。
 
 ## 目录
 
@@ -24,7 +24,7 @@
 
 ## RAG 与长上下文
 
-随着各大前沿模型家族现在都支持 1M+ 令牌上下文窗口（Claude Opus 4.7、Claude Sonnet 4.6、GPT-5.5、Gemini 3.1 Pro、Qwen 3.6 Plus、Llama 4 Maverick），问题已经不再是“RAG 还是长上下文？”，而是“各自在什么情况下更优？”
+随着多数前沿模型家族支持约 1M 令牌上下文窗口（Claude Opus 5.5 与 Sonnet 5.5、上下文达 1.05M 的 GPT-6 Sol 与 Astra、Gemini 3.8 Flash、Muse Spark 1.3，以及 Xiaomi MiMo-V2.6、Llama 4 Maverick 等开放模型），问题已经不再是“RAG 还是长上下文？”，而是“各自在什么情况下更优？”
 
 ### 决策矩阵
 
@@ -52,17 +52,39 @@
 
 | 维度 | RAG | 长上下文（1M 令牌） |
 |-----------|-----|--------------------------|
-| **平均查询成本** | ~$0.0001 | ~$0.10 |
+| **平均查询成本** | ~$0.001-0.015（5K 上下文 token，从 GPT-6 Luna 到 Claude Sonnet 5.5） | 使用 Claude 热缓存时输入约 $0.20-0.25；无缓存时 $2-4 |
 | **平均延迟（p50）** | ~1s | ~30-45s |
 | **特定事实的精度** | 高（定向检索） | 中间部分会退化 |
 | **跨文档综合** | 弱（上下文有限） | 强（能看到全部） |
 | **语料库大小上限** | 无上限 | ~1M 令牌 |
-| **数据新鲜度** | 分钟级（增量索引） | 需要完整重新加载 |
-| **1000 QPS 下的成本** | ~$100/天 | ~$100,000/天 |
+| **数据新鲜度** | 分钟级（增量索引） | 需要完整重新加载；任一编辑都会使其之后的缓存失效 |
+| **每百万次查询成本** | ~$1K-15K | 热缓存至少约 $200K；无缓存时 $2M-4M |
 
 ### “迷失在中间”问题
 
 LLM 不会在整个上下文窗口中均匀关注信息。放在长上下文中间的信息，相比放在开头或结尾的信息，准确率会出现 30%+ 的下降。RAG 通过只把最相关的块放入一个短而聚焦的上下文中，完全绕开了这个问题。
+
+### 缓存读取的成本临界点
+
+更便宜的缓存读取改变了**稳定**语料的选择。在同一个模型上，若将语料保存在服务商的提示词缓存中，每次查询的输入成本低于 RAG 的条件是：
+
+```
+corpus_tokens x cache_read_multiplier  <  retrieved_context_tokens
+```
+
+| 模型（2026 年 10 月 1 日标价） | 缓存读取费率 | 与 5K-token RAG 上下文成本相同的语料规模 |
+|----------------------------------|------------|------------------------------------------------------|
+| Claude Fable 5.1 | 0.025 倍（每百万 token $0.25） | 约 200K token |
+| Claude Opus 5.5 | 0.05 倍（每百万 token $0.20） | 约 100K token |
+| GPT-6.1 Sol | 0.05 倍（每百万 token $0.10） | 约 100K token |
+| 其他多数 Claude 与 OpenAI 模型 | 0.1 倍 | 约 50K token |
+
+这个公式没有计入以下因素：
+- **缓存写入和 TTL。** Claude 对 5 分钟写入收取 1.25 倍、对 1 小时写入收取 2 倍费用（Opus 5.5 分别为每百万 token $5 和 $8）；OpenAI 自 GPT-5.6 起收取 1.25 倍费用，TTL 固定为 30 分钟。查询频率低于 TTL 的语料会反复支付写入成本。Gemini 3.8 Flash 的显式缓存读取费率为 0.1 倍，但还按小时收取存储费（2026 年 12 月 31 日前每百万 token 每小时 $0.50；2027 年 1 月 1 日起为 $1.00），因此 200K-token 语料即使没有读取，每小时也需 $0.10 至 $0.20。
+- **长上下文附加费。** OpenAI 在输入超过 272K token 后，对整次请求按长上下文费率计费；xAI 在达到 200K token 后将所有 token 价格翻倍。Anthropic 的 Claude 4.6 及后续版本直到 1M token 都采用统一价格。
+- **质量和延迟。** 便宜的缓存读取无法解决“迷失在中间”或超长提示词的预填充时间，而且只对容得下的语料有用。
+
+应按模型重新计算，而非引用固定阈值。实际变化主要发生在小语料端：很少变更的 100K 至 200K-token 手册或政策集，现在作为缓存前缀通常比建索引更便宜、更简单。
 
 ### 最佳实践：混合模式
 
@@ -85,6 +107,19 @@ LLM 不会在整个上下文窗口中均匀关注信息。放在长上下文中�
 ```
 
 **经验法则**：如果你的语料库能够放进上下文，而且你能承受延迟，也能承受成本，那就用长上下文。否则就用 RAG。对于大多数受成本和延迟约束的生产系统来说，RAG 仍然是正确的默认选择。
+
+### 第三种选择：只编译一次知识
+
+一类新产品在摄入时预先计算结构化知识，而不是每次查询时检索分块。典型例子是 **Pinecone Nexus**（2026 年 8 月 6 日正式可用）：领域专家通过 Manifest 描述任务（实体、关系和答案形式）；Nexus 将源文档一次编译成摘要、结构化提取结果和实体关系图；智能体通过 KnowQL 语言一次调用即可查询。数据平面运行在客户自己的 AWS、Google Cloud 或 Azure 账户中。Pinecone 报告（供应商自行评测），在 tau-Knowledge 上，GPT-5.5 搭配 Nexus 的得分为 47.4%，不搭配时为 46.4%，每项任务成本降低 77%，模型调用减少约 35%。
+
+| | 查询时检索（RAG） | 只编译一次 |
+|---|---|---|
+| **成本发生位置** | 每次查询 | 摄入和重新编译 |
+| **错误发生位置** | 检索遗漏，可按查询观察 | 编译错误，在重新编译前会影响每个答案 |
+| **意料之外的问题** | 可以处理 | 仅限 Manifest 预设的答案形式 |
+| **语料漂移** | 增量重新索引 | 重新编译受影响的产物 |
+
+一次编译适合问题形式重复、内容稳定且查询量大的领域（政策、判例法、产品目录）。长尾和探索性问题仍应采用查询时检索；即使采用编译方案，也应保留检索作为回退路径。
 
 ---
 
@@ -134,7 +169,7 @@ LLM 不会在整个上下文窗口中均匀关注信息。放在长上下文中�
 class QueryRouter:
     """Routes queries to the optimal retrieval strategy."""
 
-    def __init__(self, classifier_model: str = "gpt-4o-mini"):
+    def __init__(self, classifier_model: str = "gpt-6-luna"):
         self.classifier = classifier_model
         self.route_counts = Counter()  # for monitoring
 
@@ -557,6 +592,8 @@ vs. without speculation:
                        query
 ```
 
+AMBIGUOUS 分支需要网页搜索后端，网关如今也提供这项服务。Cloudflare 的 Web Search API（2026 年 10 月 2 日测试版）运行在 AI Gateway 中，返回来自 Ceramic.ai、Exa 和 Linkup 的结构化网页摘要，按合作伙伴标价收费且不加价，账单和日志统一通过网关处理。无论由谁提供搜索，都必须将网页结果视为不可信输入：它们可能包含提示词注入，应放在单独且明确标注的上下文块中，不能在提示词中凌驾于租户自有文档之上。
+
 ### 实现
 
 ```python
@@ -734,6 +771,10 @@ def plan_retrieval_budget(query: str, max_budget_tokens: int = 4000):
         return {"context_tokens": 3500, "generation_tokens": 500, "top_k": 15}
 ```
 
+### 作为托管功能的自适应推理强度
+
+托管搜索服务如今将这种升级模式作为配置提供。Azure AI Search 知识库在 REST API 2026-04-01 中正式可用（抽取式检索已正式可用，查询规划和答案合成仍在预览）；2026-08-01-preview API 新增 `retrievalReasoningEffort: "auto"`：先进行轻量检索，仅在依据不足时才升级到 LLM 查询规划，最高为中等强度。同一预览版还通过服务器发送事件流式返回检索结果，并允许按知识源跳过重排序。如果自行构建路由器，应沿用这种形式：低价路径为默认路径，升级触发器必须基于实测的依据充分性信号，而不是猜测查询复杂度。
+
 ---
 
 ## 成本优化模式
@@ -747,11 +788,11 @@ Component         Cost per Query    % of Total    Optimization
 -----------------------------------------------------------------
 Embedding         $0.000005         ~1%           Batch + cache
 Vector Search     $0.00001          ~2%           Index optimization
-Reranking         $0.0001           ~15%          Skip for simple queries
-LLM Generation    $0.0005-0.005     ~80%          Model tiering, caching
+Reranking         $0.0001           ~5-15%        Skip for simple queries
+LLM Generation    $0.0004-0.008     ~80-95%       Model tiering, caching
 -----------------------------------------------------------------
-Total (naive)     ~$0.001-0.006
-Total (optimized) ~$0.0001-0.001    (5-10x reduction)
+Total (naive)     ~$0.001-0.01
+Total (optimized) ~$0.0002-0.002    (5-10x reduction)
 ```
 
 ### 分层模型策略
@@ -762,15 +803,17 @@ Total (optimized) ~$0.0001-0.001    (5-10x reduction)
              +----------+----------+----------+
  Generation  |  Small   |  Mid     |  Large   |
  Model       |  Model   |  Model   |  Model   |
-             | (4o-mini)| (Claude  | (Claude  |
-             |          |  Sonnet) |  Opus)   |
-             | ~$0.0002 | ~$0.002  | ~$0.02   |
+             | (GPT-6   | (Sonnet  | (Opus    |
+             |  Luna)   |  5.5)    |  5.5)    |
+             | ~$0.0004 | ~$0.008  | ~$0.016  |
              +----------+----------+----------+
 
  Reranking   |  Skip    | Lightweight| Cross-  |
              |          | reranker   | encoder |
              +----------+----------+----------+
 ```
+
+成本以每次请求 2.6K 输入、300 输出 token，按 2026 年 10 月 1 日标价估算，尚未计入推理 token。价格差主要集中在小型和中型模型之间：Claude Opus 5.5（$4 / $20）只比 Sonnet 5.5（$2 / $10）贵一倍，而 Sonnet 5.5 或 GPT-6 Sol 的价格是 GPT-6 Luna 的 20 倍。因此，路由的主要价值在小型/中型边界，应把分类器精力放在那里；中型/大型边界的收益往往难以抵消误路由成本。
 
 ### 渐进式细化模式
 
@@ -789,7 +832,7 @@ class ProgressiveRAG:
         # Level 2: Fast retrieval + small model
         chunks = await retrieve(query, top_k=3)
         response = await generate(
-            query, chunks, model="gpt-4o-mini"
+            query, chunks, model="gpt-6-luna"
         )
 
         # Check confidence
@@ -801,12 +844,12 @@ class ProgressiveRAG:
         chunks = await retrieve(query, top_k=15)
         reranked = await rerank(query, chunks, top_k=5)
         response = await generate(
-            query, reranked, model="claude-sonnet-4-5"
+            query, reranked, model="claude-sonnet-5-5"  # replaces claude-sonnet-4-5 (retires Nov 30, 2026)
         )
 
         if response.confidence > 0.7:
             await self.cache.put(query, response)
-            return response.text  # Cost: ~$0.003
+            return response.text  # Cost: ~$0.008
 
         # Level 4: Full agentic pipeline (expensive but thorough)
         return await self.agentic_pipeline.run(query)  # Cost: ~$0.05
@@ -838,6 +881,21 @@ class CostGuard:
 
         return True
 ```
+
+### 自建还是购买：托管 RAG 的单价
+
+托管检索现在公开每次查询的价格，让自建与购买成为一道算术题。Cloudflare AI Search 于 2026 年 10 月 1 日正式可用：底层使用 Workers AI、Vectorize、R2 和 Browser Run，向量与关键词搜索并行运行，支持融合、可选重排序、扫描 PDF 的可选 OCR，以及通过 Qwen3-VL-Embedding 进行图像检索。收费从 2026 年 11 月 1 日开始：
+
+| 项目 | 价格 | 每月免费额度（所有 Workers 套餐） |
+|------|-------|-------------------------------------|
+| 摄入 | 每百万 token $0.75；图像处理另加每百万 token $0.50 | 500 万 token |
+| 存储 | 每 GB 每月 $2.00 | 10 GB |
+| 语义查询（向量或混合） | 每千次 $0.75 | 1,000 次 |
+| 全文查询 | 每千次 $0.10 | 1,000 次 |
+
+每月一百万次混合查询的检索成本为 $750，远低于自行运维技术栈的工程人力成本。但在 1,000 QPS（每月约 26 亿次查询）下，仅检索费就约为每月 $190 万，足以支付不少自托管向量数据库节点和一支值班团队。分界点大约在每月数千万次查询，应结合自己的基础设施和人员成本计算。其他供应商也在打包相同的技术栈：Cohere Compass Cloud（2026 年 9 月 25 日私人测试）把解析、稠密与稀疏嵌入、权限感知检索和重排序封装在 MCP 服务器之后，供智能体逐步缩小语料范围。
+
+**生命周期风险是“购买”决策的另一半。** OpenAI 于 2026 年 8 月 26 日关闭 Assistants API。向量存储仍可沿用：Responses API 的 `file_search` 工具接收相同的 `vector_store_ids`、`max_num_results` 和元数据过滤条件，因此索引无需重新摄入；但线程与运行编排代码必须重写。保持检索存储与编排解耦，才能单独迁移其中任何一方。
 
 ---
 
@@ -880,9 +938,9 @@ class CostGuard:
 +------------------------------------------------------------------+
 ```
 
-### 80% 分块规则
+### 许多检索失败其实是分块失败
 
-估计约 80% 的 RAG 质量问题源于分块决策，而不是检索或生成。常见的分块失败包括：
+检索器只能返回分块器创建的内容。如果一项事实被拆到两个分块，或者分块失去了赋予其含义的章节标题，那么无论嵌入模型和重排序器多好，也无法检出完整答案。因此，当下方清单指向检索问题时，应先检查分块，再考虑更换嵌入模型。常见的分块失败包括：
 
 - **分块过小**：丢失上下文。“它要价 $200”——到底是什么要价 $200？
 - **分块过大**：削弱相关性。一个 2000 令牌的分块里，只有 1 句相关。
@@ -894,14 +952,14 @@ class CostGuard:
 ```
 When RAG quality drops, investigate in this order:
 
-1. RETRIEVAL QUALITY (check first -- most common root cause)
+1. RETRIEVAL QUALITY (check first: most common root cause)
    [ ] Log the query and retrieved chunks side by side
    [ ] Compute retrieval precision@K manually for 20 failing queries
    [ ] Check if relevant documents exist in the index at all
-   [ ] Compare BM25 vs vector results -- if BM25 wins, embeddings are stale
+   [ ] Compare BM25 vs vector results: if BM25 wins, embeddings are stale
 
 2. CHUNKING QUALITY (check second)
-   [ ] Sample 50 random chunks -- do they make sense in isolation?
+   [ ] Sample 50 random chunks: do they make sense in isolation?
    [ ] Check chunk boundaries for tables, lists, code blocks
    [ ] Verify metadata (title, section, doc_id) is present
 
@@ -910,7 +968,7 @@ When RAG quality drops, investigate in this order:
    [ ] Check if reranker is pushing relevant results down
 
 4. GENERATION QUALITY (check last)
-   [ ] Test with perfect context (manually curated) -- does LLM still fail?
+   [ ] Test with perfect context (manually curated): does LLM still fail?
    [ ] Check for context window overflow (truncated chunks)
    [ ] Verify system prompt is not conflicting with retrieved context
 ```
@@ -929,7 +987,7 @@ When RAG quality drops, investigate in this order:
 
 ## 监控与告警
 
-生产环境中的 RAG 需要专门的监控，不能只依赖标准应用指标。大约 60% 的新 RAG 部署如今都会从第一天开始进行系统化评估（相较于早期 RAG 代际中“先上线，后评估”的模式，这一比例大幅上升）。
+生产环境中的 RAG 需要专门的监控，不能只依赖标准应用指标。应将系统化评估视为第一天就需要具备的能力，而不是沿用早期 RAG“先上线，后评估”的模式；指标和评审模型分层参见 [RAG 评估模式](13-rag-evaluation-patterns.md)。
 
 ### RAG 监控栈
 
@@ -1125,6 +1183,20 @@ class IndexMaintenanceScheduler:
                 alert(f"Shard {shard.id} unhealthy: {health.reason}")
 ```
 
+### 无停机重新嵌入
+
+“更换嵌入模型就必须完整重建索引”不再是唯一方案：
+
+- **共享嵌入空间。** Voyage 4 家族（voyage-4-large 每百万 token $0.12、voyage-4 $0.06、voyage-4-lite $0.02，另有开放权重的 voyage-4-nano）共用一个空间；Cohere 的 `embed-v5.0-pro` 和 `-fast`（2026 年 9 月 30 日）也是如此。用大模型建一次索引，再用小模型查询，就能在不动索引的情况下更换查询侧模型。Qdrant 的 Constella 研究预览版（2026 年 9 月 29 日）更进一步：文档索引固定使用 Stella（400M），查询编码器可更换；其中 3450 万参数的 Constella Nano 保留了 Stella 在 BEIR 上约 91% 的 nDCG@10，CPU 延迟则降低了 12 倍（供应商报告）。
+- **在线回填。** 如果文档侧必须改变，则添加第二个向量字段，在后台回填，在黄金集上对两者执行影子查询，再切换。Milvus 3.0（2026 年 7 月）支持在线添加、回填和删除列，使数亿行规模也能热切换。
+- **数据库内部嵌入。** MongoDB Atlas Automated Embedding（2026 年 8 月 13 日正式可用）和 turbopuffer 原生嵌入（2026 年 9 月 29 日正式可用）移除了同步流水线，但也让索引绑定到供应商选择的模型版本。采用前应询问模型升级和重新嵌入如何安排、如何计费。
+
+### 内存层级与量化
+
+1,536 维 float32 向量占 6 KB，因此十亿个分块在计算索引图之前就约需 6 TB。基于旋转的低 bit 量化是主要手段，而且**需要主动开启或仍处于预览阶段，并非默认配置**：Qdrant 1.18 加入 Hadamard 旋转的 TurboQuant，1.19 加入仅保存 4 bit 的 Turbo4 类型（比 float32 加 4-bit 副本小 9 倍，但原始向量不再保留，峰值召回会受损）；Weaviate 1.39 预览版的 4-bit Rotational Quantization 可将 1,536 维向量从 6,144 字节压至 784 字节。Qdrant 1.19 还用统一的 `memory` 设置（pinned、cached 或 cold）替换 `on_disk` / `always_ram`，覆盖向量、HNSW、稀疏索引和载荷索引。
+
+生产模式是：将量化向量固定在内存中用于候选搜索，把全精度原始向量冷存于磁盘以对候选结果重打分，并在每次调整量化方案后，将 ANN 召回率与精确 kNN 比较（参见 [RAG 评估模式](13-rag-evaluation-patterns.md#区分嵌入模型与索引的问题)）。
+
 ### 用于检索的只读副本
 
 将读写路径分离，确保摄取过程不会降低查询延迟。
@@ -1228,6 +1300,19 @@ class TenantIsolatedRetriever:
 
         return chunks
 ```
+
+### 租户过滤器阻止不了的泄漏
+
+强制 `tenant_id` 过滤可以阻止跨租户的*结果*，却不能阻止跨租户的*信号*：
+
+| 通道 | 泄漏方式 | 缓解措施 |
+|---------|--------------|------------|
+| **共享 BM25 统计量** | 池化索引中的 IDF 由所有租户的文档共同计算，因此一个租户的词汇会改变另一个租户的排序，分数也会反映整个语料的词频 | 按租户计算 IDF（Qdrant 1.19 已为稀疏/BM25 搜索加入此功能），或使用隔离的词法索引 |
+| **推理前缀缓存** | 在自托管引擎中，共享前缀缓存可能成为判断其他租户是否发送过相同前缀的时间侧信道 | 所有代码路径都使用租户专属的缓存盐。vLLM 的 GHSA-935w-9g4m-p28p 曾有一条路径遗漏该盐；使用 vLLM 0.30.0 或更高版本 |
+| **语义响应缓存** | 将基于租户 A 文档生成的答案，返回给提出相似问题的租户 B | 缓存键必须包含租户和 ACL 集合，不能全局共享 |
+| **引擎漏洞** | 任何有权构建索引的角色都可能触发漏洞 | pgvector 0.8.7（2026 年 10 月 1 日）修复了 CVE-2026-103484：0.8.6 及更早版本在构建 IVFFlat 时可能溢出并导致代码执行。不要向应用角色授予索引创建权限，并确认托管 Postgres 已提供补丁 |
+
+Silo 现在也可以指客户自己的云账户：Pinecone BYOC 于 2026 年 9 月 23 日在 AWS、Google Cloud 和 Azure 正式可用，将向量、文档、元数据和请求载荷等数据平面放在客户云中；供应商控制平面只通过向外发起的连接来管理它。
 
 ### 感知租户的摄取
 
@@ -1455,7 +1540,7 @@ Ingestion: Async via Kafka, ~50K docs/day
 
 **第 4 层：可观测性。** 每个查询都会产生一条追踪记录，包含延迟拆分、检索得分和成本。夜间质量检查会抽样 500 个查询，评估忠实性（faithfulness）和相关性（relevancy）。如果 p95 延迟超过 3 秒，或忠实性低于 0.85，就会触发告警。
 
-**成本估算**：在 10K 的 QPS 下，假设缓存命中率为 50%，且小模型/大模型的调用比例为 70/30，那么每日成本大致为生成部分 $2,000-5,000，加上基础设施部分 $500-1,000。
+**成本估算**：10K QPS 相当于每天 8.64 亿次查询，因此单次请求的成本计算至关重要。缓存命中率为 50% 时，每天仍需生成 4.32 亿次。按每次请求 2.6K 输入和 300 输出 token、2026 年 10 月标价，以及 70% 使用 GPT-6 Luna（约 $0.0004/次）、30% 使用 Claude Sonnet 5.5 或 GPT-6 Sol 之类每百万 token 收费 $2 / $10 的中档模型（约 $0.008/次）计算，成本约为 $12 万加 $106 万，即每天约 **$120 万**，尚未计入共享系统提示词的缓存优惠。这个数字决定了实际设计：缓存静态提示词前缀（读取费率为 0.1 倍或更低）、提高缓存命中率、谈妥承诺用量价格，并自托管小模型层；毕竟每天约 3 亿次小模型请求，早已超过专用 GPU 集群比按 token 收费的 API 更经济的规模。
 
 ### 问：当 RAG 系统检索到不相关文档，但 LLM 仍然生成了听起来很合理的答案时，你会如何处理？
 
@@ -1497,7 +1582,12 @@ Ingestion: Async via Kafka, ~50K docs/day
 - RAGAS 框架，《上下文精度、召回率、忠实性与相关性指标》
 - AWS，《使用 Amazon Bedrock Knowledge Bases 的多租户 RAG》（2025）
 - Microsoft，《设计安全的多租户 RAG 推理解决方案》（2025）
+- Microsoft。《Azure AI Search 新功能》（智能体检索，2026-08-01-preview）
+- Cloudflare。《AI Search is now generally available》及 AI Search 限制和定价（2026 年 10 月）
+- Pinecone。《Pinecone Nexus is generally available》（2026 年 8 月）
+- Qdrant。《Qdrant 1.19》发布说明（2026 年 8 月）
+- pgvector。CHANGELOG，0.8.7（2026 年 10 月）
 
 ---
 
-*下一篇：[用于 AI 的数据工程](15-data-engineering-for-ai.md)*
+*上一篇：[RAG 评估模式](13-rag-evaluation-patterns.md) | 下一篇：[用于 AI 的数据工程](15-data-engineering-for-ai.md)*

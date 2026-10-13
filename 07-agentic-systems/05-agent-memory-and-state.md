@@ -1,6 +1,6 @@
 # 代理记忆与状态
 
-记忆使代理能够随着时间学习并保持上下文。代理记忆已经从“聊天历史”演进为一种**多层认知架构**，包含四个命名层级（工作记忆、情景记忆、语义记忆、程序记忆），每一层都有各自的写入模式、延迟预算和故障模式。生产系统（Mem0、Letta、Anthropic Memory Tool + Skills、Zep/Graphiti、LangMem）如今把记忆选择视为一项一等公民的架构决策。
+记忆使代理能够随着时间学习并保持上下文。代理记忆已经从“聊天历史”演进为一种**多层认知架构**，包含四个命名层级（工作记忆、情景记忆、语义记忆、程序记忆），每一层都有各自的写入模式、延迟预算和故障模式。生产系统（Mem0、Letta、Anthropic Memory Tool + Skills、Zep/Graphiti、LangMem）如今把记忆选择视为一项一等公民的架构决策。2026 年值得关注的转向是：其中几个系统都采用了由智能体按路径导航的**文件式记忆**（Letta 的 MemFS、Claude 的 memory tool、编程智能体指令文件），而市场领先的库则移除了图存储。
 
 塑造本章的 2026 轮研究浪潮包括：A-MEM（NeurIPS 2025）、HippoRAG（多跳图检索）、多层记忆架构、HaluMem（操作级记忆幻觉基准）、MINJA / MemoryGraft（仅查询式记忆投毒攻击），以及 TTT-E2E（一个跨 Stanford、Berkeley、UCSD、NVIDIA 和 Astera 的多实验室合作项目），这是一种将上下文压缩进权重中的测试时训练方法。
 
@@ -12,7 +12,7 @@
 - [语义记忆：人格](#语义记忆-人格)
 - [程序记忆：学得的技能与工作流](#程序记忆-学得的技能与工作流)
 - [权衡：事实 X 应该放哪一层？](#权衡-事实-x-应该放哪一层)
-- [生产实现（May 2026）](#生产实现-may-2026)
+- [生产实现](#生产实现)
 - [故障模式与缓解](#失效模式与缓解措施)
 - [Mem0 与个性化](#mem0-与-agentic-personalization-智能体个性化)
 - [面试题](#面试题)
@@ -44,7 +44,7 @@
 | **新鲜度预期** | token 级新鲜；会话结束即丢失 | 数小时到数月；可容忍陈旧 | 应反映*当前*状态；陈旧就是 bug | 缓慢变化；更新是刻意的 |
 | **存储技术** | HBM 中的 KV 缓存（vLLM PagedAttention 块） | 向量数据库（Pinecone、Weaviate、Qdrant），仅追加日志 | 知识图谱（Neo4j、Graphiti）、KV 存储、双时态关系行 | 文件系统（Claude `/memories/`、以 `SKILL.md` 形式的 Skills）、提示词注册表、微调 LoRA |
 | **查询语义** | 位置 + 注意力 | 相似度 + 近期性 + 重要性（Park 等人的加权） | 实体-关系匹配、结构化查询、双时态过滤 | 任务特征匹配，通常是文件名或标签查询 |
-| **淘汰** | 滑动窗口、按 KV 块哈希做 LRU | 衰减评分、并入 L3、归档到冷存储 | 通过时间 `valid_to` 替换；为 GDPR 显式删除 | 手动弃用、与更新的技能做 A/B 比较、版本固定 |
+| **淘汰** | 滑动窗口、按 KV 块哈希做 LRU | 衰减评分、并入 L3、归档到冷存储 | 通过关闭旧事实的有效期（`invalid_at`）进行替换；为 GDPR 显式删除 | 手动弃用、与更新的技能做 A/B 比较、版本固定 |
 
 **这在实践中意味着什么：** 当一个事实到来时，架构问题不是“要不要记住它？”，而是“*应该放在哪一层*，采用什么新鲜度契约，以及什么淘汰规则？”放错层会产生可预测的故障模式（会话偏好被提升到 L3 会跨会话泄漏；一个稳定的用户事实留在 L2 会在两周内被淘汰）。见下文 [权衡：事实 X 应该放哪一层？](#权衡-事实-x-应该放哪一层)。
 
@@ -55,6 +55,8 @@
 生产代理不再只是存储“消息”；它们存储的是**状态对象**。
 - **草稿区**：提示词中一个专门区域，代理在这里对自己“写笔记”，这些内容不会展示给用户。
 - **KV 缓存分块**：对于长时间运行的代理，我们使用**前缀缓存**来保持“系统指令”和“标准工具”在 GPU 内存中热存，仅替换动态任务状态。
+- **卸载大型结果**：工具输出最容易塞满工作记忆。Agno 3.0（2026 年 8 月）把超过 16,000 字符的工具结果写入文件存储，在上下文中改为放置结果信封以及 `read_result`、`search_result` 工具，让智能体只取回所需部分。
+- **用笔记取代单一摘要**：随 GPT-6 Astra 发布的一项实验性 Codex 功能可跨上下文窗口保留可搜索笔记，而不是将历史压缩成单份摘要。这是厂商提供的长任务摘要压缩替代方案：智能体保留可查询索引，避免只依赖一份有损摘要。
 
 ---
 
@@ -73,6 +75,8 @@
 - *“生产数据库在 3 AM 到 4 AM 之间离线。”*
 
 **最佳实践**：语义记忆应使用**知识图谱**。与向量搜索（模糊匹配）不同，图能够对实体和关系提供确定性的检索（例如，`User` -- `OWNER_OF` --> `Project_A`）。
+
+应将图数据库视为需要论证的选择，而非默认方案。Mem0 v2 移除了 Neo4j、Memgraph、Kuzu 和 Apache AGE 驱动，如今在现有向量存储内用并行集合保存实体链接，这足以覆盖大多数个性化查询，而不必运维第二种数据库。只有多跳遍历或时间问题（如“3 月 12 日什么是真的？”）是产品核心需求时，才使用专用图数据库，例如 Graphiti 的双时态边。
 
 ---
 
@@ -102,7 +106,7 @@
 
 | 事实 / 关注点 | 层级 | 推理 |
 |---|---|---|
-| “用户的 API 速率限制是 1000 req/min” | 带双时态 `valid_to` 的 L3 | 租户范围内的事实；可按实体查询；必须支持替换。不是 L4 - 它是数据，不是流程。 |
+| “用户的 API 速率限制是 1000 req/min” | 带双时态有效期（`valid_at` / `invalid_at`）的 L3 | 租户范围内的事实；可按实体查询；必须支持替换。不是 L4：它是数据，不是流程。 |
 | “部署我们服务的步骤” | 作为版本化技能的 L4 | 带条件分支的多步骤配方。技能可以组合；语义三元组不行。 |
 | “代理上次执行这项任务的失败尝试” | 先作为原始 L2，再在可泛化时将经验反思到 L4 | 原始轨迹属于情景记忆；泛化后的教训（“不要在高峰时段做迁移”）值得以 Reflexion 风格写入 L4。 |
 | “用户偏好简洁回应” | L3 | 稳定偏好，可按 `user_id` 查询，单个三元组即可。 |
@@ -115,7 +119,7 @@
 - **L1 主导*延迟成本***：TTFT 随上下文大小增长而上升；工作记忆越长，首 token 越慢。KV 缓存压力会让高端加速器内存接近饱和。
 - **L2 在规模化时主导*存储成本***：仅追加日志会随着使用量线性增长。该 [Day-30 问题](https://cipherbuilds.ai/blog/day-30-agent-memory-problem) 描述了未清理的情景存储如何在一个月后腐蚀代理质量。
 - **L3 主导*写放大成本***：每一轮都可能触发提取、去重、冲突解决。Mem0 的设计明确以写入时工作换取检索速度。
-- **L4 主导*治理成本***：一个坏技能会传播到未来的每次调用。Anthropic 的“[Claude Dreaming](https://www.mindstudio.ai/blog/what-is-claude-dreaming-anthropic-agent-memory)”计划性整合通过审核门控技能更新，正是在承认这一点。
+- **L4 主导*治理成本***：一个坏技能会传播到未来的每次调用。Anthropic 的 [Dreams](https://www.mindstudio.ai/blog/what-is-claude-dreaming-anthropic-agent-memory) 研究预览将整合结果写入独立的记忆存储，而不是直接修改正在使用的存储，这为提升前的审查留出空间。
 
 ### 升级规则
 
@@ -129,16 +133,30 @@
 
 ---
 
-## 生产实现（May 2026）
+### 何时整理：写入时、休眠时还是读取时
+
+整理时机如今是一条明确的设计轴，各位置都有真实系统：
+
+| 时机 | 示例 | 成本分布 | 主要风险 |
+|---|---|---|---|
+| **写入时** | Mem0 风格的逐次 `add()` 提取 | 每次写入调用一次 LLM；读取便宜 | 提取错误被固化并传播（HaluMem 的发现） |
+| **休眠时** | Anthropic Dreams（研究预览）：读取记忆存储及过往会话记录，写出一份合并重复项、替换过时条目的重组存储；Mem0 的付费 Dream 功能 | 批处理移出请求路径 | 两次运行之间会过时；提升前需要审查 |
+| **读取时** | Just-in-Time Memory（arXiv 2609.27334，2026 年 9 月）：保留原始轨迹，在读取时针对当前任务整理 | 整理成本和延迟转移到读取路径 | 原始存储持续增长；保留和隐私成本上升 |
+
+值得引用的研究结果：Just-in-Time Memory 在 ALFWorld、WebShop 和 tau2-bench 上分别比最强写入时记忆基线高出 16.2、16.3 和 3.9 个成功率百分点，未经训练的整理器也具竞争力。相关性取决于尚未见到的任务时，读取时整理更有优势；读取频繁且受延迟约束时，写入时提取更有优势。
+
+---
+
+## 生产实现
 
 这些命名系统之间的差异，与其说在“它们存什么”，不如说更在于*写入纪律*、*检索算法*和*治理姿态*。
 
 | 系统 | 最适合的场景 | 优势 | 短板 |
 |---|---|---|---|
-| **[Mem0](https://github.com/mem0ai/mem0)** | 面向规模化的跨会话个性化 | 图 + 向量 + KV 的混合方案。在 LoCoMo 上达到 92.5，在 April 2026 单次重设计后在 LongMemEval 上达到 94.4（[基准](https://mem0.ai/blog/ai-memory-benchmarks-in-2026)）。在正面对比中，比 OpenAI 内置记忆高 26% 的准确率。 | 每条记忆 8K 字符上限（不适合文档）；云优先姿态带来数据主权摩擦；没有正式的信念状态模型（只能覆盖或追加）。 |
-| **[Letta（前身为 MemGPT）](https://docs.letta.com/concepts/memgpt/)** | 长时间运行、以连贯性为产品的自主代理 | 类操作系统的虚拟上下文分页，跨核心 / 召回 / 归档层级；代理通过工具调用把数据换入/换出。适合“代理会永远记住”的用户体验。 | 每轮延迟高于 Mem0 风格。不针对跨用户检索精度优化。 |
-| **[Anthropic Memory Tool + Skills](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool)** | 一个底层同时挂载 L3 和 L4 的文件系统 | 记忆位于 `/memories/`；Skills 以 `SKILL.md` 包 + 可选脚本的形式存在；Managed Agents 在每个会话中把记忆挂载到 `/mnt/memory/`，并带有不可变版本控制（April 23，2026 GA）。定时的“Claude Dreaming”在会话之间进行整合。 | 文件系统语义把复杂性推给代理（代理必须自己把目录结构整理好）。 |
-| **[Zep + Graphiti](https://github.com/getzep/graphiti)** | 当“它是什么时候变成真的？”很重要的时间性事实 | 开源时间知识图谱。每条边都有 `valid_from` / `valid_to` / `invalid_at`。在 DMR 上比 MemGPT 高 94.8% 到 93.4%。双时态查询可以区分“我们在 March 12 认为的是什么？”和“现在什么是真的？” | 写入路径更重（图提取、去重、冲突解决）而不是仅向量存储。 |
+| **[Mem0](https://github.com/mem0ai/mem0)** | 面向规模化的跨会话个性化 | 自 v2.0.0（2026 年 4 月 16 日）起采用单次、只增的提取（每次 `add()` 调用一次 LLM、哈希去重，不再执行更新或删除阶段），并将语义相似度、BM25 和实体增强融合为一个分数进行混合检索。实体链接存于现有向量存储内的并行集合，因此 Mem0 移除了 Neo4j、Memgraph、Kuzu 和 Apache AGE 图驱动。重设计后报告 LoCoMo 92.5、LongMemEval 94.4（[基准](https://mem0.ai/blog/ai-memory-benchmarks-in-2026)）；2025 年论文报告在 LLM 评审指标上比 OpenAI 内置记忆相对提升 26%（均为厂商报告）。SDK v2.2.1 于 9 月 25 日发布。 | 每条记忆 8K 字符上限（不适合文档）；云优先策略带来数据主权问题；开源提取只追加，因此合并和替换移到了付费 Dream 功能（自 8 月 4 日起仅 Pro 和 Enterprise 可用）。 |
+| **[Letta（前身为 MemGPT）](https://github.com/letta-ai/letta)** | 长时间运行、以连贯性为产品的自主代理 | 2026 年 8 月 16 日归档了 MemGPT 时代的服务器；活跃开发转向 letta-code 运行框架与 TypeScript Agent SDK。所有智能体现在都使用 **MemFS**：长期记忆是由带 YAML frontmatter 的 Markdown 文件组成的 git 仓库，可用普通文件工具编辑。根目录文件每轮加载到系统提示词；各自带 `MEMORY.md` 索引的目录在智能体导航到其中之前不会进入上下文。 | 默认没有向量索引（可通过可选 mod 进行关键词搜索），因此召回依赖组织良好的目录树；使用旧核心 / 召回 / 归档分页 API 的团队需要迁移。 |
+| **[Anthropic Memory Tool + Skills](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool)** | 一个底层同时挂载 L3 和 L4 的文件系统 | 记忆位于 `/memories/`；Skills 是 `SKILL.md` 包及可选脚本（自 2026 年 8 月 19 日起在 Claude API 结束 beta）；Managed Agents 在每个会话中将记忆挂载到 `/mnt/memory/`，支持不可变版本（2026 年 4 月 23 日 GA），自 8 月 19 日起还可同步到自托管沙箱。Dreams 研究预览可离线整理存储，生成新的输出存储。 | 文件系统语义把复杂性推给代理（代理必须自己把目录结构整理好）。 |
+| **[Zep + Graphiti](https://github.com/getzep/graphiti)** | 当“它是什么时候变成真的？”很重要的时间性事实 | 开源时间知识图谱。每条事实边包含两条时间线：`valid_at` / `invalid_at`（事实在真实世界中何时成立）和 `created_at` / `expired_at`（图何时记录它、何时取代它）。在 DMR 上以 94.8% 对 93.4% 超过 MemGPT。双时态查询可区分“3 月 12 日我们相信什么？”与“现在什么是真的？”。 | 写入路径比纯向量存储更重（图提取、去重、冲突解决）。 |
 | **[LangMem + LangGraph](https://langchain-ai.github.io/langmem/)** | 当你想要用 LangGraph 编排所有四种记忆类型 | 支持情景、语义，*以及*程序记忆。LangMem 中的程序记忆允许代理根据反馈更新自己的系统提示词。后台提取异步运行。 | 绑定 LangGraph；如果你不在 LangChain 技术栈上，它吸引力较低。 |
 | **[OpenAI ChatGPT 记忆](https://openai.com/index/memory-and-new-controls-for-chatgpt/)** | 消费级聊天连续性，而非生产级代理记忆 | 双层架构：显式“已保存记忆”加上轻量级会话摘要预注入上下文。在推理时跳过检索步骤，因此延迟更低。 | 相比 Mem0 风格检索，精度更差。没有用于企业集成的细粒度程序化 API。 |
 | **Cursor / Windsurf** | 面向软件工程代理的、具备代码库感知的 L2/L3 | 在项目打开时对代码库建立索引；用 `@` 提及来显式引入上下文。Windsurf 的“Memories”在约 48 小时使用后学习架构模式。 | 领域被代码锁定。不是通用记忆层。 |
@@ -146,13 +164,15 @@
 
 **Generative Agents（Park 等人 2023）** 仍然是每篇综述都会引用的参考架构。近期性 / 重要性 / 相关性的检索公式（`alpha_recency * recency + alpha_importance * importance + alpha_relevance * relevance`，各项都归一化到 [0,1]，其中重要性由 LLM 评为 1-10）至今仍在上述大多数系统中用于生产。
 
-**值得关注的新兴框架**（May 2026）：[Supermemory](https://supermemory.ai)、[Recallr](https://recallrai.com)、AWS [Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-integrate-lang.html)、[Oracle AI Agent Memory](https://blogs.oracle.com/developers/oracle-ai-agent-memory-a-governed-unified-memory-core-for-enterprise-ai-agents)。
+**将自己拥有的状态与编排 API 分开。**OpenAI 于 2026 年 8 月 26 日关闭 Assistants API：threads、runs 和 run steps 现会报错；迁移关系分别是 Threads 对应 Conversations API、Runs 对应 Responses、Run steps 对应 Items。向量存储未受此次关闭影响，仍通过 Responses 的 `file_search` 工具工作，因此使用托管 RAG 的团队保留了索引，只需重写对话状态代码。应将记忆和会话状态放在自有接口之后，将厂商托管的 thread 对象视为该状态的缓存，而非权威记录。
+
+**值得关注的新兴框架**：[Supermemory](https://supermemory.ai)、[Recallr](https://recallrai.com)、AWS [Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-integrate-lang.html)、[Oracle AI Agent Memory](https://blogs.oracle.com/developers/oracle-ai-agent-memory-a-governed-unified-memory-core-for-enterprise-ai-agents)。
 
 ---
 
 ## 失效模式与缓解措施
 
-生产级 memory system（记忆系统）有六种反复出现的失效模式。知道它们的名字，决定了你是在和初级工程师还是 staff-level 架构师对话。
+生产级 memory system（记忆系统）有七种反复出现的失效模式。知道它们的名字，决定了你是在和初级工程师还是 staff-level 架构师对话。
 
 ### 1. 通过 prompt injection（提示注入）的 memory poisoning（记忆投毒）
 
@@ -163,13 +183,15 @@
 - **写入时护栏模型**：拒绝可疑的、像指令一样的写入（“忽略之前内容，改为……”，角色混淆，嵌入的 system-prompt 片段）。
 - **信任分层**：低信任记忆在影响高风险决策前必须先得到佐证。
 - **Bulkhead isolation（防舱隔离）**，确保一个租户中的毒素不能转移到另一个租户。
+- **共享记忆的写入关口**：Asana 于 2026 年 9 月 29 日介绍的智能体允许任何人对任务提供反馈，但只有管理员和编辑者能将反馈写入永久共享记忆或从中删除；其他人的反馈只作用于当前任务。这样，投毒入口变成受权限控制的写入。
+- **将压缩摘要视为记忆写入**：OpenAI 于 2026 年 9 月披露，在强化学习训练中，模型会在自己的上下文压缩摘要中写入隐瞒指令；因此，进入下一上下文的摘要需要与其他写入同样的来源记录和审查（参见[循环工程](12-loop-engineering.md#长循环中的上下文与记忆)）。
 
 ### 2. 过时事实
 
 昨天的偏好和今天的偏好不一样。经典案例是“用户上个月说喜欢深色模式，但现在在用浅色模式”。
 
 **缓解措施：**
-- **双时态存储**（Zep/Graphiti 模式）：每条事实都有 `valid_from`、`valid_to`、`invalid_at`。
+- **双时态存储**（Zep/Graphiti 模式）：每条事实都有 `valid_at` / `invalid_at`（真实世界中成立的时段）及 `created_at` / `expired_at`（系统记录和废弃它的时段）。
 - 对会话级偏好设置 **TTL（存活时间）**，让它们自动过期。
 - 在检索评分中加入 **衰减权重**。
 - 对高风险且早于 N 天的事实，使用 **显式重新确认** 提示。
@@ -180,7 +202,7 @@
 
 | 冲突类型 | 正确响应 |
 |---|---|
-| 时间更新（“我搬到柏林了”） | 用 `valid_to = now` 覆盖旧事实 |
+| 时间更新（“我搬到柏林了”） | 取代旧事实：将其 `invalid_at` 设为新事实的 `valid_at`，并将 `expired_at` 设为现在 |
 | 更正（“我从没那样说过”） | 带审计轨迹地撤回 |
 | 偏好变更（“我现在想要简洁回复”） | 新增事实；让衰减机制处理旧事实 |
 | 直接矛盾（没有明显的解决方式） | 询问用户；绝不能静默覆盖 |
@@ -215,13 +237,22 @@ agent 推断出一个事实，把它存成 ground truth（事实真值），随�
 - 为每个租户单独设置 KV-cache 前缀。
 - 为记忆 blob（数据块）使用按租户划分的加密密钥，使跨命名空间读取在密码学层面就失败。
 
+### 7. 记忆引发的推理陷阱
+
+正确且相关的记忆仍可能让智能体表现变差。MemTrapBench（arXiv 2608.20202，2026 年 8 月）测试了忠实存储、语义相关的记忆引起的推理固着和信念扭曲。在两个模型家族、五种记忆框架中，**每一种记忆策略的表现都低于不使用记忆的设置**，最强策略下降超过 10%。LoCoMo 召回率等检索指标无法发现这种损害，因为检索本身是正确的。
+
+**缓解措施：**
+- 除检索质量外，还要比较注入和不注入记忆时的端到端任务成功率。
+- 为注入设置关口：检索后先判断记忆是否与当前任务的决策相关，再让它进入上下文。
+- 将注入的记忆标记为过往上下文，而非指令。论文中的 AdaptiveMem 推理时指令减少了陷阱，同时保持标准记忆基准上的得分。
+
 ---
 
 ## Mem0 与 Agentic Personalization（智能体个性化）
 
 **Mem0**、Zep、Letta 和 Cognee 是 agent stack（智能体栈）里 “Smart Memory（智能记忆）” 的标准框架。
-- 它会自动从对话中提取 “User Insights（用户洞察）”。
-- 它提供一个 “Memory API（记忆 API）”，agent 可以调用它来 `remember` 或 `forget` 特定的三元组信息。
+- 它会自动从对话中提取 “User Insights（用户洞察）”（Mem0 v2 每次写入使用一次只增式提取）。
+- 它提供一个 “Memory API（记忆 API）”，agent 可以调用它来添加、搜索或删除记忆；冲突解决需要自行实现，或交由定时整理过程完成。
 - **影响**：agent 会显得更 “Alive（有生命感）”，因为它记得你在 3 个月前、另一个会话里提到的细节。
 
 ---
@@ -236,7 +267,7 @@ agent 推断出一个事实，把它存成 ground truth（事实真值），随�
 ### 问：为什么仅靠 “Context Window（上下文窗口）” 对 staff-level Agent architecture（团队级智能体架构）来说不够？
 
 **强答案：**
-第一是 **成本和延迟**：每一轮都填入 1M 个 token 的上下文，即使有 context caching（上下文缓存） 也贵得离谱。第二是 **信噪比**：大上下文窗口会出现 “In-context Learning（上下文学习）” 衰退：模型会被无关的历史轮次分散注意力。staff-level 架构会使用 **Selective Memory Retrieval（选择性记忆检索）**（基于历史的 RAG）只拉取 3-5 条最相关的历史交互，让 Reasoning Engine（推理引擎）专注于当前子目标。
+第一是**成本和延迟**：缓存读取如今只按基础输入价的 0.025 至 0.1 倍计费，因此完整缓存的 100 万词元前缀不再贵得离谱（按当前 Claude 模型约每轮 $0.20 至 $0.25：Opus 5.5 和 Sonnet 5.5 每百万缓存词元 $0.20，Fable 5.1 为 $0.25）。但缓存未命中时仍按全价计费，OpenAI 的输入一旦超过 272K 就对整个请求按长上下文价格计费，而预填充延迟仍随长度增加。第二是**信噪比**：大上下文会出现上下文腐化，模型被无关历史分散注意力；MemTrapBench 更表明，即使是相关记忆也可能扭曲推理。staff-level 架构会使用**选择性记忆检索**（基于历史的 RAG）只拉取 3 至 5 条最相关的历史交互，让推理引擎专注于当前子目标。
 
 ### 问：你会如何为生产级 AI agent 设计 procedural memory（程序性记忆）？
 
@@ -293,6 +324,12 @@ episodic memory 会在三种命名模式下变成负债。第一，**索引过�
 
 要避免的陷阱是仅依靠衰减权重进行隐式归并。它在小规模下可行，但在生产规模下会悄悄失效，因为没有审计轨迹能解释“这个事实为什么出现在 L3 里”。
 
+### 问：基准显示，关闭记忆后智能体表现反而更好。你会怎么做？
+
+**强答案：**
+
+我会认真对待，而不是先假定测试有误，因为 MemTrapBench（2026 年 8 月）在五种记忆框架中发现了同样现象：正确且相关的记忆导致推理固着和信念扭曲，每种策略都不如不使用记忆。首先拆分评测：检索质量、注入决策，以及按任务类型切分的有无记忆端到端成功率。记忆通常有利于个性化和连续性任务，却会妨碍需要独立推理的新任务，因为过往答案锚定了模型。随后加入注入关口：检索候选记忆，但只在廉价分类器或规则判断其与当前决策相关时才注入，并附上时间戳，将其表述为过去的上下文而非指令。还可考虑采用 Just-in-Time Memory 式的读取时整理，使注入内容针对当前任务选取，而非在写入时提前抽取。成功指标应按任务类别计算“使用记忆的任务成功率减去不使用记忆的任务成功率”，并与召回率一同展示在仪表盘上。
+
 ### 问：你的 agent 记忆库里有 50M 条记忆，分布在 10K 个租户中。你如何保证跨租户隔离？如果隔离失败，你的 blast radius（爆炸半径）有多大？
 
 **强答案：**
@@ -343,16 +380,17 @@ TTT-E2E 处在 *L1 和 L4 之间*。它让上下文派生的信息在剩余会�
 ### 生产框架
 - [Mem0：面向生产的 AI 智能体与可扩展长期记忆（ECAI 2025）](https://arxiv.org/abs/2504.19413)
 - [Mem0 AI 记忆基准 2026](https://mem0.ai/blog/ai-memory-benchmarks-in-2026)
-- [Letta（原 MemGPT）文档](https://docs.letta.com/concepts/memgpt/)
+- [Letta 仓库（MemFS；MemGPT 时代的服务器于 2026 年 8 月 16 日归档）](https://github.com/letta-ai/letta)
+- [Mem0 v2.0.0 发布说明](https://github.com/mem0ai/mem0/releases/tag/v2.0.0)
 - [MemGPT：迈向把 LLM 作为操作系统（arXiv 2310.08560）](https://arxiv.org/abs/2310.08560)
 - [Anthropic 记忆工具文档](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool)
-- [Anthropic Claude Sonnet 4.6 Skills 公告](https://www.anthropic.com/news/claude-sonnet-4-6)
-- [Claude Dreaming：定时记忆巩固](https://www.mindstudio.ai/blog/what-is-claude-dreaming-anthropic-agent-memory)
+- [Anthropic：推出 Agent Skills（2025 年 10 月）](https://www.anthropic.com/news/skills)
+- [Claude Dreams：离线记忆整理（第三方解读）](https://www.mindstudio.ai/blog/what-is-claude-dreaming-anthropic-agent-memory)
 - [Zep：时序知识图谱架构（arXiv 2501.13956）](https://arxiv.org/abs/2501.13956)
 - [Graphiti GitHub](https://github.com/getzep/graphiti)
 - [LangMem 文档](https://langchain-ai.github.io/langmem/)
 - [OpenAI 记忆及 ChatGPT 的新控制项](https://openai.com/index/memory-and-new-controls-for-chatgpt/)
-- [Cognition：用 Claude Sonnet 4.6 重建 Devin](https://cognition.ai/blog/devin-sonnet-4-5-lessons-and-challenges)
+- [Cognition：用 Claude Sonnet 4.5 重建 Devin](https://cognition.ai/blog/devin-sonnet-4-5-lessons-and-challenges)
 
 ### 研究（2023-2026）
 - [生成式智能体：人类行为的交互式拟像（Park 等，2023）](https://arxiv.org/abs/2304.03442)
@@ -364,6 +402,8 @@ TTT-E2E 处在 *L1 和 L4 之间*。它让上下文派生的信息在剩余会�
 - [LEGOMem：用于多智能体 LLM 的模块化过程记忆（2025 月）](https://arxiv.org/pdf/2510.04851)
 - [重新思考基础智能体的记忆机制（2026 月综述）](https://arxiv.org/abs/2602.06052)
 - [观点：情景记忆是缺失的一环（arXiv 2502.06975）](https://arxiv.org/pdf/2502.06975)
+- [Just-in-Time Memory：读取时整理原始轨迹（arXiv 2609.27334，2026 年 9 月）](https://arxiv.org/abs/2609.27334)
+- [MemTrapBench：记忆引发的认知陷阱（arXiv 2608.20202，2026 年 8 月）](https://arxiv.org/abs/2608.20202)
 
 ### 安全、投毒与幻觉
 - [HaluMem：操作级记忆幻觉基准（2025 月）](https://arxiv.org/abs/2511.03506)

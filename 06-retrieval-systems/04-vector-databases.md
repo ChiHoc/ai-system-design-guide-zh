@@ -44,7 +44,7 @@ Vector DB:           SELECT * FROM docs ORDER BY similarity(embedding, query_emb
 
 | 方法 | 搜索复杂度 | 在大规模场景下是否实用 |
 |----------|-------------------|-------------------|
-| 暴力搜索（PostgreSQL pgvector） | O(n * d) | 约可支撑到 1M 个向量 |
+| 暴力搜索（例如未建 HNSW 或 IVFFlat 索引的 pgvector） | O(n * d) | 约可支撑到 1M 个向量 |
 | ANN 索引（专用向量数据库） | O(log n) 或 O(1) | 可以，支持十亿级 |
 
 ---
@@ -118,9 +118,9 @@ Layer 0:   ********************  (all vectors)
 - 原生支持更新
 
 **缺点：**
-- 内存占用高（图结构）
-- 索引大小约为向量数据的 ~1.5-2x
-- 10M 个 1536 维向量需要约 80GB 内存
+- 内存占用高：全精度向量和图链接都驻留在 RAM 中
+- 在高维情况下，图本身只占较小比例。按 OpenSearch 的估算规则，每个向量为 1.1 x (4 x dims + 8 x M) 字节；在 1,536 维、M 为 16 至 64 时，比原始 float32 向量多约 12–19%；低维向量的额外占比更大
+- 10M 个 1,536 维向量每份副本需要约 70–75 GB RAM（其中 61 GB 是 float32 向量），尚未计入复制副本
 
 **关键参数：**
 - `M`：每个节点的最大连接数（16-64）
@@ -129,10 +129,10 @@ Layer 0:   ********************  (all vectors)
 
 ### DiskANN（基于 SSD）
 
-这是**PB 级**搜索的行业标准。
+它面向无法全部放入 RAM 的**十亿级**索引。原始论文用一台配备 64 GB RAM 和 SSD 的工作站服务十亿个 SIFT 数据点，实现每秒超过 5,000 次查询、低于 3 ms 的平均延迟，以及 95% 以上的 1-recall@1。
 
 **工作原理：**
-- 将图存放在 SSD（NVMe）上，仅在内存中保留一个很小的索引
+- 将全精度向量和图存放在 SSD（NVMe）上，仅把压缩后的 PQ 编码保留在 RAM 中，用于引导搜索
 - 使用 Vamana 算法实现高效的基于磁盘图遍历
 
 **优点：**
@@ -141,9 +141,9 @@ Layer 0:   ********************  (all vectors)
 
 **缺点：**
 - 相比纯内存 HNSW，延迟略高
-- 更适合非实时搜索应用
+- 尾延迟取决于 NVMe IOPS，因此应按并发查询量而非仅按容量配置 SSD
 
-**示例：** 一个 100 百万向量、1536 维的索引，使用 HNSW 时几乎需要 1TB 内存。使用 DiskANN 时，RAM 需求可减少 90-95%，同时仍能保持低于 10ms 的查询时间。
+**示例：** 一个 1 亿向量、1,536 维的索引，使用 HNSW 时每份副本约需 700 GB RAM（其中 614 GB 是 float32 向量，加上图与额外开销）。使用 DiskANN 时，RAM 需求可减少 90–95%，同时仍能保持低于 10ms 的查询时间。
 
 ### IVF（倒排文件索引）
 
@@ -179,6 +179,21 @@ Layer 0:   ********************  (all vectors)
 
 **权衡：** 因量化损失导致精度降低
 
+### 低位和基于旋转的量化
+
+2026 年 5 至 9 月，多种引擎推出或扩展了 1 至 8 bit 的向量存储，多数为可选或预览功能，而非默认设置。新方法是**先旋转，再量化**。嵌入向量各维度的方差极不均匀，直接按维度做标量量化会在变化较小的维度浪费 bit，并截断变化较大的维度。先乘以随机旋转矩阵或 Hadamard 旋转矩阵，将能量均匀分散到各维度，再用统一的 4 bit 或 1 bit 网格量化，就能减少信息损失。
+
+| 引擎 | 功能 | 状态 | 存储占用 |
+|---|---|---|---|
+| Qdrant | 带 Hadamard 旋转的 TurboQuant（1.18，2026 年 5 月）；Turbo4 存储类型只保留 4 bit 形式（1.19，2026 年 8 月） | 可选 | 从 1.18 中每坐标 36 bit（float32 原始值加 4 bit 副本）降至 Turbo4 的 4 bit，缩小 9 倍 |
+| Weaviate | 4-bit Rotational Quantization（1.39，2026 年 8 月），在原有 8 bit 和 1 bit RQ 基础上新增 | 预览版，仅限 HNSW | 1,536 维向量从 6,144 字节降至 784 字节（7.84x） |
+| Elasticsearch | DiskBBQ（`bbq_disk`，自 9.2 正式发布）在 9.5（2026 年 8 月）增加对称的 1 bit OSQ 评分器和合并时校准 | 正式发布；从 9.4 起，在许可证涵盖该功能（Enterprise）时成为浮点向量的默认索引类型 | 每维约 1 bit，另加校正项 |
+| turbopuffer | 普通 `i8` 向量类型（2026 年 6 月），不旋转 | 已发布 | 对量化感知模型，存储和查询成本比 f32 低 75%（供应商数据） |
+
+Qdrant 自报数据展示了权衡：在一个数据集上，4 bit TurboQuant 召回率为 0.9193，8 bit 标量量化为 0.9285，未压缩为 0.9419；前者的压缩程度是标量量化的两倍（供应商自报）。设计上的关键选择是是否**保留用于重新评分的浮点原始向量**。把原始向量放在磁盘或对象存储中，并对前几百名候选重新评分，可恢复大部分损失的召回率；丢弃它们（Turbo4）成本最低，却也限制了最高召回率。
+
+RAM 计算也因此改变：1 亿个 1,536 维向量以 float32 存储约需 614 GB，以 4 bit 存储则约需 77 GB。到十亿向量规模，这意味着从一群高内存节点，降到少数机器加 SSD。
+
 ### 平面索引（暴力搜索）
 
 没有近似，使用精确搜索。
@@ -206,18 +221,28 @@ Layer 0:   ********************  (all vectors)
 
 | 数据库 | 类型 | 最适合 | 定价模式 |
 |----------|------|----------|---------------|
-| **Pinecone** | 托管云端（无服务器标准） | 易于起步、可扩展、托管 SLA | 按每个向量小时计费 |
-| **Qdrant** | 开源 / 云端（Rust，高性能） | 自托管可控，在常见负载下是最快的开源方案（在 10M 个向量时 p99 约 12ms） | 按 GB 计费（云端）或免费 |
-| **Weaviate** | 开源 / 云端 | 单次查询中原生混合检索（BM25 + 稠密向量 + 元数据），支持多模态 | 按每维每小时计费 |
-| **Milvus** | 开源 / 云端（Zilliz） | 分布式扩展（50M+ 个向量）、异构节点类型、分层存储 | 免费（自托管）或 Zilliz Cloud |
+| **Pinecone** | 托管云端（标准版为无服务器）；BYOC 于 2026 年 9 月 23 日正式发布（数据平面运行在用户的 AWS、GCP 或 Azure 账户中） | 易于起步、可扩展、托管 SLA；BM25 全文搜索于 2026 年 9 月 9 日正式发布 | 存储费加读写单元费 |
+| **Qdrant** | 开源 / 云端（Rust，高性能） | 自托管可控、过滤检索能力强；供应商基准声称在 10M 个向量时 p99 约 12ms | 按 GB 计费（云端）或免费 |
+| **Weaviate** | 开源 / 云端 | 单次查询中原生混合检索（BM25 + 稠密向量 + 元数据）、MMR 多样性与 Boost API（1.39 正式发布）、多模态 | 按每维每小时计费 |
+| **Milvus** | 开源 / 云端（Zilliz） | 分布式扩展；3.0（2026 年 7 月）增加通过对象存储中的 Parquet、Iceberg、Lance 和 Vortex 访问的外部集合，以及在线列回填 | 免费（自托管）或 Zilliz Cloud |
+| **turbopuffer** | 托管服务，以对象存储为基础 | 以较低成本服务大量冷命名空间（按租户划分的索引）；原生嵌入于 2026 年 9 月 29 日正式发布 | 按用量计费 |
 | **Chroma** | 开源 | 原型开发、本地开发、嵌入式使用 | 免费 |
 
 ### 通用型（插件/扩展）
 
 | 数据库 | 类型 | 最适合 | 定价模式 |
 |----------|------|----------|---------------|
-| **pgvector（v0.8+）** | PostgreSQL 扩展 | 小规模、已有 PG 环境（现支持 HNSW + IVFFlat） | 仅计算资源 |
-| **Elasticsearch（v9.0）** | 搜索引擎 | 使用交叉熵融合的混合搜索 | 按许可证计费 |
+| **pgvector（0.8.7）** | PostgreSQL 扩展 | 小规模、已有 PG 环境（HNSW + IVFFlat）。应更新至 0.8.7（2026 年 10 月 1 日）：该版修复 CVE-2026-103484，即任何获准创建索引的角色均可触发的 IVFFlat 构建溢出 | 仅计算资源 |
+| **Elasticsearch（9.5）** | 搜索引擎 | 通过 `rrf` 和 `linear` 检索器进行混合搜索；DiskBBQ 量化向量；`semantic_text` 字段在摄取时自动嵌入 | 按许可证计费 |
+| **MongoDB Atlas Vector Search** | 文档数据库 | 适合已有 MongoDB 环境；Automated Embedding 于 2026 年 8 月 13 日正式发布（Atlas 在写入时使用 Voyage 模型嵌入及重新嵌入文档） | Atlas 集群定价 |
+
+### 2026 年市场变化
+
+评估引擎时有三项变化：
+
+1. **嵌入进入数据库。**MongoDB Atlas Automated Embedding（正式发布）、turbopuffer 原生嵌入（正式发布；turbopuffer 声称 Readwise 通过与查询执行并行嵌入，将嵌入中位延迟缩短 8 倍）、Elasticsearch `semantic_text` 和 Milvus 3.0 的 Hugging Face Inference Providers 集成，都消除了独立的嵌入与同步流水线。代价是耦合：模型版本由供应商决定，采用前要问清模型变更如何触发重新嵌入。
+2. **索引向湖仓靠近。**Milvus 3.0 的外部集合可就地查询 Parquet、Iceberg、Lance 和 Vortex 数据（零复制、只读）；turbopuffer 9 月 30 日的《RIP, vector database》介绍了 v3 存储设计，其中 ANN 索引成为次级索引，不再是主要数据布局（已宣布，通过 CI，但尚未用于生产；文中的规模数字由供应商提供）。问题从“选哪个向量数据库”转为“在对象存储上就地建索引，还是复制到服务型存储”。
+3. **低位量化扩展到多家供应商**（见[上文](#低位和基于旋转的量化)），改变了 HNSW 容量规划的 RAM 预算。
 
 ---
 
@@ -229,11 +254,11 @@ Layer 0:   ********************  (all vectors)
 |---------|----------|--------|----------|--------|----------|
 | **语言** | 专有 | Rust | Go | Go/C++ | C |
 | 托管选项 | 是 | 是 | 是 | 是（Zilliz） | 通过云端 PG |
-| 自托管 | 否 | 是 | 是 | 是 | 是 |
+| 自托管 | 仅 BYOC（数据平面在自有云中） | 是 | 是 | 是 | 是 |
 | **无服务器** | 是（最佳） | 是 | 是 | 是（Zilliz） | 否 |
-| **云原生** | 任意 | 任意 | 任意 | 仅 K8s | 任意 |
+| **云原生** | 任意 | 任意 | 任意 | 分布式使用 K8s；单机可用 Docker | 任意 |
 | 元数据过滤 | 良好 | 优秀 | 良好 | 良好 | 通过 SQL |
-| **混合搜索** | 原生 | 原生 | 原生 | 原生 | 多阶段（有限） |
+| **混合搜索** | 稀疏+稠密，或 BM25 全文检索后由客户端融合 | 原生 | 原生 | 原生 | 多阶段（有限） |
 | 最大向量数 | 十亿级 | 十亿级 | 十亿级 | 十亿级 | ~10M |
 | HNSW 索引 | 是 | 是 | 是 | 是 | 是 |
 
@@ -251,10 +276,10 @@ results = index.query(
     filter={"tenant_id": "123", "category": {"$in": ["tech", "science"]}}
 )
 
-# Qdrant
-results = client.search(
+# Qdrant (Query API; the legacy /search endpoint is removed from the 1.19 REST schema)
+results = client.query_points(
     collection_name="documents",
-    query_vector=query_embedding,
+    query=query_embedding,
     limit=10,
     query_filter=Filter(
         must=[
@@ -262,14 +287,14 @@ results = client.search(
             FieldCondition(key="category", match=MatchAny(any=["tech", "science"]))
         ]
     )
-)
+).points
 ```
 
 **性能影响：** 过滤发生在搜索过程中，而不是之后。预过滤索引更快，但灵活性更差。
 
 **为什么元数据过滤常常是瓶颈：** 在朴素的向量搜索中，我们先找到“Top K”最近邻，然后再按元数据过滤。如果过滤条件非常严格，过滤后可能只剩下 0 个结果。专用数据库现在使用 **带 HNSW 的预过滤**，遍历图时只考虑满足布尔元数据约束的节点。这需要专门的位掩码或硬件加速（SIMD）来保持低延迟。
 
-**磁盘原生元数据：** 像 **Qdrant** 这样的现代数据库会把元数据卸载到磁盘映射分段中，从而在不耗尽 RAM 的情况下支持复杂过滤（例如全文 + 地理位置 + 向量）。
+**磁盘原生元数据：** 现代数据库按组件在 RAM 与磁盘间分层存储。Qdrant 1.19 用统一的 `memory` 设置（pinned、cached 或 cold）取代原有的 `on_disk` 和 `always_ram` 标志，并将其应用于向量、HNSW 图、稀疏索引和 payload 索引，使复杂过滤（如全文 + 地理位置 + 向量）无需把所有 payload 索引常驻 RAM。
 
 ---
 
@@ -317,14 +342,16 @@ def hybrid_search(query: str, alpha: float = 0.5, top_k: int = 5) -> list[Docume
     return combined[:top_k]
 ```
 
-一些数据库（Weaviate、Qdrant、Pinecone）原生支持混合搜索：
+一些数据库（Weaviate、Qdrant、Milvus、Elasticsearch）可原生融合稠密与关键词搜索结果。Pinecone 的 BM25 全文检索每次请求只按一种评分方式排序，因此需分别执行词汇和向量搜索，再在客户端融合（例如使用 RRF）。
 
 ```python
-# Weaviate native hybrid
-results = client.query.get("Document", ["text"]).with_hybrid(
+# Weaviate native hybrid (Python client v4)
+docs = client.collections.use("Document")
+results = docs.query.hybrid(
     query=query,
-    alpha=0.5  # 0 = BM25 only, 1 = vector only
-).with_limit(5).do()
+    alpha=0.5,  # 0 = BM25 only, 1 = vector only
+    limit=5,
+)
 ```
 
 ### 模式 4：多向量查询
@@ -445,6 +472,10 @@ class VectorDBMaintenance:
 - 读取副本用于查询扩展（read replica）
 - 为高可用（HA）采用异步复制
 
+### 安全补丁
+
+应像管理其他数据库一样，关注向量存储的 CVE 公告。pgvector 0.8.7（2026 年 10 月 1 日）修复了 CVE-2026-103484：IVFFlat 索引构建期间的缓冲区溢出，可让任何获准创建索引的数据库角色执行代码。2026 年更早的补丁还修复了并行 HNSW 构建溢出（0.8.2）与 HNSW 清理过程中可能发生的索引损坏（0.8.3）。对于托管 PostgreSQL，应确认提供商已提供 0.8.7；多租户 schema 中不要授予应用角色 `CREATE INDEX`。Milvus 3.0.1 也修复了通过外部代理端口的流式 gRPC 调用进行未认证访问的问题。
+
 ### 监控
 
 ```python
@@ -498,6 +529,19 @@ def alert_rules():
 | Weaviate Cloud | 按维度计费 | 约 ~$100/月 |
 | Zilliz（Milvus） | 按 CU 计费 | 约 ~$75/月 |
 
+### 托管 RAG 流水线（自建还是购买）
+
+一种更新的选择是跳过向量数据库选型，使用负责解析、分块、嵌入、索引和检索的托管流水线，按摄取 token、存储量和查询量付费。Cloudflare AI Search 于 2026 年 10 月 1 日正式发布，以下价格自 2026 年 11 月 1 日生效：
+
+| 计费项 | 价格 | 每月包含量（Workers 套餐） |
+|---|---|---|
+| 摄取 | 每 1M token $0.75（图像每 1M 另加 $0.50） | 5M token |
+| 存储 | 每 GB·月 $2.00 | 10 GB·月 |
+| 语义、向量或混合查询 | 每 1K 次 $0.75 | 1,000 次 |
+| 全文查询 | 每 1K 次 $0.10 | 1,000 次 |
+
+规模化后，单次查询计费占主导：每月 10M 次混合查询，仅查询费就约为 $7,500；而自托管索引完成资源配置后，每次查询的边际成本接近零。托管流水线适合快速给出首个答案，以及低流量或突发流量；稳定的高 QPS 场景，应比较查询计费与节点成本加嵌入 API 费用。Pinecone Nexus 和 Cohere Compass Cloud 将这种“购买整条流水线”的方式进一步延伸；参见[智能体式 RAG](08-agentic-rag.md#一次编译知识)。
+
 ### 自托管成本
 
 ```python
@@ -508,13 +552,15 @@ def estimate_self_hosted_cost(
 ) -> dict:
     storage_gb = (vectors * dimensions * 4 * 2.5) / 1e9  # 2.5x for index
 
-    # Instance sizing
-    if storage_gb < 50:
-        instance = "r6g.large"  # 16 GB RAM, ~$60/month
-    elif storage_gb < 200:
-        instance = "r6g.xlarge"  # 32 GB RAM, ~$120/month
+    # Instance sizing: an in-RAM HNSW index must fit in memory with headroom
+    if storage_gb < 12:
+        instance = "r6g.large"  # 16 GB RAM
+    elif storage_gb < 25:
+        instance = "r6g.xlarge"  # 32 GB RAM
+    elif storage_gb < 50:
+        instance = "r6g.2xlarge"  # 64 GB RAM
     else:
-        instance = "r6g.2xlarge"  # 64 GB RAM, ~$240/month
+        instance = "r6g.4xlarge"  # 128 GB RAM; past ~100 GB, shard, quantize, or use DiskANN
 
     return {
         "storage_gb": storage_gb,
@@ -536,7 +582,7 @@ def estimate_self_hosted_cost(
 | 合规性 | 取决于情况 | 完全可控 |
 | 厂商锁定 | 是 | 否（如果是开源） |
 
-**结论**：从无服务器开始。只有在你拥有超过 500M 个向量，或者有严格的 **本地部署/GPU 本地化** 要求时，才考虑自托管。
+**结论**：从无服务器开始。只有在你拥有超过 500M 个向量，或者有严格的**本地部署/GPU 本地化**要求时，才考虑自托管。如果要求只是“数据保留在自己的云账户”而非“自行运维”，2026 年 9 月正式发布的 Pinecone BYOC 已能满足前者，同时免去运维负担。
 
 ---
 
@@ -575,7 +621,7 @@ Need < 100K vectors?
 在确定使用某个向量数据库之前：
 
 - [ ] 加载具有代表性的数据量
-- [ ] 在目标 QPS 下基准测试查询延迟
+- [ ] 在目标 QPS 下，使用真实过滤条件和 top-k 深度基准测试查询延迟（供应商数字很少纳入严格过滤；2026 年 9 月发布的 Qdrant-FineWeb-10B 提供覆盖 10.07B 向量、带精确 top-1,000 真值的公开生产规模基准）
 - [ ] 测试元数据过滤性能
 - [ ] 验证更新/删除性能
 - [ ] 测试故障恢复
@@ -601,11 +647,13 @@ Need < 100K vectors?
 **选择自托管（Qdrant、Milvus）时：**
 - 拥有 Kubernetes 和运维经验
 - 规模化时对成本敏感
-- 需要对数据拥有完全控制权
+- 需要完全控制软件，而不仅是数据所在位置
 - 有特定合规要求
 - 希望避免厂商锁定
 
-对于大多数初创公司，我会先使用 Pinecone 或 Qdrant Cloud 以获得速度优势，然后在规模扩大且成本变得不可接受时评估迁移。切换成本中等，因为向量数据库的 API 很相似。
+2026 年的两项变化缩小了差距：Pinecone BYOC（9 月 23 日正式发布）让数据平面运行在自有云账户中，Pinecone 无法从外部入站访问；Pinecone 的 BM25 全文检索（9 月 9 日正式发布）也削弱了“必须有单独的关键词引擎”的理由，不过词汇与向量结果仍须在客户端融合。
+
+对于大多数初创公司，我会先使用 Pinecone 或 Qdrant Cloud 加快启动，然后在规模扩大且成本变得不可接受时评估迁移。切换成本主要是重新嵌入和重建索引，而不是 API：查询接口相似，但数据库内嵌入功能会将你绑定到供应商选择的模型。
 
 ### 问：解释 HNSW 的工作原理，以及在什么情况下你不会使用它。
 
@@ -626,7 +674,7 @@ HNSW 会构建一个向量的分层图：
 
 **不适合使用的情况：**
 - 非常小的数据集（<10K）：暴力搜索就足够
-- 内存极度受限：HNSW 的图结构会占用约 1.5-2x 的向量大小
+- 内存极度受限：HNSW 要求每个全精度向量及其图链接常驻 RAM
 - 需要精确搜索：HNSW 是近似算法
 - 更新负载重且延迟要求苛刻：更新可能导致短暂性能下降
 
@@ -639,7 +687,7 @@ HNSW 会构建一个向量的分层图：
 ### 问：什么时候你会选择基于磁盘的索引（如 DiskANN）而不是基于内存的索引（HNSW）？
 
 **优秀回答：**
-当索引的内存成本超过预算，或者超过单台高内存节点的容量时，我会使用基于磁盘的索引。例如，一个拥有 100 百万向量、维度为 1536 的索引，使用 HNSW 可能需要接近 1TB 的内存。使用 DiskANN 时，我可以把这 1TB 中的大部分存放在 NVMe SSD 上，在保持低于 10ms 查询时间的同时，将 RAM 需求降低 90-95%。对于非实时搜索应用，这代表了总体拥有成本（TCO, Total Cost of Ownership）的巨大下降。
+当索引的内存成本超过预算，或者超过单台高内存节点的容量时，我会使用基于磁盘的索引。例如，1 亿个 1,536 维向量使用 HNSW 时，每个副本约需 700 GB RAM（仅 float32 向量就占 614 GB）。使用 DiskANN 时，我可以把全精度向量和图保存在 NVMe SSD，仅将压缩编码留在 RAM 中，在保持低于 10 ms 查询时间的同时，将 RAM 需求降低 90–95%。任何能容忍每次查询多花几毫秒的工作负载都可显著降低总体拥有成本（TCO）；大多数 RAG 流量属于此类，因为端到端延迟主要由 LLM 调用决定。
 
 ### 问：为什么元数据过滤往往是向量数据库的瓶颈？
 
@@ -680,18 +728,28 @@ results = index.query(vector=query, namespace=tenant_id)
 - 对高安全性要求使用独立集合
 - 绝不使用后过滤（先检索全部，再过滤），因为存在泄露风险
 
+**混合搜索的隐患：**BM25 分数依赖整个语料库的 IDF 统计。在共享集合中，一个大租户的词汇会改变其他租户的关键词分数，词项统计也会跨越租户边界泄露。应使用支持按租户计算 IDF 的引擎（Qdrant 1.19 已为稀疏搜索和 BM25 增加此功能），或让大租户使用独立集合。
+
 ---
 
 ## 参考资料
 
 - Malkov 和 Yashunin. “使用分层可导航小世界图进行高效且稳健的近似最近邻搜索”（HNSW，2018）
-- Microsoft Research. “Vamana/DiskANN：一种用于 ANN 搜索的基于磁盘的索引” (2019/2023)
+- Subramanya 等人. “DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node”（Microsoft Research，NeurIPS 2019）
+- [OpenSearch. “k-NN index: HNSW memory estimation”](https://docs.opensearch.org/2.9/search-plugins/knn/knn-index/)
 - Pinecone 文档：https://docs.pinecone.io/
 - Pinecone. “无服务器向量数据库的托管架构” (2024)
 - Qdrant 文档：https://qdrant.tech/documentation/
 - Weaviate 文档：https://weaviate.io/developers/weaviate
 - Milvus 文档：https://milvus.io/docs
 - pgvector：https://github.com/pgvector/pgvector
+- [Milvus 3.0.0 发布说明（2026 年 7 月）](https://github.com/milvus-io/milvus/releases/tag/v3.0.0)
+- [Qdrant 1.19 发布说明（2026 年 8 月）](https://qdrant.tech/blog/qdrant-1.19.x/)
+- [Weaviate 1.39 发布说明（2026 年 8 月）](https://weaviate.io/blog/weaviate-1-39-release)
+- [Elasticsearch 发布说明](https://www.elastic.co/docs/release-notes/elasticsearch)
+- [turbopuffer. “RIP, vector database”（2026 年 9 月）](https://turbopuffer.com/blog/rip-vector-database)
+- [Qdrant-FineWeb-10B 基准（2026 年 9 月）](https://qdrant.tech/blog/qdrant-fineweb-10b-release/)
+- [Cloudflare AI Search 定价](https://developers.cloudflare.com/ai-search/platform/limits-pricing/)
 
 ---
 
