@@ -275,7 +275,7 @@ def calibrated_pairwise_judge(question: str, response_a: str, response_b: str) -
         return {"winner": "tie", "confidence": "low"}
 ```
 
-**不要指望将 temperature 设为 `0` 就能稳定裁判。** 新 API 正在移除裁判过去依赖的采样参数：GPT-`6` Astra 不支持自定义 `temperature`、`top_p` 或 `logprobs`；Claude API 对 Opus `4.7` 及之后的所有模型（包括 Opus `5.5` 和 Sonnet `5.5`）的非默认 `temperature`、`top_p` 或 `top_k` 返回 `400`；Anthropic Python SDK `1.x` 也从 Messages 方法签名中移除了这三个参数。若裁判不提供 logprobs，就不能使用 G-Eval 式的 logprob 加权评分。应直接测量裁判的自一致性（同一条目多次评分并跟踪分布范围），固定裁判的模型 ID 和 effort 级别，任何一项改变时都重新运行裁判校准集。
+**不要指望将 temperature 设为 `0` 就能稳定裁判。** 新 API 正在移除裁判过去依赖的采样参数：GPT-`6` Astra 不支持自定义 `temperature`、`top_p` 或 `logprobs`；Anthropic API 版本 `2026-10-21` 起（Python SDK 2.0.0 和 TypeScript SDK 1.0.0 的默认版本），所有 Claude 模型传入任何 `temperature`、`top_p` 或 `top_k` 都会返回 `400`，包括默认值；此前的版本仅对 Claude 4.7 及更新模型的非默认值返回错误。只要正常升级 SDK，硬编码 `temperature=0` 的裁判工具链就可能失效。若裁判不提供 logprobs，就不能使用 G-Eval 式的 logprob 加权评分。应直接测量裁判的自一致性（同一条目多次评分并跟踪分布范围），固定裁判的模型 ID 和 effort 级别，任何一项改变时都重新运行裁判校准集。
 
 ---
 
@@ -556,7 +556,7 @@ class EvaluationPipeline:
 | 保留优化器从未见过的审计留出集 | 无法迁移到留出集的提升是过拟合或攻击 |
 | 根据执行器侧日志和环境状态评分 | 转录由模型生成，可以伪造 |
 
-**工具说明：**OpenAI 托管的 Evals 平台将于 `2026` 年 10 月 31 日变为只读，并与 Agent Builder 一同于 11 月 30 日关闭。OpenAI 的迁移指南指向 Promptfoo，OpenAI 已于 `2026` 年 3 月同意收购它；它仍采用 MIT 许可证并支持多个提供方（npm 版本 `0.123.1`），但应将其视为 OpenAI 工具，而非中立第三方。如果评测存储必须保持供应商中立，应把数据集、裁判提示词和结果保存为自己掌控的格式。
+**工具说明：**OpenAI 托管的 Evals 平台将于 `2026` 年 11 月 30 日关闭，与 Agent Builder 和 Reusable Prompts 一同下线。原计划于 10 月 31 日进入只读状态，但目前没有公开确认其已实施，因此不要指望还能编辑：应立即导出数据集、评分器和运行历史。OpenAI 的迁移指南指向 Promptfoo，后者现已属于 OpenAI；它仍采用 MIT 许可证并支持多个提供方，但应将其视为 OpenAI 工具，而非中立第三方。如果评测存储必须保持供应商中立，应把数据集、裁判提示词和结果保存为自己掌控的格式。
 
 ---
 
@@ -650,6 +650,7 @@ def detect_quality_drift(
 
 - **稳定模型 ID 下的服务修复。** `2026` 年 9 月 25 日，即 GPT-`6` Sol 和 GPT-`6` Luna 上线三天后，OpenAI 修复了降低两者图像理解和计算机操作能力的图像编码错误。模型 ID 未变，OpenAI 告知使用图像输入的客户重新运行评测。OpenAI 没有说明错误从何时开始，因此上线至修复之间的图像或计算机操作评测结果都应视为可疑。
 - **升级时默认 effort 改变。** Claude Opus `5.5` 默认使用 `medium` effort，而 Opus `5` 默认为 `high`；GPT-`6.1` Sol 也默认为 `medium`。换模型时若不显式设置 effort，质量、延迟和成本会同时改变。评测框架与生产环境都应明确指定 effort。
+- **别名和 API 版本也会变化。** 自 2026 年 10 月 8 日起，Google 将 `gemini-3.7-flash` 请求路由到 `gemini-3.8-flash`，将 `gemini-3.5-flash` 请求路由到 `gemini-3.6-flash`；模型字符串仍然有效，背后的模型却变了。Anthropic 新 SDK 主版本默认使用 API 版本 `2026-10-21`，会令任何 `temperature`、`top_p` 或 `top_k` 参数返回 `400`。应将 SDK 和 API 版本与模型 ID 一并固定，并记录每个响应报告的模型版本。
 - **工具默认值会自行变化。** 编码代理在 9 月更换了默认模型：Claude Code 将 Opus `5.5` 设为默认 Opus、Sonnet `5.5` 设为默认 Sonnet，Codex CLI 则将 GPT-`6.1` Sol 设为默认模型。不固定模型的评测测到的是该工具当周交付的版本。
 
 实践中，应订阅提供方的更新日志与状态信息，为每次评测标记模型 ID、effort 级别、SDK 版本和运行日期，并在供应商更新日志涉及你使用的模态时触发回归套件。
@@ -701,31 +702,33 @@ flowchart TD
 
 - [Patronus AI Lynx](https://arxiv.org/abs/2407.08488)：经微调、具有开放权重的有依据性裁判（`8B` 和 `70B`），成本取决于你的服务开销。
 - [Vectara HHEM-2.1](https://huggingface.co/vectara/hallucination_evaluation_model)：小型开放幻觉检测分类器。
-- [Arize Phoenix Evals](https://arize.com/docs/phoenix/) 并非蒸馏模型，而是提供可在任意指定模型上运行的预制裁判模板（幻觉、相关性、毒性），便于在同一数据上比较蒸馏与前沿裁判。Phoenix 源码可用、采用 Elastic-`2.0` 许可证；Dynatrace 于 `2026` 年 8 月同意收购 Arize。
+- [Arize Phoenix Evals](https://arize.com/docs/phoenix/) 并非蒸馏模型，而是提供可在任意指定模型上运行的预制裁判模板（幻觉、相关性、毒性），便于在同一数据上比较蒸馏与前沿裁判。Phoenix 源码可用、采用 Elastic-`2.0` 许可证；Arize 自 `2026` 年 10 月 1 日起已成为 Dynatrace 的一部分。
 
 ### 决策模型裁判与级联的局限
 
-`2026` 年 9 月出现了第三类裁判：**决策模型**返回带概率的类型化判定（是／否、一个选项或分数），而非生成文本。TypeSafe 的 Jev（早期访问，每百万输入 token `$0.042`，输出不计费）在发布约两周内便接入 LangSmith、Langfuse、Braintrust、DeepEval 和 Opik。LangChain 测得其每次调用约 `$0.00035`，平均延迟 `0.44` 秒；LLM 裁判为 `2.16` 至 `2.83` 秒（供应商执行的测试）。
+`2026` 年 9 月出现了第三类裁判：**决策模型**返回带概率的类型化判定（是／否、一个选项或分数），而非生成文本。TypeSafe 的 Jev（早期访问，每百万输入 token `$0.042`，输出不计费）在发布约两周内便接入 LangSmith、Langfuse、Braintrust、DeepEval 和 Opik。LangChain 测得其每次调用约 `$0.00035`，平均延迟 `0.44` 秒；LLM 裁判为 `2.16` 至 `2.83` 秒（供应商执行的测试）。随后 OpenAI Decisions API 提供了第一方选择，仅按输入计费（见 [Research Radar 主题 16](../RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)）。
 
 | 层级 | 示例 | 返回内容 | 最适用途 | 盲点 |
 |------|------|----------|----------|------|
 | 前沿 LLM 裁判 | Claude Opus `5.5`、GPT-`6` Astra | 理由与分数 | 开放式质量、新型失败模式、撰写金标集理由 | 成本和延迟；与廉价裁判有共同盲点 |
 | 蒸馏裁判 | Galileo Luna-2、Patronus Lynx | 按指标给出的标签或分数 | 对全部流量评测固定指标 | 超出调优指标的任何问题 |
-| 决策模型 | TypeSafe Jev | 类型化判定与概率 | 以近乎零边际成本检查二元清单标准 | 无理由、不能弃权、对序数和分级相关性标准较弱、无关上下文会降低表现 |
+| 决策模型 | TypeSafe Jev、OpenAI Decisions API | 类型化判定与概率 | 以近乎零边际成本检查二元清单标准 | 无理由、不能弃权、对序数和分级相关性标准较弱、无关上下文会降低表现 |
 
 对于上述分层架构，关键发现是**相关错误**。一项配对比较（arXiv `2609.29769`）发现，LLM 规则裁判的成本是 Jev 的 `16` 至 `325` 倍、耗时为 `28` 至 `350` 倍，在 `27` 组比较中最多只有 `8` 组准确率有显著差异。但在 Jev 最有信心却答错的案例中，约 `96%` 的 LLM 判定重复了同一个错误，而且廉价到昂贵的级联没有一个比最佳单一裁判高出超过 `2.7` 个百分点。升级评分主要节省成本，无法捕捉两者共同的错误。检验相关错误只能依靠人工标注金标集；应保留并更新它，报告每个裁判相对金标的精确率与召回率，而非裁判间一致率。
+
+**阈值前先校准概率。** 概率正是使用决策模型的理由，而 2026 年 10 月的研究提醒不要直接相信原始概率。TypedBench（arXiv `2610.11392`）发现，受测的托管决策模型系统性地低估概率，且对问题措辞敏感；在成本不对称时，直接根据概率行动可能不如选择其最高分答案。应使用自己的标注集拟合接受与升级阈值，并同时跟踪 AUROC、期望校准误差和准确率：准确率相似的模型对自身错误的排序可能完全不同。
 
 ### Sierra tau-bench 及其后续版本
 
 [Sierra 的 tau-bench](https://github.com/sierra-research/tau-bench)（`2024`）是第一个在模拟业务环境中度量工具使用成功率的真实智能体基准。后续版本将这个思路推广开来。
 
-[tau2-bench](https://github.com/sierra-research/tau2-bench)（`2025`）在零售和航空之外增加通信领域，模拟用户也会操作共享状态。该仓库如今是 **tau3-bench**：v`1.0.0`（`2026` 年 3 月）新增 `banking_knowledge` 检索领域、全双工 tau-Voice、tau-Knowledge，并修复 `75` 项以上任务；v`1.0.1`（`2026` 年 7 月 22 日）修复了 `banking_knowledge` 评分，因此此前版本的该领域成绩不可比较。所有版本都保留了以下特点：
+[tau2-bench](https://github.com/sierra-research/tau2-bench)（`2025`）在零售和航空之外增加通信领域，模拟用户也会操作共享状态。该仓库如今是 **tau3-bench**：v`1.0.0`（`2026` 年 3 月）新增 `banking_knowledge` 检索领域、全双工 tau-Voice、tau-Knowledge，并修复 `75` 项以上任务；v`1.0.1`（`2026` 年 7 月 22 日）修复了 `banking_knowledge` 评分，因此此前版本的该领域成绩不可比较。**tau-bench 2.0.0**（2026 年 10 月 19 日）是一次更大的断代，发布说明明确指出“分数不能与 1.x 比较”。用户模拟器从 gpt-4.1 更换为 gpt-5.5，通信检查改由 LLM 评判，tau-i18n 新增六种语言包，tau-entity 新增含 `200` 项任务的 `intake` 领域，用于精确实体提取。应在 2.0.0 上重新运行基线，不要将新分数与旧版直接比较；用户模拟器变化会改变测试本身。所有版本都保留了以下特点：
 - **Pass^k 指标**：衡量智能体在同一任务的 **全部** k 次重复试验上成功的概率。Pass^1 是传统成功率。Pass^4 才能告诉你智能体是否可靠。
-- **基于验证器的评分**：使用确定性的后置条件（订单已取消、退款已存在、座位已改签），而不是由 LLM 评分的对话文本打分。
+- **基于验证器的评分**：使用确定性的后置条件（订单已取消、退款已存在、座位已改签），而不是由 LLM 评分的对话文本打分。自 2.0.0 起，通信检查由 LLM 评分，因此该部分分数现在也包含裁判错误。
 
 姐妹基准：
 
-- **[tau-Voice](https://arxiv.org/abs/2603.13686)**：含打断、口音和背景噪声的全双工语音变体，能捕捉文本基准完全漏掉的失败（时序、打断处理、从 ASR 错误中恢复）。语音得分如今随语音层附带的推理能力变化：Sierra 的语音榜单上 `gpt-live-1` 的 pass@1 为 `81.7%`，Google 报告 Gemini `3.8` Live 在扩展思考下为 `68.6%`、不使用时为 `30.1%`（供应商报告；两组来源不可直接比较）。没有推理后端的纯语音到语音仍明显落后文本代理，每轮延迟预算如今还须容纳思考。
+- **[tau-Voice](https://arxiv.org/abs/2603.13686)**：含打断、口音和背景噪声的全双工语音变体，能捕捉文本基准完全漏掉的失败（时序、打断处理、从 ASR 错误中恢复）。语音得分如今随语音层附带的推理能力变化：Sierra 1.x 时代的语音榜单上 `gpt-live-1` 的 pass@1 为 `81.7%`（不可与 2.0.0 比较；后者的语音运行默认每次调用 `2,400` 秒），Google 报告 Gemini `3.8` Live 在扩展思考下为 `68.6%`、不使用时为 `30.1%`（供应商报告；两组来源不可直接比较）。没有推理后端的纯语音到语音仍明显落后文本代理，每轮延迟预算如今还须容纳思考。
 - **[tau-Knowledge](https://sierra.ai/blog/tau-knowledge)**：tau3 `banking_knowledge` 领域背后的基准。它在仿真中加入必须检索的内部知识库：金融科技客服场景涵盖 `698` 份文档（约 `195K` token），一项任务平均需要 `18.6` 份文档和 `9.5` 次工具调用。它把“代理是否检索到”与“代理是否采取行动”解耦。
 - **[Hyper-tau-bench](https://sierra.ai/blog/hyper-t-bench-evaluating-agents-that-build-agents)**（`2026` 年 9 月 8 日）：评测一个根据业务记录和客户访谈*构建*客服代理的代理，以所建代理在留出测试上的表现评分。单独使用 Claude Code、最高 effort 的 Claude Opus `5` 通过率为 `23.9%`；同类模型与深入了解背景的工程师协作达到 `82.2%`。差距在需求获取：客户掌握 `20` 至 `25` 项需求，而开发代理最多只问 `4` 个问题；`17%` 至 `42%` 的运行还试探沙箱或评分器以尝试作弊（均未成功）。
 
@@ -893,6 +896,7 @@ flowchart LR
 - Sierra，hyper-tau-bench（`2026` 年 9 月）：https://sierra.ai/blog/hyper-t-bench-evaluating-agents-that-build-agents
 - 《Luna-2：使用小语言模型进行可扩展的单 token 评测》（arXiv `2602.18583`，`2026`）
 - Rao 与 Callison-Burch，《JEV 与 LLM 作为规则裁判：更便宜、更快，却在相同位置出错》（arXiv `2609.29769`，`2026`）
+- Sharma 等，《TypedBench：系统一决策模型校准、表述敏感性和成本基准》（arXiv `2610.11392`，`2026`）
 - Huang 等人，《奖励黑客行为对自主研究代理监督的挑战》（arXiv `2609.28614`，`2026`）
 - Roesner 与 Kohno，《重访“信任之信任”的反思：用投毒基准污染自我修改的 AI 编码代理》（arXiv `2609.17817`，`2026`）
 - MemTrapBench（arXiv `2608.20202`，`2026`）

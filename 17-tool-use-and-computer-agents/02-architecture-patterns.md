@@ -233,7 +233,7 @@ for step in range(50):  # The vision-action loop, with a hard step cap
     messages.append({"role": "user", "content": results})  # all results in one message
 ```
 
-旧版 `computer_20251124` 工具在 Claude API 和 Google Cloud 的 Opus `5.5`、Sonnet `5.5` 上返回 HTTP `400`（Bedrock 仍接受），正式版工具集则拒绝旧的 `name` 和显示尺寸字段。早期示例常按每个 `tool_use` 块附加一条 assistant 消息；模型开始批量动作后，这种循环也会失效。`5.5` 一代模型还有一处陷阱：不要为了省 token 从历史中删除旧截图。编辑先前轮次会使之后的思维块失效；应在发送前缩小截图（每边不超过 `2000 px`），并让服务端的工具结果清理功能删减旧图像。
+旧版 `computer_20251124` 工具在 Claude API 和 Google Cloud 的 `5.5` 模型（Opus、Sonnet 和 Haiku）上返回 HTTP `400`（Bedrock 仍接受），正式版工具集则拒绝旧的 `name` 和显示尺寸字段。早期示例常按每个 `tool_use` 块附加一条 assistant 消息；模型开始批量动作后，这种循环也会失效。Opus `5.5` 和 Sonnet `5.5` 还有一处陷阱：不要为了省 token 从历史中删除旧截图。编辑先前轮次会使之后的思维块失效；应在发送前缩小截图（每边不超过 `2000 px`），并让服务端的工具结果清理功能删减旧图像。
 
 ### 何时使用这种模式
 
@@ -286,7 +286,7 @@ User (NL): "Analyze the CSV and plot the top 10 products"
 - **Always ask**（始终询问，Python 版 Open Interpreter 默认）：每个代码块都需要显式批准
 - **Auto-approve**（自动批准，trusted mode）：危险但更快
 - **Rules-based**（基于规则，Claude Code 模型）：在配置中按允许/拒绝模式控制。例如：允许 `git` 命令，拒绝 `rm -rf`
-- **Classifier-based**（基于分类器）：策略模型为每项动作评分，并决定执行、拒绝或交由人工。它分阶段成为默认行为：Claude Code 于 `2026` 年 8 月 14 日为 Pro、Max 和 Team 默认启用 auto mode；从 v`2.1.284`（9 月 28 日）起，没有配置权限模式的交互会话也会进入 auto mode；Claude Managed Agents 从 9 月 10 日起在服务端按自动权限策略评估每次工具调用。这减少了批准疲劳，却引入阈值校准问题：必须选择并监控分类器在什么分数下转交人工。
+- **Classifier-based**（基于分类器）：策略模型为每项动作评分，并决定执行、拒绝或交由人工。它分阶段成为默认行为：Claude Code 于 `2026` 年 8 月 14 日为 Pro、Max 和 Team 默认启用 auto mode；从 v`2.1.284`（9 月 28 日）起，没有配置权限模式的交互会话也会进入 auto mode。无界面运行是例外：从 v`2.1.302`（10 月 16 日）起，未设置模式的 `claude -p` 和 Agent SDK 会话在使用第三方供应商、关闭遥测或全新安装时以 `default` 模式启动，因此未设置模式的 CI 作业可能因环境而异，应显式设置。Claude Managed Agents 从 9 月 10 日起在服务端按自动权限策略评估每次工具调用。这减少了批准疲劳，却引入阈值校准问题：必须选择并监控分类器在什么分数下转交人工。
 
 **3. Execute and Capture**：代码在具备完整（或受限）系统访问权限的运行时中执行。stdout、stderr、返回值以及任何生成的文件都会被捕获。
 
@@ -387,7 +387,7 @@ Plan-and-Execute:
 
 `2026` 年的趋势是将代理成本优化视为一级问题，类似微服务时代云成本优化成为必需项。上述算式还有两点需要细化：
 
-- **带质量门禁的级联**在任务难度变化时可能胜过固定的规划／执行分工：先用廉价模型起草，经过门禁，仅在失败时升级。GitHub Copilot 的 HydraFusion（`2026` 年 9 月 30 日研究预览）正以级联模式实现这一点。价格差使其很诱人：GPT-`6` Luna 每百万 token 标价 `$0.10/$0.50`，GPT-`6` Astra 为 `$10/$50`。但提示词缓存按模型区分，升级会遇到冷缓存，须按强模型的未缓存输入费率支付整个上下文。构建级联前，应先在同一批任务上测量强模型单独使用较低 effort 的效果。
+- **带质量门禁的级联**在任务难度变化时可能胜过固定的规划／执行分工：先用廉价模型起草，经过门禁，仅在失败时升级。GitHub Copilot Fusion（由 HydraFusion 预览发展而来，于 `2026` 年 10 月 28 日正式发布）以级联工作流实现这一点，另有单模型和评议工作流。价格差使其很诱人：GPT-`6` Luna 每百万 token 标价 `$0.10/$0.50`，GPT-`6` Astra 为 `$10/$50`。但提示词缓存按模型区分，升级会遇到冷缓存，须按强模型的未缓存输入费率支付整个上下文。构建级联前，应先在同一批任务上测量强模型单独使用较低 effort 的效果。
 - **长工具循环由输入 token 主导。** Anthropic 的 Claude Code 遥测（`2026` 年 9 月 24 日，供应商自报）显示输入与输出比为 `324:1`，因此缓存读取价格和命中率比输出价格更重要。Claude Opus `5.5` 标价 `$4/$20`，缓存读取为 `$0.20`（输入价的 `0.05` 倍）；应保持系统提示词和工具定义稳定，以留在缓存中。
 
 ---
@@ -408,7 +408,7 @@ Plan-and-Execute:
   | Risk: data exfiltration|             | network, processes     |
   |                        |             |                        |
   | Used by: OpenClaw      |             | Used by: OpenHands,    |
-  | (main session), Python |             | OpenAI Codex, Jules,   |
+  | (main session), Python |             | OpenAI Codex, Devin,   |
   | Open Interpreter,      |             | Cursor cloud agents,   |
   | Claude Code (default)  |             | Open Interpreter (Rust)|
   +------------------------+             +------------------------+
@@ -494,7 +494,7 @@ class AgentSession:
 | **Permission** | 鉴权失败、访问被拒绝 | 向用户报告，不要重试 |
 | **Logic** | 错误工具、不可行操作 | 将错误反馈给 LLM，让其重新规划 |
 | **Catastrophic** | OOM、sandbox 崩溃、无限循环 | 中止、上报、清理资源 |
-| **Contract** | 模型或代理版本变化后返回 HTTP `400`（最新 Claude 模型的强制 `tool_choice`、新版托管代理重命名工具参数） | 不重试；固定版本，并在 CI 中对工具 schema 做契约测试 |
+| **Contract** | 模型或代理版本变化后返回 HTTP `400`（Opus 5.5、Sonnet 5.5 或 Fable 5.1 的强制 `tool_choice`、新版托管代理重命名工具参数） | 不重试；固定版本，并在 CI 中对工具 schema 做契约测试 |
 
 ### 重试模式实现
 
@@ -579,13 +579,13 @@ MCP 已成为 2026 年工具集成的标准协议。以下是将 MCP 融入代�
 
 `2026` 年 5 月的 MCP 规范尚缺三项生产原语：身份传递、自适应工具预算和结构化错误语义。对照当前无状态核心规范修订版（`2026-07-28`）与维护者于 `2026` 年 8 月 22 日发布的路线图，其状态如下：
 
-| 缺口 | 状态（`2026` 年 10 月） | 当前做法 |
+| 缺口 | 状态（`2026` 年 11 月） | 当前做法 |
 |------|------------------------|----------|
-| **身份传递** | 企业托管授权自 `2026` 年 6 月 18 日起稳定，覆盖 IdP 配置的用户访问。代理身份仍在推进：DPoP（SEP-`1932`）与工作负载身份联合（SEP-`1933`）是开放草案，代理身份工作组正在形成 | 对无人值守代理继续用网关作身份代理 |
+| **身份传递** | 企业托管授权自 `2026` 年 6 月 18 日起稳定，并在 SEP-3392 的扩展生命周期中列为 Stable，覆盖 IdP 配置的用户访问。代理身份仍在推进：DPoP（SEP-`1932`）与工作负载身份联合（SEP-`1933`）是开放草案，代理身份工作组正在形成 | 对无人值守代理继续用网关作身份代理 |
 | **自适应工具预算** | 不在 8 月 22 日路线图的重点领域中。最接近的是大型工具目录的服务器端渐进发现，它节省 schema token 而非支出 | 在执行框架或网关执行预算：会话支出上限（Claude Managed Agents 会以 `budget_reached` 暂停）、逐工具限流 |
 | **结构化错误语义** | 部分解决：路线图计划重设计 `tools/call` 结果形式，因为同时返回 `content` 与 `structuredContent` 导致实现分歧 | 在网关按自己的分类统一错误（见上表） |
 
-下一次规范修订尚无日期。[工具使用与 MCP](../07-agentic-systems/03-tool-use-and-mcp.md)章节介绍无状态重写与完整路线图。
+下一次规范修订计划于 2027 年 3 月 30 日发布（SEP-3398，10 月 14 日接受、10 月 27 日合并，仍待确认）；此后的版本通常在 3 月和 9 月的最后一个星期二发布，因此应按此节奏规划 SDK 升级。[工具使用与 MCP](../07-agentic-systems/03-tool-use-and-mcp.md)章节介绍无状态重写与完整路线图。
 
 ---
 
@@ -642,7 +642,7 @@ Does the target system have an API?
 
 ### 5. Cost Model
 
-阐述经济性：“我会采用 Plan-and-Execute 模式：Opus `5.5` 规划任务，Haiku `4.5` 执行各步。按标价，Haiku 每 token 成本是 Opus 的四分之一，因此相比全用 Opus 最多可节省约三分之二；在缓存占主导的循环中节省更少，因为 Haiku 每百万缓存读取 token 为 `$0.10`，是 Opus `5.5` 的 `$0.20` 的一半而非四分之一。长工具循环的输入量比输出高两个数量级，所以我还会让系统提示词和工具定义保持稳定，以利用提示词缓存。”
+阐述经济性：“我会采用 Plan-and-Execute 模式：Opus `5.5` 规划任务，Haiku `5.5` 执行各步。Haiku 5.5 每百万 token 标价 `$0.10/$0.50`，Opus 5.5 为 `$4/$20`，相差 40 倍；缓存读取分别为 `$0.01` 和 `$0.20`。但存在价格断崖：Haiku 5.5 的提示词超过 100,000 token（包括缓存读写）后，整个请求按 `$0.50/$2.50` 计费，因此我会保持执行者上下文简短，每步只传必要内容。它还拒绝 `temperature`、`top_p`、`top_k` 和 assistant prefill，因此从 Haiku 4.5 迁移的执行代码需要契约测试。长工具循环的输入量比输出高两个数量级，所以我会让系统提示词和工具定义保持稳定，以利用提示词缓存。”
 
 ---
 

@@ -200,7 +200,7 @@ class ModelAccessControl:
         ]
 ```
 
-如今，模型访问还受到供应商侧的门控：Anthropic 文档将 Mythos 5.1 限定为 Project Glasswing 参与者（还列出 Life Sciences 和 Cyber Verification Programs 等后续通道）；OpenAI 的 `gpt-rosalind-research` 仅限可信访问；Gemini 3.8 Flash Cyber 仅通过 Google Fairwind Program 提供。上述检查背后的模型注册表应按模型和平台记录组织有权使用哪些模型、各自的数据保留条款和退役日期，使路由与回退永远不会选中租户无权使用的模型。
+如今，模型访问还受到供应商侧的门控。Anthropic 的网络安全验证计划于 2026 年 10 月 6 日扩展，并将 Project Glasswing 纳入其中；该计划分 Defense、Red Team、Specialized 三档，管理员可将计划分配给特定 workspace，所有层级都可使用 Mythos 5.1，但加入计划要求保留数据，因此模型权限和数据保留条款会同时变化。OpenAI 的 `gpt-rosalind-research` 仅限可信访问；Gemini 3.8 Flash Cyber 仅通过 Google Fairwind Program 提供。上述检查背后的模型注册表应按模型和平台记录组织有权使用哪些模型和访问计划、各自的数据保留条款和退役日期，使路由与回退永远不会选中租户无权使用的模型。
 
 ---
 
@@ -214,7 +214,7 @@ class ModelAccessControl:
 
 | 需求 | 机制 | 状态 |
 |------|-----------|--------|
-| token 只能在一台服务器使用 | 受众绑定（RFC 8707 资源指示符） | MCP 授权规范的一部分 |
+| token 只能在一台服务器使用 | 受众绑定（RFC 8707 资源指示符） | 属于 MCP 授权规范，但 TypeScript SDK 曾接受为其他服务签发的 token（CVE-2026-111771）；`sdk` 1.32.0 和 `server` 2.3.0 的修复为可选设置，因此应设置 `expectedResource` 并返回 `AuthInfo.resource` |
 | 失窃 token 单独无法使用 | DPoP 绑定发送方的 token（RFC 9449） | MCP TypeScript 客户端 2.1.0 已于 2026 年 9 月 23 日支持；规范方案（SEP-1932）仍为开放草案 |
 | 每个工具遵循最小权限 | 逐工具升级 scope 的挑战（HTTP 403 `insufficient_scope`） | MCP TypeScript 服务器 2.1.0 已支持 |
 | 企业 IdP 控制智能体可用的服务器 | MCP Enterprise-Managed Authorization 背后的 ID-JAG 授权 | MCP 已支持；IETF 草案处于 -04 阶段，尚非 RFC |
@@ -310,7 +310,9 @@ class TenantIsolatedCache:
         )
 ```
 
-缓存隔离还延伸到推理引擎。共享前缀缓存是一条时间侧信道：如果租户 B 的请求因为租户 A 已缓存相同前缀而更快返回，B 就能推断 A 的提示词信息。vLLM 使用逐请求的 `cache_salt` 隔离租户；2026 年 9 月，一条代码路径发生回归（Harmony `/v1/responses` 端点的工具续接轮次丢失 salt），直到 0.30.0 才重新关闭该探测通道。应在每次请求中传入逐租户 salt，测试每个端点；多个租户共享同一供应商账户时，还应将租户专属内容放在可共享的缓存前缀之后。
+缓存隔离还延伸到推理引擎。共享前缀缓存是一条时间侧信道：如果租户 B 的请求因为租户 A 已缓存相同前缀而更快返回，B 就能推断 A 的提示词信息。vLLM 使用逐请求的 `cache_salt` 隔离租户；2026 年 9 月，一条代码路径发生回归（Harmony `/v1/responses` 端点的工具续接轮次丢失 salt），直到 0.30.0 才重新关闭该探测通道（当前 vLLM 的版本下限为 0.32.0，见[保护 AI 技术栈本身](01-llm-security.md#保护-ai-技术栈本身)）。应在每次请求中传入逐租户 salt，测试每个端点；多个租户共享同一供应商账户时，还应将租户专属内容放在可共享的缓存前缀之后。
+
+同样的问题也会出现在协议服务器中。MCP TypeScript SDK 的 HTTP 服务器若在启动时创建一个 transport 或 server 实例并供多个客户端共享，就可能把一个客户端的响应交给另一个客户端（CVE-2026-111770，CVSS 7.7；`@modelcontextprotocol/server` 2.0.0 至 2.2.x）。原因是消息只按 JSON-RPC id 与连接匹配，而 SDK 客户端的请求编号都从 0 开始。SDK 自己的 README 示例曾展示这种共享方式。2.3.0 版本会拒绝它，因此升级后应用必须为每个请求或会话创建独立的 server 和 transport 才能工作。多租户服务器中的任何连接级状态都需要 tenant 或 session key，不只是缓存。
 
 ---
 
@@ -525,6 +527,7 @@ class ComplianceReporter:
 **我们持有的密钥，而不只是我们签发的密钥：**
 - 我们调用模型供应商时，优先使用工作负载身份（mTLS 或联合 token），而不是静态密钥；仍需使用的密钥应指定负责人、到期时间和费用上限
 - LLM API 密钥如今是供应链蠕虫的常见目标，因此要让它们远离开发者机器、智能体会话和 CI 日志
+- 网关会集中保存这些密钥：LiteLLM 10 月 21 日被投毒的发布窃取了供应商密钥以及代理的 master key 和 virtual key，因此必须能够一步轮换网关持有的全部密钥
 
 关键原则是：永不存储明文密钥，支持轮转，实施最小权限。”
 
@@ -534,7 +537,7 @@ class ComplianceReporter:
 
 “设计时首先要防范混淆代理，因为智能体持有五台服务器的凭据，其中任何一台都可能恶意或遭入侵。
 
-**将凭据绑定到签发方和受众。** 每个 token 都按受众绑定到对应服务器（RFC 8707），每份保存的凭据都标记签发它的授权服务器，绝不发送到其他地方。2026 年 9 月 MCP TypeScript SDK 的 CVE-2026-104850 正是缺失了这一约束（Python SDK 也有同样缺陷）：恶意服务器可以指定自己的授权服务器，收集 refresh token 和客户端密钥。只升级 SDK 还不够；机器对机器客户端必须显式指定预期签发方，升级前的凭据也须重新标记或清除。
+**将凭据绑定到签发方和受众。** 每个 token 都按受众绑定到对应服务器（RFC 8707），每份保存的凭据都标记签发它的授权服务器，绝不发送到其他地方。2026 年 9 月 MCP TypeScript SDK 的 CVE-2026-104850 正是缺失了这一约束（Python SDK 也有同样缺陷）：恶意服务器可以指定自己的授权服务器，收集 refresh token 和客户端密钥。只升级 SDK 还不够；机器对机器客户端必须显式指定预期签发方，升级前的凭据也须重新标记或清除。服务端也要验证 token 的受众：TypeScript SDK 10 月修复的 CVE-2026-111771 默认未启用，因此所有服务器都应设置 `expectedResource`。
 
 **降低失窃 token 的作用。** 使用短时效 token；客户端和服务器都支持时，使用 DPoP 绑定发送方的 token。
 
@@ -555,6 +558,8 @@ class ComplianceReporter:
 - RFC 8707，OAuth 2.0 资源指示符：https://www.rfc-editor.org/rfc/rfc8707
 - RFC 9449，OAuth 2.0 持有证明（DPoP）：https://www.rfc-editor.org/rfc/rfc9449
 - MCP TypeScript SDK 安全公告 GHSA-6qxp-vccf-f47h（CVE-2026-104850）：https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-6qxp-vccf-f47h
+- MCP TypeScript SDK 公告 GHSA-jm63-cq47-j5jp（CVE-2026-111770，共享 transport）和 GHSA-rvq5-wwqv-78pq（CVE-2026-111771，token 受众）：https://github.com/modelcontextprotocol/typescript-sdk/security/advisories
+- Anthropic，扩展网络安全验证计划（2026 年 10 月 6 日）：https://www.anthropic.com/news/cyber-verification-program
 - IETF WIMSE，AI 身份管理系统（draft-ietf-wimse-aims）：https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/
 - OpenAI API 更新日志（工作负载身份、密钥到期）：https://developers.openai.com/api/docs/changelog
 

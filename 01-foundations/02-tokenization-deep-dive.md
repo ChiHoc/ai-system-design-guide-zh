@@ -128,7 +128,7 @@ Anthropic 和 Google 未公布 Claude 与 Gemini 的词表大小，而 tiktoken 
 **词表扩展深度解析：**
 - **Llama 3（128K）**：Meta 将 tiktoken 的 100K 个 token 与面向非英语语言的 28K 个额外 token 相结合，并报告称，相同文本所需 token 数最多比 Llama 2 少 15%。Llama 4 扩展至约 202K。
 - **GPT-4o 至 GPT-5.x（o200k_base）**：将 cl100k 的词表翻倍，改善了代码与非英语文本的压缩率；即使每 token 价格不变，也能降低单位语义的成本。
-- **同样价格，不同账单**：tokenizer 的变化无需改动标价就会影响账单。Anthropic 文档称，Claude 4.7 及更高版本模型使用了新的 tokenizer，对相同文本产生的 token 数量约比早期 Claude 模型多 30%，具体增幅取决于内容。每次切换模型家族时都应重新建立 token 计数基线。
+- **同样价格，不同账单**：tokenizer 的变化无需改动标价就会影响账单。Anthropic 文档称，Claude 4.7 及更高版本模型使用了新的 tokenizer，对相同文本产生的 token 数量约比早期 Claude 模型多 30%，具体增幅取决于内容。Claude Haiku 5.5 将它带到了小模型层级：其 token 数量比 Haiku 4.5 多约 30%，因此即便标价是 Haiku 4.5 的十分之一，单位文本的实际降幅也小于价目表显示的幅度。每次切换模型家族时都应重新建立 token 计数基线。
 
 ### 字符 vs 子词 vs 词
 
@@ -249,7 +249,7 @@ Hi there!<|im_end|>
 ### 音频/视频分词
 - **音频**：使用 EnCodec 等编解码器压缩为离散单元，然后表示为音频 token 序列。
 - **视频**：按图像帧序列处理（时间分词）。1 秒、1FPS 的视频 token 成本可能和 1 张高分辨率图像相当。
-- **智能体式视频处理**：自 2026 年 9 月 1 日起，Gemini API 在 Gemini 3.7 Flash、3.6 Flash 和 3.5 Flash-Lite 上提供可选的 `"processing": "agentic"` 模式（Google 文档还列出了 3.8 Flash）。模型自行决定检查哪些片段、以何种速度检查，以及通过哪种模态（帧、音频或转录文本）检查，而非按固定速率采样。Google 报告称，在标准视频基准上，token 最多减少 88%、成本最多降低 66%，且按正常 token 价格计费。静态 1 FPS 采样仍是默认方式，因此基于固定速率采样的成本模型对智能体模式 token 的估计可能高出约 8 倍。
+- **智能体式视频处理**：自 2026 年 9 月 1 日起，Gemini API 在 Gemini 3.8 Flash、3.6 Flash 和 3.5 Flash-Lite 上提供可选的 `"processing": "agentic"` 模式（发布时也支持的 `gemini-3.7-flash` 请求自 10 月 8 日起路由至 3.8 Flash）。模型自行决定检查哪些片段、以何种速度检查，以及通过哪种模态（帧、音频或转录文本）检查，而非按固定速率采样。Google 报告称，在标准视频基准上，token 最多减少 88%、成本最多降低 66%，且按正常 token 价格计费。静态 1 FPS 采样仍是默认方式，因此基于固定速率采样的成本模型对智能体模式 token 的估计可能高出约 8 倍。
 
 ---
 
@@ -307,13 +307,15 @@ Gemini 也提供等效的 `countTokens` 调用；对于 tiktoken 未映射的模
 ### 成本计算
 
 ```python
-# USD per 1M tokens, standard tier list prices as of October 2026.
+# USD per 1M tokens, standard tier list prices as of November 2026.
 # Excludes cache reads/writes, batch discounts and long-context surcharges
-# (OpenAI bills the whole request at higher rates above 272K input tokens).
+# (OpenAI bills the whole request at higher rates above 272K input tokens,
+# Claude Haiku 5.5 at 5x once the prompt passes 100K tokens).
 PRICING = {
     "gpt-6-sol": {"input": 2.00, "output": 10.00},
     "gpt-6-luna": {"input": 0.10, "output": 0.50},
     "claude-sonnet-5-5": {"input": 2.00, "output": 10.00},
+    "claude-haiku-5-5": {"input": 0.10, "output": 0.50},
 }
 
 def calculate_cost(input_tokens: int, output_tokens: int, model: str) -> float:

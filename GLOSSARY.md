@@ -18,9 +18,9 @@
 
 **Agent Plugins（智能体插件）** - 一种供应商中立的打包格式（1.0，`2026` 年 8 月），通过 `plugin.json` 清单将 Agent Skills 与 MCP 服务器声明捆绑进一个可安装目录。它标准化了智能体能力的分发；特意只让技能和 MCP 服务器具备可移植性，而将客户端特有的部分留在带命名空间的目录中。参见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md#agent-plugins-智能体插件)。
 
-**Agent Skills（SKILL.md，智能体技能）** - 包含 `SKILL.md`（前置元数据加指令）与支持文件的文件夹，智能体仅在任务需要时加载，使过程知识仅在使用时消耗上下文。自 2026 年 8 月 19 日在 Claude API 结束 beta。官方 MCP Skills 扩展（`io.modelcontextprotocol/skills`、SEP-2640、2026 年 9 月 13 日 Final）通过服务器提供技能，每个文件都有 SHA-256 清单；文件修改、添加或删除会撤销用户审批，阻止服务器静默改写智能体加载的指令。应将技能视为不可信、版本化依赖。见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md#通过-mcp-提供-skills)。
+**Agent Skills（SKILL.md，智能体技能）** - 包含 `SKILL.md`（前置元数据加指令）与支持文件的文件夹，智能体仅在任务需要时加载，使过程知识仅在使用时消耗上下文。自 2026 年 8 月 19 日在 Claude API 结束 beta。官方 MCP Skills 扩展（`io.modelcontextprotocol/skills`、SEP-2640、2026 年 9 月 13 日 Final）通过服务器提供技能，每个文件都有 SHA-256 清单；文件修改、添加或删除会撤销用户审批，阻止服务器静默改写指令。MCP 将该扩展评为 Beta，仍可能发生破坏性变更；TypeScript SDK 2.4.0（2026 年 10 月 23 日）已提供支持。Anthropic 于 2026 年 10 月 22 日将 Agent Skills 格式捐赠给 Agentic AI Foundation。应将技能视为不可信、版本化依赖。见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md#通过-mcp-提供-skills)。
 
-**Agentic AI Foundation（AAIF，智能体 AI 基金会）** - Linux Foundation 为智能体标准设立的中立组织，成立于 2025 年 12 月。截至 2026 年 9 月承载六个项目（MCP、goose、AGENTS.md、agentgateway、A2A，以及前身为 Envoy AI Gateway 的 Agent Router），2026 年 8 月 12 日报告有 247 家成员组织。2026 年 9 月 14 日推出 MCPA（Model Context Protocol Associate）认证。见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md)。
+**Agentic AI Foundation（AAIF，智能体 AI 基金会）** - Linux Foundation 为智能体标准设立的中立组织，成立于 2025 年 12 月。2026 年 10 月 22 日新增 Agent Skills、Open Responses、OpenEnv 和 OpenSandbox，连同 MCP、goose、AGENTS.md、agentgateway、A2A 和前身为 Envoy AI Gateway 的 Agent Router，共承载 10 个项目，并报告有 305 家成员组织。2026 年 9 月 14 日推出 MCPA（Model Context Protocol Associate）认证。见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md)。
 
 **Agentic Coding（智能体式编码）** - LLM 自动编辑文件、运行 shell 命令、编写测试并反复迭代，直到编码任务完成。以 Claude Code、Codex、Cursor、OpenHands 和 Cline 为代表。
 
@@ -30,7 +30,7 @@
 
 **AI Control（AI 控制）** - 一种安全方法，假设模型可能未对齐，并设计部署协议（监控、关键动作延后、重采样、分解式认知）以在此情况下仍保持安全。与 alignment 不同，后者旨在从一开始就使模型可信。参见 [Research Radar](RESEARCH-RADAR.md)。
 
-**AI Gateway（AI 网关）** - 你的应用与模型提供商（如 LiteLLM、OpenRouter、Portkey、Kong、Agent Router，前身为 Envoy AI Gateway）之间的控制平面代理。提供一个 OpenAI 兼容 API，并集中化路由、降级、负载均衡、速率限制处理、虚拟密钥与预算、缓存及可观测性。由于持有所有提供方密钥，应像面向互联网的基础设施一样修补：2026 年仅 LiteLLM 就需修复未认证 RCE（CVE-2026-37004、CVSS 9.8、1.83.7 修复）与严重认证绕过（CVE-2026-49468、1.84.0 修复）。参见 [AI Gateways and Model Routing](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md)。
+**AI Gateway（AI 网关）** - 应用与模型提供商（LiteLLM、OpenRouter、Portkey、Kong、Agent Router，前身为 Envoy AI Gateway）之间的控制平面代理。提供 OpenAI 兼容 API，集中处理路由、回退、负载均衡、限流、虚拟密钥与预算、缓存及可观测性。由于持有所有提供方密钥，应像面向互联网的基础设施一样修补，并将发布流水线视为攻击面：LiteLLM 在 2026 年发布了多项严重漏洞修复，10 月 21 日被投毒的版本旨在窃取提供方、主密钥和虚拟密钥（见[保护网关](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)）。按哈希固定包、按摘要固定镜像，升级网关前验证来源。
 
 **Approval Laundering（审批洗白）** - 人工批准的动作与智能体执行框架实际执行动作之间的差距（arXiv 2609.38983，2026 年 9 月），分六类：范围、参数、时间、工具、委派和语义。缓解方法是用哈希或签名 token 将审批绑定精确规范动作，执行时重新验证，并向人展示实际执行形式，而非模型描述。见[人在环模式](07-agentic-systems/08-human-in-the-loop-patterns.md#审批洗白)。
 
@@ -46,7 +46,7 @@
 
 **BM25** - 传统基于关键词的排序算法。常与向量检索结合用于混合检索。
 
-**Budget Tokens（预算 token）** - Claude 扩展思考的显式 token 上限（`thinking.budget_tokens`），仍用于 Haiku 4.5 等旧模型。自 4.6 代起，effort 引导的自适应思考成为主要控制手段，Opus 5.5 和 Sonnet 5.5 对手动预算返回 400。见 **Reasoning Effort（推理强度）**。
+**Budget Tokens（预算 token）** - Claude 扩展思考的显式 token 上限（`thinking.budget_tokens`），仍用于 Haiku 4.5 等旧模型。自 4.6 代起，effort 引导的自适应思考成为主要控制手段，Opus 5.5、Sonnet 5.5 和 Haiku 5.5 对手动预算返回 400，因此从 Haiku 4.5 迁移至 5.5 需要改变请求结构，而不只是替换模型名。见 **Reasoning Effort（推理强度）**。
 
 ---
 
@@ -54,21 +54,23 @@
 
 **C2PA（Content Credentials，内容凭证）** - 一种开放标准，通过加密将来源元数据（由谁创建、是否涉及 AI、做了哪些编辑）绑定到媒体资产上，采用防篡改的硬绑定与可抵抗重编码的水印式软绑定。它是 AI 内容标注法规背后的来源层；可移除，因此应结合水印与检测共同使用。参见 [Multimodal Generation](19-multimodal-generation/01-multimodal-generation.md)。
 
-**Capability Index（Composite Benchmark，复合基准）** - 许多基准的加权汇总（如 Artificial Analysis Intelligence Index、Epoch Capability Index、HAL for agents），用于对前沿模型排序，使排序在单一基准饱和时仍能持续区分。指数更换组成项时会重新建立基线：Index v4.3（2026 年 9 月）之前的 Artificial Analysis 分数与 v4.3 不可比较。
+**CAISSI** - NIST 的 AI 标准中心（原 CAISI）在美国联邦“Super Intelligence”命名命令后使用的名称，全称 Center for Advancing Innovation and Standards for Super Intelligence。该中心与 NSA、CISA 于 2026 年 10 月 16 日发布针对训练和评估中智能体的自愿性事件实践。见 **Super Intelligence（SI）**。
+
+**Capability Index（Composite Benchmark，复合基准）** - 许多基准的加权汇总（如 Artificial Analysis Intelligence Index、Epoch Capability Index、HAL for agents），用于对前沿模型排序，使排序在单一基准饱和时仍能持续区分。指数更换组成项时会重新建立基线：Artificial Analysis 于 2026 年 10 月下旬转向 Intelligence Index v5.0（知识工作、编码、科学、通用四个等权类别，约 60% 评估使用私有或留出集），v4.x 分数与 v5.0 不可比较。引用数字时应注明版本。
 
 **Chain-of-Thought（CoT，思维链）** - 一种提示技术，在生成最终答案前引导模型进行逐步推理。
 
 **Chunking（分块）** - 将文档切分为更小片段以便嵌入与检索。策略包括固定大小、语义分块与层次分块。
 
-**Claude Code（Claude 代码）** - Anthropic 的智能体式编码工具（终端、IDE、桌面和 Web）。通过 shell、文件编辑等工具在完整项目内读取、编辑并运行代码。从 CLAUDE.md 读取项目指令，自 2.1.277（2026 年 9 月）起，不存在 CLAUDE.md 时回退到 AGENTS.md。
+**Claude Code（Claude 代码）** - Anthropic 的智能体式编码工具（终端、IDE、桌面和 Web）。通过 shell、文件编辑等工具在完整项目内读取、编辑并运行代码。从 CLAUDE.md 读取项目指令，自 2.1.277（2026 年 9 月）起，不存在 CLAUDE.md 时回退到 AGENTS.md。自 2.1.302（2026 年 10 月 16 日）起，未设置权限模式的 `claude -p` 和 Agent SDK 会话在第三方供应商、关闭遥测或全新安装时以 `default` 模式启动，而交互会话仍默认 auto mode，因此 CI 应显式设置权限模式。
 
-**Claude Fable 5.1** - Anthropic 的 Mythos 级普遍可用模型（2026 年 9 月 1 日，`claude-fable-5-1`），接替 Fable 5（2026 年 6 月 9 日）。每 1M $10/$50，缓存读取降至 $0.25（输入 0.025 倍），1M 上下文，自适应思考始终开启。要求保留数据 30 天；零数据保留仅在 Anthropic 授权时可用。其更宽松孪生版 Claude Mythos 5.1（相同权重、更松护栏）仅限经审核组织：Project Glasswing 参与者和 Anthropic 可信访问验证计划。Anthropic 现在将多数工作负载引向更便宜的 Claude Opus 5.5（$4/$20，2026 年 9 月 22 日），其 Artificial Analysis Intelligence Index v4.3.2 更高（58 对 53，均为 max 强度并带护栏回退）。见[模型分类](02-model-landscape/01-model-taxonomy.md)。
+**Claude Fable 5.1** - Anthropic 的 Mythos 级普遍可用模型（2026 年 9 月 1 日，`claude-fable-5-1`），接替 Fable 5（2026 年 6 月 9 日）。每 1M $10/$50，缓存读取降至 $0.25（输入 0.025 倍），1M 上下文，自适应思考始终开启。要求保留数据 30 天；零数据保留仅在 Anthropic 授权时可用。更宽松的孪生版 Claude Mythos 5.1（相同权重、更松护栏）仅限经审核组织：自 2026 年 10 月 6 日起，Anthropic 扩展后的 Cyber Verification Program 的 Defense、Red Team 和 Specialized 所有层级均可使用，该计划吸收了 Project Glasswing 并要求数据保留（现有零保留用户可维持至 Enterprise Frontier Safeguards 发布）。Anthropic 将多数工作负载引向更便宜的 Claude Opus 5.5（$4/$20，2026 年 9 月 22 日），其 Artificial Analysis Intelligence Index v5.0 为 58 分（max 强度并带护栏回退），在公开可用模型中最高。见[模型分类](02-model-landscape/01-model-taxonomy.md)。
 
 **Cline（Cline）** - 开源 VS Code 扩展，提供具备工具调用能力的自主 AI 编码（文件编辑、终端、浏览器）。MCP 原生。
 
 **Compaction（压缩）** - 用模型撰写的摘要替换长智能体上下文的较早轮次，使循环可超越上下文窗口继续运行。OpenAI Agents API 等托管框架会代劳，Claude API 于 2026 年 9 月加入按需压缩 beta。其设计上就是有损的：启用前决定哪些内容必须保留（目标、约束、未决问题）。见 **Context Rot（上下文腐坏）**。
 
-**Computer-Use（计算机控制）** - 根据截图输出鼠标和键盘动作操作 GUI 的模型能力；Anthropic 于 2024 年 10 月随 Claude 3.5 Sonnet 引入，OpenAI 和 Google 现也提供对应能力。Claude 当前工具版本为 `computer_toolset_20260801`（2026 年 8 月 19 日 GA）；Opus 5.5 和 Sonnet 5.5 在 Claude API 与 Google Cloud 拒绝旧 `computer_20251124`。应以 OSWorld 2.0 二元分数衡量，因为 OSWorld-Verified 已饱和。
+**Computer-Use（计算机控制）** - 根据截图输出鼠标和键盘动作操作 GUI 的模型能力；Anthropic 于 2024 年 10 月随 Claude 3.5 Sonnet 引入，OpenAI 和 Google 现也提供对应能力。Claude 当前工具版本为 `computer_toolset_20260801`（2026 年 8 月 19 日 GA）；Opus 5.5 和 Sonnet 5.5 在 Claude API 与 Google Cloud 拒绝旧 `computer_20251124`。Gemini 计算机操作工具于 2026 年 10 月 30 日正式发布。应以 OSWorld 2.0 二元分数衡量，因为 OSWorld-Verified 已饱和；GUI 也是最易受注入的界面：Claude Haiku 5.5 系统卡报告 15 次尝试内提示注入总体成功率 7.1%，GUI 计算机操作为 24.4%。
 
 **Context7（Context7）** - MCP 服务器，在运行时获取最新库文档，解决 Coding Agent 的“训练数据过期”问题。
 
@@ -78,7 +80,7 @@
 
 **Cosine Similarity（余弦相似度）** - 衡量两个向量相似程度的指标，是比较 embeddings 的标准度量。
 
-**Cursor（Cursor）** - AI 原生 IDE（基于 VS Code 的分支），深度集成模型用于代码补全、智能体式编辑和多文件上下文感知。自 2026 年 8 月起归属 SpaceX，因此领先 IDE 智能体现与前沿模型系列（SpaceXAI 的 Grok）共享母公司；供应商风险与数据治理评审应纳入这一点。
+**Cursor（Cursor）** - AI 原生 IDE（基于 VS Code 的分支），深度集成模型用于代码补全、智能体式编辑和多文件上下文感知。自 2026 年 8 月起归属 SpaceX，因此领先 IDE 智能体现与前沿模型系列（SpaceXAI 的 Grok）共享母公司；供应商风险与数据治理评审应纳入这一点。分叉 IDE 的扩展市场是独立供应链，2026 年 10 月 29 日 Cursor 市场中的木马化 `Anthropic.claude-code` 扩展说明了这一点（见[开发者工作站成为目标](07-agentic-systems/09-agentic-security-and-sandboxing.md#开发者工作站成为攻击目标)）。
 
 ---
 
@@ -87,6 +89,10 @@
 **Data Contamination（数据污染）** - 基准题目或其答案泄漏到模型训练数据中，导致分数通过记忆而非能力提升。可通过时间门控、私有或留出测试集缓解。相关失败是环境泄漏：一项研究发现，SWE-Bench Pro v1.0 通过案例中按模型有 24% 至 73% 并非应得，主要因智能体从仓库 git 历史读取修复（arXiv 2609.34262）。参见 [Benchmarks and Leaderboards](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md)。
 
 **Data Residency（数据驻留 / 区域推理）** - 固定请求处理地点，通常为合规，溢价约 10%。Anthropic `inference_geo: "us"` 对 Claude 4.6 及之后的所有 token 类型按 1.1 倍计费；OpenAI 对 2026 年 3 月 5 日及之后发布模型的数据驻留端点加收 10%；Bedrock 与 Google Cloud 区域 Claude 端点有类似溢价，Bedrock 区域 GPT-6 Astra 每 1M 标价 $11/$55，普通为 $10/$50。也要看产品：OpenAI Agents API 发布时仅支持美国驻留。仅将有驻留要求的租户路由到固定区域，避免所有流量都支付溢价。见[定价与成本](02-model-landscape/03-pricing-and-costs.md)。
+
+**Decision Model（System One Model，决策模型）** - 返回带概率的类型化答案（是非谓词、固定列表中的选择或分数），而非生成文本的模型，适用于门控、路由、分类和裁判。OpenAI Decisions API 于 2026 年 10 月 22 日在 `gpt-6-luna` 上正式发布；vLLM、SGLang 增加原生端点，Ollama 增加本地决策模型。已报告的问题包括概率置信度不足，因此须在自己的标注数据上校准阈值；以及正确读取状态后仍执行错误动作，因此应以代码组合类型化答案，而非信任一次端到端调用。它不返回书面理由，不适合需要理由的审查。见[研究雷达：决策模型](RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)、**LLM-as-Judge** 和[评估门控 CI/CD](16-case-studies/18-eval-gated-cicd.md#_5-单-pr-评估预算)。
+
+**Devin Desktop** - Cognition 的 AI 原生 IDE，原名 Windsurf（最初由 Codeium 构建，2025 年 7 月起归 Devin 开发商 Cognition 所有），v3.0.12 于 2026 年 6 月 2 日更名。是 Cursor 的替代品；旧教程、课程及招聘信息仍使用 Windsurf。
 
 **Diffusion Language Model（扩散语言模型）** - 一种非自回归 LLM，通过并行迭代去噪一个被掩码的序列生成文本，而非从左到右生成；在质量上略有损失，但吞吐率更高（有报告称超过 1,000 token/秒）。在代码与填充任务上表现强，且截至 2026 年仍处于早期阶段。参见 [Diffusion Language Models](04-inference-optimization/08-diffusion-llms.md)。
 
@@ -112,7 +118,7 @@
 
 **Eval Awareness（评测感知）** - 模型检测到自己正在被评估并相应调整行为的倾向，这会干扰安全与能力基准，支持采用更自然、留出式测试条件。Anthropic Opus 5.5 系统卡展示了差距：36% 自动审计记录的评估感知得分高，内部 Claude Code 记录仅 0.4%。
 
-**Extended Thinking（扩展思考）** - Claude（3.7+）在响应前的内部推理。Haiku 4.5 等旧模型以 `thinking.budget_tokens` 限制；新模型用自适应思考，在 effort 设置下自行决定推理量。Opus 5.5 无法关闭，Sonnet 5.5 最低为 `between_tools`。Fable 5.1、Opus 5.5 和 Sonnet 5.5 的思考块绑定生成模型与对话，回退不能将它们重放到别的模型。思考 token 按输出收费。
+**Extended Thinking（扩展思考）** - Claude（3.7+）在响应前的内部推理。Haiku 4.5 等旧模型以 `thinking.budget_tokens` 限制；包括 Haiku 5.5 在内的新模型用自适应思考，在 effort 设置下自行决定推理量。Opus 5.5 无法关闭，Sonnet 5.5 最低为 `between_tools`。Fable 5.1、Opus 5.5、Sonnet 5.5 和 Haiku 5.5 的思考块绑定生成模型与对话，回退不能重放到别的模型（Haiku 5.5 会静默丢弃大模型产生的块）；2026 年 8 月 31 日或之后创建的账户若编辑思考块之前的内容会收到 400。思考 token 按输出收费。
 
 **EU AI Act（欧盟 AI 法案）** - 《Regulation (EU) 2024/1689》，首部全面 AI 法律，按风险分级（禁止、高风险、有限、最小）并附加独立的 GPAI 义务，最高可罚公司全球营业额 7%。禁令与 GPAI 义务已适用，第 50 条透明度义务自 2026 年 8 月 2 日适用，内容标记宽限期于 2026 年 12 月 2 日结束。Digital Omnibus（Regulation (EU) 2026/1744，2026 年 7 月 27 日生效）将高风险义务移至 2027 年 12 月 2 日（Annex III）和 2028 年 8 月 2 日（Annex I）。参见 [AI Governance and Compliance](13-reliability-and-safety/04-ai-governance-and-compliance.md)。
 
@@ -122,7 +128,7 @@
 
 **Few-Shot Prompting（少样本提示）** - 在提示中加入示例以引导模型行为。
 
-**Fine-Tuning（微调）** - 在任务特定数据上继续训练预训练模型以提升性能。平台可用性现已成为设计风险：OpenAI 正逐步关闭自助微调，即使活跃客户自 2027 年 1 月 6 日起也无法创建新任务。
+**Fine-Tuning（微调）** - 在任务特定数据上继续训练预训练模型以提升性能。平台可用性现已成为设计风险：OpenAI 正逐步关闭自助微调，即使活跃客户自 2027 年 1 月 6 日起也无法创建新任务。现有微调模型也将关闭：根据 2026 年 10 月 14 日通知，五个 `gpt-4o`、`gpt-4o-mini`、`gpt-4.1` 和 `gpt-4.1-mini` 快照及其微调模型将于 2027 年 1 月 14 日关闭（约三个月通知期），指定替代模型 `gpt-6-luna` 无法微调。保留训练数据与评估集，以便在可控基础模型上重建行为。
 
 **FinOps for AI（AI 的 FinOps）** - 测量、归因与优化 AI 开支的实践：每 token / 每请求 / 每任务成本、提示缓存、批量经济性、成本展示与分摊、单位经济学。参见 [FinOps and Token Economics](11-infrastructure-and-mlops/04-finops-and-token-economics.md)。
 
@@ -130,7 +136,7 @@
 
 **Framework Churn（框架更迭）** - AI 编排框架（如 LlamaIndex、LangChain）快速且破坏性的演进，几乎每年重排包结构并移除抽象，导致新环境下旧教程和课程失效。应对方法是锁定版本，并学习原语而非特定 API。参见 [Navigating Framework Churn](09-frameworks-and-tools/12-navigating-framework-churn.md)。
 
-**Frontier Safety Framework（前沿安全框架）** - 实验室公布的危险能力测试与对应护栏政策：Anthropic Responsible Scaling Policy（v3.4；ASL 部署保护、CB-1 和 CB-2 化学与生物判定、定期 Risk Reports）、OpenAI Preparedness Framework（High 与 Critical；GPT-6 Astra 是 OpenAI 首个网络安全评级 Critical 的模型）、Google DeepMind Frontier Safety Framework。对构建者的实际影响是：这些级别决定可访问模型、前置分类器与回退，以及安全或生命科学工作是否需验证访问计划。见[AI 治理与合规](13-reliability-and-safety/04-ai-governance-and-compliance.md#前沿实验室安全框架)。
+**Frontier Safety Framework（前沿安全框架）** - 实验室公布的危险能力测试与对应护栏政策：Anthropic Responsible Scaling Policy（v3.4；ASL 部署保护、CB-1 和 CB-2 化学与生物判定、定期 Risk Reports）、OpenAI Preparedness Framework（High 与 Critical；GPT-6 Astra 是 OpenAI 首个网络安全评级 Critical 的模型，GPT-6.1 Terra 系统卡将其网络安全评为 Critical、生物评为 High）、Google DeepMind Frontier Safety Framework（Gemini 4 Argon 模型卡称“无法排除”达到生物与网络安全关键能力级别）。这些级别决定可访问模型、前置分类器与回退，以及安全或生命科学工作是否需验证访问计划。见[AI 治理与合规](13-reliability-and-safety/04-ai-governance-and-compliance.md#前沿实验室安全框架)。
 
 **Full-Duplex Voice Agent（全双工语音智能体）** - 语音模型同时听说，处理轮次、附和和打断，同时将推理和工具调用委派给独立文本模型（说话者与思考者分离）的架构。OpenAI `gpt-live-1`（2026 年 9 月 10 日 API GA）每会话分钟 $0.05，另加后端模型 token；后端可为 OpenAI 模型或自有智能体。它是级联和语音到语音流水线之外的第三选项。见[实时语音智能体](18-voice-and-audio-agents/01-realtime-voice-agents.md)。
 
@@ -208,9 +214,9 @@
 
 **LoRA（低秩适配）** - 参数高效微调方法，训练小规模适配矩阵而非完整模型权重。
 
-**LLM-as-Judge（LLM 作为裁判）** - 使用 LLM 评估另一个 LLM 的输出。返回带概率的判定而非文本的类型化决策模型（TypeSafe Jev，早期访问，2026 年 9 月加入 LangSmith 与 Langfuse）对是非和评分判断更便宜，代价是没有书面理由。
+**LLM-as-Judge（LLM 作为裁判）** - 使用 LLM 评估另一个 LLM 的输出。返回带概率判定而非文本的类型化决策模型对是非和评分判断更便宜，代价是没有书面理由；其错误与 LLM 裁判相关，因此仍需人工标注样本审计两者。见 **Decision Model（决策模型）**。
 
-**Long-Context Cliff（长上下文价格跃升）** - 提示词超过阈值后，整个请求而非仅超出 token 进入更高费率的定价规则。OpenAI 输入超过 272K 适用（GPT-6 Astra 每 1M 从 $10/$50 变为 $20/$75），xAI 达到 200K 时每个 token 翻倍，Gemini 3.1 Pro Preview 超过 200K 上调；Anthropic Claude 4.6 及之后在 1M 内保持统一费率。路由超长提示前应建模跃升。见[定价与成本](02-model-landscape/03-pricing-and-costs.md)。
+**Long-Context Cliff（长上下文价格跃升）** - 提示词超过阈值后，整个请求而非仅超出 token 进入更高费率。OpenAI 输入超过 272K 适用（GPT-6 Astra 每 1M 从 $10/$50 变为 $20/$75，GPT-6.1 Terra 从 $1/$5 变为 $2/$7.50），xAI 达到 200K 时每个 token 翻倍，Gemini 3.1 Pro Preview 超过 200K 上调。Anthropic 不再是供应商层面的例外：Claude Haiku 5.5（2026 年 10 月 7 日）提示词超过 100K token（含缓存读写）后整个请求按 5 倍计费（$0.50/$2.50，而非 $0.10/$0.50）；Opus 5.5、Sonnet 5.5 和其他 Claude 4.6 及之后模型仍在 1M 内保持统一费率。路由长提示前逐模型建模跃升，并将压缩和检索预算设在阈值以下。见[定价与成本](02-model-landscape/03-pricing-and-costs.md)。
 
 **Loop Engineering（循环工程）** - 设计并持续改进包裹智能体的控制循环（触发器、内层 reason-act-observe 循环、验证循环、事件驱动调用、基于评测的改进循环）的学科，而非每一轮都手工提示模型。参见 [Loop Engineering](07-agentic-systems/12-loop-engineering.md)。
 
@@ -221,8 +227,8 @@
 
 ## M
 
-**Managed Agents（托管智能体）** - 提供方托管运行时提供执行框架（持久化、记忆、技能加载、沙箱生命周期、持久执行、身份范围），你只需提供智能体逻辑。截至 2026 年 10 月包括：Claude Managed Agents（会话预算、通过 `ant apply` 和已提交锁文件实现智能体即代码）、OpenAI Agents API（Codex 框架托管服务，2026 年 9 月 10 日公共 beta，发布时仅美国驻留、无零数据保留）、基于它的 Amazon Bedrock Managed Agents（2026 年 9 月 29 日起预览）。租用循环不会为自有副作用工具提供恰好一次语义。见[持久执行](07-agentic-systems/11-durable-execution.md#托管式智能体运行时-租用持久循环)。
-**MCP（Model Context Protocol，模型上下文协议）** - 连接模型与工具、数据和提示的开放协议。Anthropic 于 2024 年 11 月推出；2025 年 12 月治理转移至 Linux Foundation Agentic AI Foundation；Anthropic、OpenAI、Google、Microsoft、AWS 均支持。Streamable HTTP 传输与 OAuth 2.1 授权在 2025-03-26 修订中引入（没有名为“MCP 2.0”的规范版本；2.x 是自 2026 年 7 月起 SDK 的版本号）。当前修订 2026-07-28 移除协议级会话，使核心无状态。见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md#mcp-2026-07-28-无状态化改造)。
+**Managed Agents（托管智能体）** - 提供方托管运行时提供执行框架（持久化、记忆、技能加载、沙箱生命周期、持久执行、身份范围），你只需提供智能体逻辑。截至 2026 年 11 月，三种主要选择均未正式发布：Claude Managed Agents（beta；会话预算、通过 `ant apply` 和已提交锁文件实现智能体即代码，自 10 月 22 日也可在 Google Cloud 上的 Claude Models 使用）、OpenAI Agents API（Codex 框架托管服务，2026 年 9 月 10 日公开测试，发布时仅美国驻留、无零数据保留；10 月 9 日起托管沙箱仅在活动轮次计费）和基于它的 Amazon Bedrock Managed Agents（2026 年 9 月 29 日起公开预览）。租用循环不会为自有副作用工具提供恰好一次语义。见[持久执行](07-agentic-systems/11-durable-execution.md#托管式智能体运行时-租用持久循环)。
+**MCP（Model Context Protocol，模型上下文协议）** - 连接模型与工具、数据和提示的开放协议。Anthropic 于 2024 年 11 月推出；2025 年 12 月治理转移至 Linux Foundation Agentic AI Foundation；Anthropic、OpenAI、Google、Microsoft、AWS 均支持。Streamable HTTP 与 OAuth 2.1 在 2025-03-26 修订中引入（没有名为“MCP 2.0”的规范版本；2.x 是自 2026 年 7 月起 SDK 的版本号）。当前修订 2026-07-28 移除协议级会话，使核心无状态。下一版从 2026 年 12 月调整为计划于 2027 年 3 月 30 日发布（SEP-3398），此后通常在 3 月和 9 月最后一个星期二发布。每项扩展现处于 Experimental、Beta、Stable 三个成熟度阶段之一（SEP-3392）；后续可由标准轨道 SEP 将 Beta 或 Stable 扩展纳入核心规范。MCP Apps 与企业授权为 Stable；Tasks、Skills 和 Server Cards 为 Beta，仍可能发生破坏性变更。见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md#mcp-2026-07-28-无状态化改造)。
 
 **Memory Poisoning（记忆中毒）** - 攻击向智能体长期记忆中植入恶意或虚假条目，使其在未来会话中重新出现并影响判断。已纳入 OWASP 2026 Agentic Top 10 的 ASI06。防御倾向于在写入时做来源保护，而非仅在读取时清洗。参见 [Research Radar](RESEARCH-RADAR.md)。
 
@@ -252,7 +258,7 @@
 
 **OpenHands（OpenHands）** - 开源自主软件工程智能体（前称 OpenDevin）。支持多个后端 LLM，并在 Docker 沙箱中运行。
 
-**OSWorld** - 在虚拟机中跨桌面应用完成真实任务的计算机使用智能体基准。OSWorld-Verified 已饱和；OSWorld 2.0（XLANG）以二元分数（完整完成任务）为主，旁列部分得分，两者差异巨大：XLANG 榜单（2026 年 9 月 17 日）Claude Opus 5 在 max 强度、v2.1 任务集二元得分 44.33%，部分得分 77.67%。供应商发布文章常引用部分分数（Anthropic 报告 Opus 5.5 部分得分 81.8%），因此应检查读的是哪种数字。见 **Computer-Use（计算机控制）**及[基准与排行榜](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md#智能体与工具使用)。
+**OSWorld** - 在虚拟机中跨桌面应用完成真实任务的计算机使用智能体基准。OSWorld-Verified 已饱和；OSWorld 2.0（XLANG）以二元分数（完整完成任务）为主，旁列部分得分。XLANG 榜单（2026 年 10 月 15 日更新）中，Claude Opus 5 在 max 强度、v2.1 任务集以二元 44.33%、部分 77.67% 继续领先端到端模型；Simular 的 Sai 代理框架搭配 Opus 5 的部分分数最高（79.38%），二元分数较低（41.67%）。榜单尚无 Claude 5.5 一代、GPT-6 或 Gemini 4 的条目。供应商常引用自有子集的部分分数（Anthropic 报告 Opus 5.5 为 81.8%、Haiku 5.5 在离线子集为 72.4%），应核对指标与任务集。见 **Computer-Use（计算机控制）**及[基准与排行榜](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md#智能体与工具使用)。
 
 ---
 
@@ -262,7 +268,7 @@
 
 **pass^k** - 智能体可靠性指标：任务在所有 k 次独立尝试中都被解决的比例（对比 pass@k，即至少一次解决）。它揭示了可靠性断崖：一个 pass@1 约 60% 的智能体在 pass^8 时可降至约 25%。这是生产环境更相关的一致性信号。
 
-**Prompt Caching（提示缓存）** - 为重复提示前缀复用提供方 KV 缓存。写入有溢价（Anthropic 5 分钟缓存为输入的 1.25 倍、1 小时为 2 倍；OpenAI GPT-5.6 及之后为 1.25 倍，TTL 固定 30 分钟），读取为小比例：多数模型 0.1 倍，Claude Opus 5.5 和 GPT-6.1 Sol 为 0.05 倍，Claude Fable 5.1 为 0.025 倍。一次复用即可覆盖 5 分钟写入溢价。智能体循环受益最大，因为绝大部分是输入：Anthropic 报告 Claude Code 输入输出 token 比为 324:1。见[定价与成本](02-model-landscape/03-pricing-and-costs.md)。
+**Prompt Caching（提示缓存）** - 为重复提示前缀复用提供方 KV 缓存。写入有溢价（Anthropic 5 分钟为输入的 1.25 倍、1 小时为 2 倍；OpenAI GPT-5.6 及之后 30 分钟为 1.25 倍，2026 年 10 月 20 日起 12 小时为 2.5 倍），读取为小比例：多数模型包括 Claude Haiku 5.5 为 0.1 倍；Claude Opus 5.5、Claude Sonnet 5.5（2026 年 10 月 7 日从 0.1 倍下调）、GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05 倍；Claude Fable 5.1 为 0.025 倍。Gemini 4 Argon 仅支持隐式缓存。一次复用可覆盖 1.25 倍写入溢价，2 倍或 2.5 倍需要两次，应按请求间隔选择 TTL。智能体循环受益最大，因为绝大部分是输入：Anthropic 报告 Claude Code 输入输出 token 比为 324:1。见[定价与成本](02-model-landscape/03-pricing-and-costs.md)。
 
 **Prompt Injection（提示注入）** - 恶意输入操控 LLM 行为的攻击。
 
@@ -310,7 +316,7 @@
 
 **Semantic Search（语义检索）** - 通过语义而非关键词查找文档，使用 embeddings。
 
-**Service Tier（服务层级）** - 同一模型按不同延迟或优先级以不同价格销售。能等待时 Batch、Flex 为 0.5 倍；OpenAI Fast（2026 年 7 月 30 日由 Priority 更名）为 2 倍，Ultrafast 为 6 倍（GPT-6 Astra GA、GPT-5.6 Sol 预览）；Gemini Priority 约 1.8 倍、Bedrock Priority 1.75 倍；Anthropic 近期 Opus 快速模式为 2 倍（仅 Claude API 研究预览），不再销售 Priority Tier 承诺。层级对整张账单施加倍率，因此按路由选择并在每个请求记录。见[定价与成本](02-model-landscape/03-pricing-and-costs.md)。
+**Service Tier（服务层级）** - 同一模型按不同延迟或优先级以不同价格销售。能等待时 Batch、Flex 为 0.5 倍；OpenAI Fast（2026 年 7 月 30 日由 Priority 更名）为 2 倍，Ultrafast 为 6 倍（GPT-6 Astra GA，自 2026 年 10 月 8 日起 GPT-6.1 Sol 对所有 API 用户 GA，$12/$60）；Gemini Priority 约 1.8 倍、Bedrock Priority 1.75 倍；Anthropic Opus 5.5 快速模式为 2 倍（$8/$40，自 2026 年 10 月 15 日结束研究预览，支持 Claude API、Google Cloud 的 Claude Models 及 Foundry 的 Azure 托管部署），Opus 4.8 快速模式将于 2026 年 11 月 30 日移除，Priority Tier 承诺不再销售。层级对整张账单施加倍率，因此按路由选择并在每个请求记录。见[定价与成本](02-model-landscape/03-pricing-and-costs.md)。
 
 **Speculative Decoding（推测解码）** - 低成本草稿器提出多个 token，目标模型一次前向传播验证，降低延迟而不改变目标输出分布。2026 年草稿器包括 EAGLE-3 头、原生多 token 预测（MTP）头、DFlash 块扩散草稿器，以及 DeepSeek 打包进检查点的 DSpark 模块；vLLM 文档不再列出 Medusa。批大小增大时收益缩小，因此按生产并发测量。见[推测解码](04-inference-optimization/03-speculative-decoding.md)。
 
@@ -318,9 +324,13 @@
 
 **State-Handle Hijacking（状态句柄劫持）** - MCP `2026-07-28` 规范中命名的一类攻击。协议级会话移除后，服务器会生成显式状态句柄，并将其作为普通工具参数返回；获得或猜出句柄的攻击者可以读取或修改其他用户的状态。缓解措施：绝不能把句柄当作身份验证；使用非确定性句柄；并在服务器端将句柄绑定到已认证的主体。参见[工具使用与 MCP](07-agentic-systems/03-tool-use-and-mcp.md)。
 
-**Structured Outputs（结构化输出）** - 提供方通过约束解码使输出符合指定 JSON Schema 的功能；OpenAI、Anthropic、Google 均原生提供。比旧 JSON 模式严格。现是最新 Claude 模型可靠抽取路径，Fable 5.1、Opus 5.5、Sonnet 5.5 强制工具使用（`tool_choice` 为 `any` 或 `tool`）返回 400。
+**Structured Outputs（结构化输出）** - 提供方通过约束解码使输出符合指定 JSON Schema 的功能；OpenAI、Anthropic、Google 均原生提供。比旧 JSON 模式严格。现是 Opus 5.5、Sonnet 5.5 和 Fable/Mythos 5.1 的可靠抽取路径：这些模型强制工具使用（`tool_choice` 为 `any` 或 `tool`）返回 400；Haiku 5.5 接受强制工具调用，但该轮跳过思考。
+
+**Super Intelligence（SI，超级智能）** - 美国联邦机构按第 14434 号行政命令《开启超级智能时代》（2026 年 9 月 29 日签署、10 月 2 日发布），在法律允许的最大范围内于非法律文件中用以替代“AI”的术语。定义沿用现有人工智能法定定义（15 U.S.C. 9401(3)），因此联邦指南、采购文本或客户问卷中的 SI 沿用 AI 的含义，并非新能力门槛；既有法规与合同保留原措辞。NIST 的 AI 标准中心现称 CAISSI，其与 NSA、CISA 于 2026 年 10 月 16 日发布的《超级智能训练与评估中的事件准备与响应关键实践》是值得智能体工作参考的自愿性指南：将事件范围限定为重大非指示行为，将提示注入或后门模型造成的行为视为受指示行为并按普通网络事件处理；建议将监控和日志置于智能体不可触及处、采用不同模型家族的监控器、使用防篡改日志并在重启前验证隔离。见 **CAISSI** 和[AI 治理与合规](13-reliability-and-safety/04-ai-governance-and-compliance.md)。
 
 **SWE-bench Verified** - 经人工验证的 SWE-bench 500 问题子集，衡量真实 GitHub 问题解决能力，是 2024-2026 年典型编码基准。现已饱和且部分污染。后继 SWE-Bench Pro 也饱和：Scale v2（2026 年 9 月）上，Opus 5 在 642-task 公开集为 99.4%，因此应引用 272-task 私有集（Opus 5：81.6%）。信任分数前先读测试框架。见[基准与排行榜](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md)。
+
+**System One Model** - 供应商和研究论文对决策模型的称呼：对固定问题返回带概率的类型化值，而非文本推理。见 **Decision Model（决策模型）**。
 
 **System Prompt（系统提示）** - 为 LLM 对话设置上下文和行为的指令。
 
@@ -328,9 +338,9 @@
 
 ## T
 
-**Temperature（温度）** - 控制 LLM 输出随机性的参数。越低 = 越确定。推理模型越来越不提供此参数：GPT-6 Astra 不接受定制 temperature 或 `top_p`，Claude Sonnet 5.5 对非默认值返回 400，Anthropic Python SDK 1.0 从 Messages 签名中移除了采样参数。应通过结构化输出、固定强度和评估获得一致性，而非 temperature 0。
+**Temperature（温度）** - 控制 LLM 输出随机性的参数。越低 = 越确定。推理模型越来越不提供此参数：GPT-6 Astra 不接受定制 temperature 或 `top_p`；Anthropic API 版本 `2026-10-21` 对所有 Claude 模型的任何 `temperature`、`top_p` 或 `top_k` 均返回 400，包括默认值。新版 Anthropic SDK 主版本（Python 2.0.0、TypeScript 1.0.0、Go 2.0.0）默认发送该版本，因此 SDK 升级可能使此前接受采样的模型代码失效。应通过结构化输出、固定强度和评估获得一致性，而非 temperature 0。
 
-**Terminal-Bench** - 智能体在真实终端完成困难多步任务的基准，现为智能体式编码主要比较依据。大版本间分数不可迁移，因此 3.0 数字不能说明 4.0。tbench.ai 4.0 榜单（2026 年 9 月 21 日）GPT-6 Astra 在 max 强度以 58.18% 领先，Claude Fable 5.1 同为 max 得 57.88%；次日发布的 Claude Opus 5.5 供应商报告 xhigh 得 66.4%。始终注明版本、强度和运行方。见 **Harness (Scaffold) Variance**及[基准与排行榜](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md#编码)。
+**Terminal-Bench** - 智能体在真实终端完成困难多步任务的基准，现为智能体式编码主要比较依据。大版本间分数不可迁移，因此 3.0 数字不能说明 4.0。tbench.ai 4.0 榜单（2026 年 10 月 6 日新增条目）Claude Opus 5.5 以 64.85% 领先，Sonnet 5.5 以 61.82% 居次，均为 max 强度；GPT-6 Astra 与 GPT-6.1 Sol 同为 58.18%。Anthropic 自测报告 Opus 5.5 为 66.4%、Sonnet 5.5 为 70.6%（xhigh，供应商自报），说明相同模型在供应商运行框架中得分会不同。始终注明版本、强度和运行方。见 **Harness (Scaffold) Variance**及[基准与排行榜](14-evaluation-and-observability/03-benchmarks-and-leaderboards.md#编码)。
 
 **Test-Time Compute (Inference-Time Scaling)（测试时计算/推理时扩展）** - 在推理时投入更多计算，同时保持权重**冻结**：长 chain-of-thought、best-of-N、自洽性、搜索。到 2026 年在生产中已无处不在，但在某个点之后收益会递减（有时甚至为负）。与 Test-Time Training 相对。
 
@@ -352,7 +362,7 @@
 
 ## W
 
-**Windsurf** - 紧密集成智能体能力（“Flows”）的 AI 原生 IDE，最初由 Codeium 构建，自 2025 年 7 月起归 Devin 开发商 Cognition 所有。Cursor 的替代品。
+**Windsurf** - Cognition 的 AI 原生 IDE 的旧名，v3.0.12 于 2026 年 6 月 2 日更名为 Devin Desktop。见 **Devin Desktop**。
 
 ---
 

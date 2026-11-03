@@ -222,7 +222,7 @@ flowchart TD
 class InlineCompletion:
     """
     Sub-200ms FIM completions from a small self-hosted model inside the
-    customer VPC. Served by vLLM (pin >= 0.30.0) with speculative decoding
+    customer VPC. Served by vLLM (pin >= 0.32.0) with speculative decoding
     set at server start, e.g.
     vllm serve <checkpoint> --speculative-config '{"method": "eagle3", ...}'
     """
@@ -262,7 +262,7 @@ class AgenticGeneration:
 ```
 
 > [!TIP]
-> **生产选择（2026 年 10 月）。** Claude Sonnet 5.5（$2 / $10）是 IDE 内代理式工作的默认选择。Anthropic 报告 Terminal-Bench 4.0 上 Sonnet 5.5 为 70.6%，Opus 5.5（xhigh effort）为 66.4%；两者均为供应商报告数据，也都未登上 tbench.ai 排行榜。该榜单 2026 年 9 月 21 日更新时最高为 58.18%（GPT-6 Astra，max effort）。2025 年的“切换思考模式”做法已不适用：Sonnet 5.5 上 `thinking: {type: "disabled"}` 会返回 400，因此要调整的是 effort，而 `between_tools` 是最低思考设置。应按任务而非按 token 评估性价比：DeepSWE v1.1 上 GPT-6 Astra（xhigh）、Gemini 3.8 Flash（high）和 Claude Opus 5（max）的 pass@1 均为 74%，每任务成本分别为 $4.43、$2.36 和 $11.84。
+> **生产选择（2026 年 11 月）。** Claude Sonnet 5.5（$2 / $10）是 IDE 内代理式工作的默认选择。tbench.ai 的 Terminal-Bench 4.0 排行榜（2026 年 10 月 6 日新增条目）上，Opus 5.5 以 max effort 得分 64.85%，Sonnet 5.5 为 61.82%，两者均高于 GPT-6 Astra 与 GPT-6.1 Sol 的并列 58.18%。Anthropic 自有测试报告 Sonnet 5.5 为 70.6%、Opus 5.5（xhigh effort）为 66.4%（供应商报告），顺序相反，因此要用自己的代码仓库分别测试。2025 年的“切换思考模式”做法已不适用：Sonnet 5.5 上 `thinking: {type: "disabled"}` 会返回 400，因此要调整的是 effort，而 `between_tools` 是最低思考设置。应按任务而非按 token 评估性价比：DeepSWE v1.1 上 GPT-6 Astra（xhigh）、Gemini 3.8 Flash（high）和 Claude Opus 5（max）的 pass@1 均为 74%，每任务成本分别为 $4.43、$2.36 和 $11.84。
 
 ### 模型供应商策略
 
@@ -480,16 +480,16 @@ class CompletionCache:
 | 安全性（0 高严重级别） | 100% | 99.8% |
 | 接受率 | > 30% | 34% |
 
-### 成本分析（2026 年 10 月）
+### 成本分析（2026 年 11 月）
 
 | 请求类型 | 假设 | 每 100 万次请求成本 | 备注 |
 |--------------|------------|----------------------|-------|
-| **行内补全，自托管 8B 模型** | 约 2K 输入 / 30 输出；每张 H100 约 15 次补全/秒，满足 200ms SLO | 约 $50 | H100 每 GPU 小时 $2.77（Silicon Data 指数，2026 年 10 月 1 日）。须实测自身吞吐量；按键间的前缀缓存可提高吞吐量 |
+| **行内补全，自托管 8B 模型** | 约 2K 输入 / 30 输出；每张 H100 约 15 次补全/秒，满足 200ms SLO | 约 $55 | H100 每 GPU 小时 $2.93（Silicon Data 指数，2026 年 11 月 1 日）。须实测自身吞吐量；按键间的前缀缓存可提高吞吐量 |
 | **通过 API 行内补全（GPT-6 Luna）** | 相同 token 量，每 100 万 token 为 $0.10 / $0.50 | 约 $215 | 自托管池饱和时的溢出路径；不适用于要求代码留在 VPC 的租户 |
 | **多行生成（Claude Sonnet 5.5）** | 8K 输入 / 500 输出，预先关闭思考（`between_tools`）以满足 3 秒预算 | 约 $21,000 | 每请求 $0.021；若思考约 1K token，成本增加约 $0.01，延迟增加数秒 |
-| **代理式重构（Claude Sonnet 5.5）** | 约 750K 输入，90% 缓存命中；约 6K 输出 | 约 $390,000 | 每任务 $0.39；推导见[自主编程代理成本拆解](07-autonomous-coding-agent.md#成本拆解-cost-breakdown) |
+| **代理式重构（Claude Sonnet 5.5）** | 约 750K 输入，90% 缓存命中；约 6K 输出 | 约 $330,000 | 每任务 $0.33；推导见[自主编程代理成本拆解](07-autonomous-coding-agent.md#成本拆解-cost-breakdown) |
 
-*混合成本（98% 补全、2% 代理式重构）：每 100 万次请求约 $7,850，其中超过 99% 来自代理式任务。补全服务集群的成本几乎可以忽略；代理的提示缓存命中率才决定预算。命中率降至 50% 时，同样的重构任务约需 $1.08，接近三倍。*
+*混合成本（98% 补全、2% 代理式重构）：每 100 万次请求约 $6,650，其中超过 99% 来自代理式任务。补全服务集群的成本几乎可以忽略；代理的提示缓存命中率才决定预算。命中率降至 50% 时，同样的重构任务约需 $1.05，超过三倍。*
 
 ---
 

@@ -56,7 +56,7 @@ class RAGWorkflow(Workflow):
 
 ### 战略信号：公司押注文档解析
 
-2026 年 9 月 11 日，CEO Jerry Liu 在 `llama_index` README 中新增说明（PR #23020），指出公司的主要关注点已转向 LlamaParse、LiteParse 以及 ParseBench、ExtractBench 基准，开源框架仍作为开放工具包提供。发布节奏与此一致：`llama-index` 0.14.22（5 月 14 日）、0.14.23（6 月 24 日）、0.14.24（8 月 19 日）和 0.14.25（2026 年 9 月 21 日，主要处理跨集成包的安全警报依赖修复），而 `llama-index-workflows` 仍在快速更新（2026 年 9 月 25 日发布 2.25.0）。8、9 月的博客内容几乎都围绕抽取：ExtractBench（8 月 11 日）、测试版 Turbo 抽取层（9 月 3 日）、LiteParse 更新（9 月 22 日）和 Extract v2.5（10 月 1 日）。
+2026 年 9 月 11 日，CEO Jerry Liu 在 `llama_index` README 中新增说明（PR #23020），指出公司的主要关注点已转向 LlamaParse、LiteParse 以及 ParseBench、ExtractBench 基准，开源框架仍作为开放工具包提供。发布节奏与此一致：`llama-index` 0.14.22（5 月 14 日）、0.14.23（6 月 24 日）、0.14.24（8 月 19 日）和 0.14.25（2026 年 9 月 21 日，主要处理跨集成包的安全警报依赖修复），而 `llama-index-workflows` 仍在快速更新（2.26.1 于 2026 年 10 月 21 日发布）；核心包 10 月没有发布新版本。8、9 月的博客内容几乎都围绕抽取：ExtractBench（8 月 11 日）、测试版 Turbo 抽取层（9 月 3 日）、LiteParse 更新（9 月 22 日）和 Extract v2.5（10 月 1 日）。
 
 对设计的含义是：在 LlamaIndex 最擅长的地方使用它（摄入、解析、检索原语），并把它置于自有检索接口之后。对于预期运行多年的系统，不要把它作为通用 agent 运行时；开源发布节奏变慢，意味着所依赖的集成获得修复的频率也会降低。
 
@@ -72,7 +72,7 @@ LlamaIndex 将智能体视为 **高阶检索器（high-level retrievers）**。
 
 ## LlamaIndex Workflows：事件驱动应用框架
 
-2024 年的说法是“Workflows 就是我们的 LangGraph。”如今的说法不同了：Workflows 是一个适用于任何 AI 应用的通用事件驱动框架，RAG 只是其中一种用途。Workflows 现在位于独立的 `llama-index-workflows` 包中，`llama-index-core` 依赖该包，并以 `llama_index.core.workflow` 重新导出；文档将它作为主要应用入口，索引与检索器则是在步骤内部调用的基础构件（[LlamaIndex workflows docs](https://developers.llamaindex.ai/python/framework/understanding/workflows/)）。一个值得澄清的命名细节是：**Workflows** 包在 2025 年年中到达 1.0 版本，如今作为独立包已进入 2.x 版本线（`llama-index-workflows` 2.25.0，2026 年 9 月 25 日）；核心 `llama-index` 框架本身仍停留在 0.x 版本线（0.14.25，2026 年 9 月 21 日）。关于这类版本变化如何破坏教程及应对方法，可参见[应对框架变化](12-navigating-framework-churn.md)。
+2024 年的说法是“Workflows 就是我们的 LangGraph。”如今的说法不同了：Workflows 是一个适用于任何 AI 应用的通用事件驱动框架，RAG 只是其中一种用途。Workflows 现在位于独立的 `llama-index-workflows` 包中，`llama-index-core` 依赖该包，并以 `llama_index.core.workflow` 重新导出；文档将它作为主要应用入口，索引与检索器则是在步骤内部调用的基础构件（[LlamaIndex workflows docs](https://developers.llamaindex.ai/python/framework/understanding/workflows/)）。一个值得澄清的命名细节是：**Workflows** 包在 2025 年年中到达 1.0 版本，如今作为独立包已进入 2.x 版本线（`llama-index-workflows` 2.26.1，2026 年 10 月 21 日）；核心 `llama-index` 框架本身仍停留在 0.x 版本线（0.14.25，2026 年 9 月 21 日，截至 11 月上旬仍是最新版本）。关于这类版本变化如何破坏教程及应对方法，可参见[应对框架变化](12-navigating-framework-churn.md)。
 
 ### 架构上发生了什么变化
 

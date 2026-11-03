@@ -181,12 +181,12 @@ Layer 0:   ********************  (all vectors)
 
 ### 低位和基于旋转的量化
 
-2026 年 5 至 9 月，多种引擎推出或扩展了 1 至 8 bit 的向量存储，多数为可选或预览功能，而非默认设置。新方法是**先旋转，再量化**。嵌入向量各维度的方差极不均匀，直接按维度做标量量化会在变化较小的维度浪费 bit，并截断变化较大的维度。先乘以随机旋转矩阵或 Hadamard 旋转矩阵，将能量均匀分散到各维度，再用统一的 4 bit 或 1 bit 网格量化，就能减少信息损失。
+2026 年 5 至 10 月，多种引擎推出或扩展了 1 至 8 bit 的向量存储，多数为可选或预览功能，而非默认设置。新方法是**先旋转，再量化**。嵌入向量各维度的方差极不均匀，直接按维度做标量量化会在变化较小的维度浪费 bit，并截断变化较大的维度。先乘以随机旋转矩阵或 Hadamard 旋转矩阵，将能量均匀分散到各维度，再用统一的 4 bit 或 1 bit 网格量化，就能减少信息损失。
 
 | 引擎 | 功能 | 状态 | 存储占用 |
 |---|---|---|---|
-| Qdrant | 带 Hadamard 旋转的 TurboQuant（1.18，2026 年 5 月）；Turbo4 存储类型只保留 4 bit 形式（1.19，2026 年 8 月） | 可选 | 从 1.18 中每坐标 36 bit（float32 原始值加 4 bit 副本）降至 Turbo4 的 4 bit，缩小 9 倍 |
-| Weaviate | 4-bit Rotational Quantization（1.39，2026 年 8 月），在原有 8 bit 和 1 bit RQ 基础上新增 | 预览版，仅限 HNSW | 1,536 维向量从 6,144 字节降至 784 字节（7.84x） |
+| Qdrant | 带 Hadamard 旋转的 TurboQuant（1.18，2026 年 5 月）；Turbo4 存储类型只保留 4 bit 形式（1.19，2026 年 8 月）；`turbo8` 和 `turbo16` 向量数据类型（1.20，2026 年 10 月） | 可选 | 从 1.18 中每坐标 36 bit（float32 原始值加 4 bit 副本）降至 Turbo4 的 4 bit，缩小 9 倍 |
+| Weaviate | 4-bit Rotational Quantization（1.39，2026 年 8 月），在原有 8 bit 和 1 bit RQ 基础上新增；1.40（2026 年 10 月）增加“RQ4 居中量化” | 1.39 中为预览版，仅限 HNSW；1.40 发布说明未标注状态，依赖前请确认 | 1,536 维向量从 6,144 字节降至 784 字节（7.84x） |
 | Elasticsearch | DiskBBQ（`bbq_disk`，自 9.2 正式发布）在 9.5（2026 年 8 月）增加对称的 1 bit OSQ 评分器和合并时校准 | 正式发布；从 9.4 起，在许可证涵盖该功能（Enterprise）时成为浮点向量的默认索引类型 | 每维约 1 bit，另加校正项 |
 | turbopuffer | 普通 `i8` 向量类型（2026 年 6 月），不旋转 | 已发布 | 对量化感知模型，存储和查询成本比 f32 低 75%（供应商数据） |
 
@@ -222,8 +222,8 @@ RAM 计算也因此改变：1 亿个 1,536 维向量以 float32 存储约需 614
 | 数据库 | 类型 | 最适合 | 定价模式 |
 |----------|------|----------|---------------|
 | **Pinecone** | 托管云端（标准版为无服务器）；BYOC 于 2026 年 9 月 23 日正式发布（数据平面运行在用户的 AWS、GCP 或 Azure 账户中） | 易于起步、可扩展、托管 SLA；BM25 全文搜索于 2026 年 9 月 9 日正式发布 | 存储费加读写单元费 |
-| **Qdrant** | 开源 / 云端（Rust，高性能） | 自托管可控、过滤检索能力强；供应商基准声称在 10M 个向量时 p99 约 12ms | 按 GB 计费（云端）或免费 |
-| **Weaviate** | 开源 / 云端 | 单次查询中原生混合检索（BM25 + 稠密向量 + 元数据）、MMR 多样性与 Boost API（1.39 正式发布）、多模态 | 按每维每小时计费 |
+| **Qdrant** | 开源 / 云端（Rust，高性能） | 自托管可控、过滤检索能力强；供应商基准声称在 10M 个向量时 p99 约 12ms；1.20（2026 年 10 月）新增全文索引 BM25 评分、`code` 分词器和逐元素嵌套 payload 索引 | 按 GB 计费（云端）或免费 |
+| **Weaviate** | 开源 / 云端 | 单次查询中原生混合检索（BM25 + 稠密向量 + 元数据）、MMR 多样性与 Boost API（1.39 正式发布）、多模态；1.40（2026 年 10 月）将命名空间作为许可功能正式发布，停止创建隐式旧向量索引（自动 schema 会创建名为 `default` 的向量），并将向量化器默认设为 none，因此依赖旧默认值的 schema 升级后会发生变化 | 按每维每小时计费 |
 | **Milvus** | 开源 / 云端（Zilliz） | 分布式扩展；3.0（2026 年 7 月）增加通过对象存储中的 Parquet、Iceberg、Lance 和 Vortex 访问的外部集合，以及在线列回填 | 免费（自托管）或 Zilliz Cloud |
 | **turbopuffer** | 托管服务，以对象存储为基础 | 以较低成本服务大量冷命名空间（按租户划分的索引）；原生嵌入于 2026 年 9 月 29 日正式发布 | 按用量计费 |
 | **Chroma** | 开源 | 原型开发、本地开发、嵌入式使用 | 免费 |
@@ -474,7 +474,9 @@ class VectorDBMaintenance:
 
 ### 安全补丁
 
-应像管理其他数据库一样，关注向量存储的 CVE 公告。pgvector 0.8.7（2026 年 10 月 1 日）修复了 CVE-2026-103484：IVFFlat 索引构建期间的缓冲区溢出，可让任何获准创建索引的数据库角色执行代码。2026 年更早的补丁还修复了并行 HNSW 构建溢出（0.8.2）与 HNSW 清理过程中可能发生的索引损坏（0.8.3）。对于托管 PostgreSQL，应确认提供商已提供 0.8.7；多租户 schema 中不要授予应用角色 `CREATE INDEX`。Milvus 3.0.1 也修复了通过外部代理端口的流式 gRPC 调用进行未认证访问的问题。
+应像管理其他数据库一样，关注向量存储的 CVE 公告。pgvector 0.8.7（2026 年 10 月 1 日）修复了 CVE-2026-103484：IVFFlat 索引构建期间的缓冲区溢出，可让任何获准创建索引的数据库角色执行代码。2026 年更早的补丁还修复了并行 HNSW 构建溢出（0.8.2）与 HNSW 清理过程中可能发生的索引损坏（0.8.3）。对于托管 PostgreSQL，应确认提供商已提供 0.8.7；多租户 schema 中不要授予应用角色 `CREATE INDEX`。
+
+Milvus 的最低安全版本为 **3.0.3**（2026 年 10 月 14 日）。它会拒绝 Search 和 HybridSearch 中格式错误的稀疏向量，避免查询节点堆越界写入；也会阻止 DescribeCollection 向无权访问的调用者泄露集合元数据（3.0.1 已修复外部代理端口上流式 gRPC 调用导致的未授权访问）。升级时还需安排其破坏性变更：指标端口上的旧 `/api/v1/*` 路由已移除（健康探针请改用 `/healthz` 或 `/livez`），binlog 导入现在需要集群级 `ImportBinlog` 权限。Qdrant 1.20 则更改了安全默认值：配置 API key 后，`service.enforce_internal_auth` 会默认启用，因此上线前请确认集群内部流量携带凭据。
 
 ### 监控
 
@@ -746,6 +748,7 @@ results = index.query(vector=query, namespace=tenant_id)
 - [Milvus 3.0.0 发布说明（2026 年 7 月）](https://github.com/milvus-io/milvus/releases/tag/v3.0.0)
 - [Qdrant 1.19 发布说明（2026 年 8 月）](https://qdrant.tech/blog/qdrant-1.19.x/)
 - [Weaviate 1.39 发布说明（2026 年 8 月）](https://weaviate.io/blog/weaviate-1-39-release)
+- [Qdrant 1.20.0 release notes (Oct 2026)](https://github.com/qdrant/qdrant/releases/tag/v1.20.0), [Weaviate 1.40.0 release notes (Oct 2026)](https://github.com/weaviate/weaviate/releases/tag/v1.40.0), and [Milvus 3.0.3 release notes (Oct 2026)](https://github.com/milvus-io/milvus/releases/tag/v3.0.3)
 - [Elasticsearch 发布说明](https://www.elastic.co/docs/release-notes/elasticsearch)
 - [turbopuffer. “RIP, vector database”（2026 年 9 月）](https://turbopuffer.com/blog/rip-vector-database)
 - [Qdrant-FineWeb-10B 基准（2026 年 9 月）](https://qdrant.tech/blog/qdrant-fineweb-10b-release/)

@@ -1,6 +1,6 @@
 # AI 系统设计面试题库
 
-一个按主题组织的 147 道 AI system design 面试题库（Q1-Q147，连续编号），包含参考答案、追问，以及优秀候选人表现出的信号，另附五个未编号的深度剖析场景。更新至 2026 年 9 月，并新增专门的语音 AI 章节。
+一个按主题组织的 155 道 AI system design 面试题库（Q1-Q155，连续编号），包含参考答案、追问，以及优秀候选人表现出的信号，另附五个未编号的深度剖析场景。更新至 2026 年 10 月，并新增专门的语音 AI 章节。
 
 > **练习提示：** 读完一道题后，先合上页面，计时大声作答，再阅读参考答案。若想完成包含实时追问和书面反馈的完整模拟面试，可在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 预约 Om 的辅导。
 
@@ -10,7 +10,7 @@
 
 ```mermaid
 mindmap
-  root((147 道问题))
+  root((155 道问题))
     RAG 架构
       流水线设计
       分块
@@ -74,6 +74,7 @@ mindmap
 - [进阶题目 - 2026 年 8 月](#进阶题目-2026-年-8-月)（Q123-Q128）
 - [进阶题目 - 2026 年 9 月](#高阶问题-2026年9月)（Q129-Q135）⭐ *NEW*
 - [语音 AI 问题](#语音-ai-问题)（Q136-Q147）⭐ *NEW*
+- [进阶问题 - 2026 年 10 月](#进阶问题-2026-年-10-月)（Q148-Q155）⭐ *NEW*
 
 ---
 
@@ -192,7 +193,7 @@ flowchart LR
    - 把关键信息放在上下文开头和结尾
    - 在 stuffing 上下文前使用 reranking 保证质量
    - 对长上下文考虑递归摘要
-   - 使用长上下文处理能力强的模型，并核查其长上下文计费方式：Claude Sonnet 5.5 和 Opus 5.5 在 1M 以内均按统一价格计费；GPT-6 系列可达 1.05M，但输入超过 272K 后整次请求都会按长上下文费率计费
+   - 使用长上下文处理能力强的模型，并核查计费方式：Claude Sonnet 5.5 和 Opus 5.5 在 1M 以内均按统一价格计费；Claude Haiku 5.5 的提示词超过 100K 后整次请求按 5 倍计费；GPT-6 系列可达 1.05M，但输入超过 272K 后整次请求都会按长上下文费率计费
 
 **示例答案：**
 
@@ -654,10 +655,10 @@ ReAct 很简单，而且通常效果不错，但对于复杂任务，我经常�
 |---------|--------|-----------|--------|
 | 并行调用 | 是 | 是 | 是 |
 | 流式输出 | 是 | 是 | 是 |
-| 工具选择控制 | auto/required/none | Fable 5.1、Mythos 5.1、Opus 5.5、Sonnet 5.5 使用 auto/none（any/tool 会返回 400；应使用严格工具或结构化输出）；旧模型使用 auto/any/tool | auto/any/none |
+| 工具选择控制 | auto/required/none | Opus 5.5、Sonnet 5.5 和 Fable 5.1 的 `any` / `tool` 返回 400（Haiku 5.5 接受，但当轮跳过思考）；使用严格工具或结构化输出 | auto/any/none |
 | 结构化输出 | 原生 JSON Schema | 原生 JSON Schema | 原生 JSON Schema |
 
-原生 JSON Schema 结构化输出取代了旧的“强制工具调用以获得 JSON”的技巧；该技巧在最新 Claude 模型上也已不可用。OpenAI 的 GPT-6 Astra 仅通过 Responses API 支持工具调用。
+原生 JSON Schema 结构化输出取代了旧的“强制工具调用以获得 JSON”的技巧；该技巧在 Claude Opus 5.5、Sonnet 5.5 和 Fable 5.1 上不可用（Haiku 5.5 接受强制工具调用，但会跳过思考）。OpenAI 的 GPT-6 Astra 仅通过 Responses API 支持工具调用。
 
 **工具设计最佳实践：**
 1. 清晰、面向动作的命名：用 `search_database`，不要用 `db_tool`
@@ -790,7 +791,7 @@ def safe_tool_call(func, *args, **kwargs):
 **生态与治理：**
 - 与 A2A 一同由 Agentic AI Foundation 治理
 - Tier 1 SDK：TypeScript、Python、C#、Go、Rust 和 Ruby（`pip install mcp` 安装的是 2.x 版本线）
-- 维护者在 2026 年 8 月 22 日的路线图中列出下一优先级：服务器发起事件和 Tasks、将 Streamable HTTP 作为唯一传输方式（包括本地服务器）、为无头智能体提供智能体身份（DPoP 和工作负载身份联合）、重新设计工具调用结果形态，以及面向大型工具目录的渐进式发现。下次修订尚未确定日期。
+- 维护者在 2026 年 8 月 22 日的路线图中列出下一优先级：服务器发起事件和 Tasks、将 Streamable HTTP 作为唯一传输方式（包括本地服务器）、为无头智能体提供智能体身份（DPoP 和工作负载身份联合）、重新设计工具调用结果形态，以及面向大型工具目录的渐进式发现。自 2026-07-28 修订版后尚无新版本发布：SEP-3398 于 10 月 14 日通过、10 月 27 日合并，将原定 2026 年 12 月的下一版本改为暂定 2027 年 3 月 30 日，并把后续发布安排在每年 3 月和 9 月的最后一个星期二。SEP-3392 增加扩展成熟度阶段：MCP Apps 和企业认证为 Stable；Tasks、Skills 和 Server Cards 为 Beta，仍可能发生破坏性变更。
 
 其中两项路线图内容很适合作为前瞻性设计题：拥有自身身份的无头智能体如何在不借用用户令牌的情况下访问 MCP 服务器；以及如何暴露数千个工具而不淹没上下文窗口。
 
@@ -895,20 +896,20 @@ result = app.invoke(input, config)
 - 决策框架
 - 成本意识
 
-**强回答（2026 年 10 月 1 日，需验证当前情况）：**
+**强回答（2026 年 11 月 2 日，需验证当前情况）：**
 
 | 因素 | Claude Sonnet 5.5 | GPT-6.1 Sol | Gemini 3.8 Flash |
 |--------|-------------------|-------------|------------------|
 | 发布日期 | 2026 年 9 月 28 日 | 2026 年 9 月 29 日 | 2026 年 9 月 2 日（GA） |
 | 上下文 / 最大输出 | 1M / 128K | 1.05M / 128K | 1,048,576 / 65,536 |
 | 每 1M token 价格（输入 / 输出） | $2 / $10 | 输入不超过 272K 时 $2 / $10 | 2026 年 12 月 31 日前优惠价 $0.75 / $3.75；2027 年 1 月 1 日起 $1.50 / $7.50 |
-| 缓存读取 | $0.20（0.1x）；5 分钟或 1 小时写入 | $0.10（0.05x）；写入 1.25x，固定 30 分钟 TTL | $0.075（2027 年 1 月 1 日起 $0.15），另加每 1M token 每小时 $0.50 的存储费（2027 年 1 月 1 日起 $1.00） |
+| 缓存读取 | $0.10（0.05x）；5 分钟或 1 小时写入 | $0.10（0.05x）；写入 1.25x（30 分钟 TTL）或 2.5x（12 小时 TTL） | $0.075（2027 年 1 月 1 日起 $0.15），另加每 1M token 每小时 $0.50 的存储费（2027 年 1 月 1 日起 $1.00） |
 | 推理控制 | 默认启用且不可关闭的自适应思考；API 默认 effort 为 `high`；最低设置为 `between_tools` | `low` 至 `max`；默认 `medium` | `thinking_level`：low / medium / high；默认 `medium` |
-| Artificial Analysis Index v4.3.2 | 56（max） | 52（max） | 41（high） |
+| Artificial Analysis Index v5.0 | 54（max） | 55（max） | 31（high） |
 | 计算机使用 | `computer_toolset_20260801`（Claude API GA，Bedrock 和 Foundry beta） | Responses API 支持 | Google 推荐的计算机使用模型 |
-| 迁移陷阱 | 强制 `tool_choice`、`thinking: disabled` 和非默认 temperature 会返回 400 | 输入超过 272K 后整次请求按 2 倍输入和 1.5 倍输出计费 | `thinking_budget` 被 `thinking_level` 取代；采样参数已弃用 |
+| 迁移陷阱 | 强制 `tool_choice` 和 `thinking: disabled` 会返回 400；API 版本 `2026-10-21`（新 SDK 主版本默认）还会让任意取值的 `temperature`、`top_p` 和 `top_k` 返回 400 | 输入超过 272K 后整次请求按 2 倍输入和 1.5 倍输出计费 | `thinking_budget` 被 `thinking_level` 取代；采样参数已弃用 |
 
-Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard fallback，且早期索引版本的分数无法与 v4.3.2 直接比较。
+Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard fallback；v4.x 分数与 v5.0 不可比较。v5.0 将指数重新加权为四类、每类 25%（Knowledge Work、Coding、Science、General），约 60% 数据来自私有或留出集。
 
 **选择框架：**
 
@@ -919,7 +920,7 @@ Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard 
 
 当满足以下情况时，选择 **GPT-6.1 Sol**：
 - 你的技术栈已运行在 Responses API、Codex、hosted shell 或 OpenAI 多智能体 beta 上
-- 提示保持在 272K 以下且会复用长前缀，0.05x 缓存读取（每 1M $0.10，仅为 Sonnet 5.5 的一半）可带来收益
+- 提示保持在 272K 以下且会在数小时内复用长前缀，12 小时缓存 TTL 可让 0.05x 缓存读取（每 1M $0.10，与 Sonnet 5.5 相同）在流量间隔中继续命中
 - 你希望在同一 API 中将 GPT-6 Astra 作为升级档
 
 当满足以下情况时，选择 **Gemini 3.8 Flash**：
@@ -931,13 +932,13 @@ Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard 
 
 “我的模型选择取决于具体需求。我的思路如下：
 
-**对于大多数生产负载**，我会在 Claude Sonnet 5.5 和 GPT-6.1 Sol 之间进行对比评测。两者标价均为 $2/$10，因此决策应基于我的评估、API 行为和缓存经济性，而不是标价。Sonnet 5.5 在 1M token 内统一计费；GPT-6.1 Sol 的缓存读取更便宜，但输入超过 272K 后整次请求按长上下文费率计费，因此提示大小会显著影响选择。
+**对于大多数生产负载**，我会从 Claude Sonnet 5.5 或 GPT-6.1 Sol（均为 $2/$10）开始，也会按实际上线的 effort 评估 GPT-6.1 Terra（$1/$5）。智能体式编码会测试 Anthropic 建议作为默认选择的 Opus 5.5（$4/$20）；只有评估证明需要能力上限的任务才路由至 Fable 5.1 或 GPT-6 Astra（$10/$50）。
 
-**对于能力上限**，Anthropic 现在建议客户从 Claude Opus 5.5（$4/$20）开始，仅在高难度推理和长时程智能体工作中使用 Claude Fable 5.1（$10/$50）。OpenAI 的能力上限档是 GPT-6 Astra（$10/$50）。Google 于 2026 年 9 月 30 日公布 Gemini 4 Argon，但它目前只向经过审查的网络防御者推出，尚未进入 Gemini API，因此我不会据此规划容量。我只将确实受能力上限约束的工作路由到这些档位。
+**对于能力上限**，Anthropic 现在建议客户从 Claude Opus 5.5（$4/$20）开始，仅在高难度推理和长时程智能体工作中使用 Claude Fable 5.1（$10/$50）。OpenAI 的能力上限档是 GPT-6 Astra（$10/$50）。Google 的 Gemini 4 Argon（`gemini-4-argon`）于 10 月 13 日 GA，首发价为 $2/$10，至 11 月 30 日；12 月 1 日起为 $4/$20，因此按涨价后的价格做预算。它仅支持隐式缓存，默认输出上限 65,536 token；1M 输出需使用长解码协议。我只将确实受能力上限约束的工作路由到这些档位。
 
-**对于成本敏感的高并发应用**，我会使用 GPT-6 Luna（$0.10/$0.50）、Gemini 3.8 Flash、DeepSeek V4.1-Flash（高峰 $0.30/$1.20，低谷减半）或 Claude Haiku 4.5。Haiku 4.5 仍是 Anthropic 唯一的 Haiku；其 Claude API 最早退役日期为 2026 年 10 月 15 日，尚未发布通知，而 Anthropic 至少提前 60 天通知，因此最早也应在约 12 月才会退役；但 Microsoft Foundry 会在 11 月 15 日退役它。Haiku 5.5 已宣布但尚未发布，所以我会准备并测试替代方案。我会构建级联系统，让简单查询走这些档位，只有难题才升级。
+**对于成本敏感的高并发应用**，我会使用 GPT-6 Luna 或 Claude Haiku 5.5（$0.10/$0.50，仅限短提示词）、或 Gemini 3.8 Flash，按每个任务的成本比较，而非只看 token 单价。Haiku 5.5 提示词超过 100K 后整单涨价 5 倍，但低于该阈值时它的独立分数高于 Luna（AA v5.0 max：36 对 28）。我会构建级联系统，让简单查询走这些档位，只有难题才升级。
 
-**对于最具挑战性的推理任务**，effort 是杠杆。最新 Claude 模型已无法关闭 thinking，且默认值不同（Opus 5.5 为 `medium`、Sonnet 5.5 在 API 中为 `high`、GPT-6.1 Sol 为 `medium`），因此我会为每条路由显式设置 effort，并在复杂度分类器之后才启用更高 effort。
+**对于最具挑战性的推理任务**，effort 是杠杆。最新 Claude 模型已无法关闭 thinking，且默认值不同（Opus 5.5 为 `medium`、Sonnet 5.5 在 API 中为 `high`、GPT-6.1 Sol 与 GPT-6.1 Terra 为 `medium`），因此我会为每条路由显式设置 effort，并在复杂度分类器之后才启用更高 effort。
 
 **我的实际做法：**
 
@@ -946,7 +947,7 @@ Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard 
 3. 建一个抽象层，这样我能轻松切换模型；排行榜每个季度都会重排。
 4. 一旦系统稳定，通过把更简单的请求路由到更便宜的模型来优化成本。
 
-我不会只依赖基准分数。一个在公开排行榜上排名更低的模型，可能在我的特定领域表现更好。而且我会每月重新核查定价：DeepSeek V4 的降价和 Fable 5 的发布，都在一个季度内重塑了路由经济学。”
+我不会只依赖基准分数。一个在公开排行榜上排名更低的模型，可能在我的特定领域表现更好。而且我会持续关注供应商发布日志：DeepSeek 路由变化、Google 将 3.7 Flash 别名切到 3.8 Flash，都会在模型 ID 不变时改变服务行为。”
 
 ---
 
@@ -1001,7 +1002,7 @@ Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard 
 - 用更高的延迟和成本换取难题上的准确率
 - 在最新前沿模型上，thinking 已不再是开关：Opus 5.5 始终启用自适应思考，Sonnet 5.5 会拒绝 `thinking: disabled`（其最低设置为 `between_tools`）。成本杠杆是 effort 级别，且默认值因模型而异。
 
-**性能画像（2026 年 10 月 1 日，需验证当前情况）：**
+**性能画像（2026 年 11 月 2 日，需验证当前情况）：**
 
 | 模型 | 思考控制 | 默认值 | 成本（输出） |
 |-------|------------------|---------|---------------|
@@ -1042,7 +1043,7 @@ Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard 
 - 任务包括：检索、分类、聚类、语义相似度
 - 排行榜地址：huggingface.co/spaces/mteb/leaderboard
 
-**当前顶级模型（2026 年 10 月 1 日，需在 RTEB 和 MTEB 排行榜上验证）：**
+**当前顶级模型（2026 年 11 月 2 日，需在 RTEB 和 MTEB 排行榜上验证）：**
 
 | 模型 | 表现 | 维度 | 最大 Tokens | 成本 |
 |-------|----------|------------|------------|------|
@@ -1052,6 +1053,7 @@ Artificial Analysis 对 Claude 模型评分时启用了 Anthropic 的 safeguard 
 | Cohere Embed 5 Pro / Fast | 多模态，Pro 和 Fast 共享一个嵌入空间 | 256-2048（Matryoshka） | 128K | 每 1M 文本 token $0.12 / $0.08 |
 | voyage-4-large / voyage-4 / voyage-4-lite | 检索能力强，共享一个嵌入空间 | 1024 | 32K | 每 1M $0.12 / $0.06 / $0.02 |
 | OpenAI text-embedding-3-large | 稳健基线 | 3072 | 8K | $0.13/1M |
+| EmbeddingGemma 2 | 开放权重（Apache 2.0）；文本、代码、图像、视频和音频位于同一空间 | 768（Matryoshka 可缩至 128） | 8K | 自托管 |
 | BGE-M3 | 开源多粒度 | 1024 | 8K | 自托管 |
 
 **实际评估方法：**
@@ -1258,7 +1260,7 @@ Hugging Face TGI 已进入维护模式，并建议新部署使用 vLLM 或 SGLan
 
 “我会分层优化 LLM 成本，先做收益最大的改动。
 
-**第 1 层：模型选择** 的影响最大，潜在节省可达 50-90%。问题是：满足我的质量要求的最便宜模型是什么？我会做评测来找出它。通常 GPT-6 Luna（每 1M $0.10/$0.50）、Claude Haiku 4.5 或 DeepSeek V4.1-Flash 能很好地处理 60-70% 的查询，而只有复杂查询才路由到前沿模型。
+**第 1 层：模型选择** 的影响最大，潜在节省可达 50-90%。问题是：满足我的质量要求的最便宜模型是什么？我会做评测来找出它。通常 GPT-6 Luna（每 1M $0.10/$0.50）、Claude Haiku 5.5（提示词不超过 100K 时价格相同）或 DeepSeek V4.1-Flash 能很好地处理 60-70% 的查询，而只有复杂查询才路由到前沿模型。
 
 **第 2 层：缓存** 可以减少 30-80% 的 API 调用。我会实现两级缓存：
 - 精确匹配缓存，处理重复查询
@@ -1272,7 +1274,7 @@ Hugging Face TGI 已进入维护模式，并建议新部署使用 vLLM 或 SGLan
 - 请求结构化输出，限制响应长度
 - 谨慎使用 few-shot 示例
 
-**第 4 层：批处理与服务层级** 可以节省 20-40% 的基础设施成本。对于异步负载，我会批量处理请求：Anthropic、OpenAI 和 Google 的 batch 均按五折计价，而 OpenAI 和 Gemini Flex 档也为可容忍延迟的流量提供相同折扣。速度档则相反（GPT-6 Astra 的 OpenAI Fast 为 2 倍、Ultrafast 为 6 倍），所以我会按工作负载类别而不是按提供商选择档位。对于同步负载，vLLM 的 continuous batching 能最大化 GPU 利用率。
+**第 4 层：批处理与服务层级** 可以节省 20-40% 的基础设施成本。对于异步负载，我会批量处理请求：Anthropic、OpenAI 和 Google 的 batch 均按五折计价，而 OpenAI 和 Gemini Flex 档也为可容忍延迟的流量提供相同折扣。速度档则相反（GPT-6 Astra 和 GPT-6.1 Sol 的 OpenAI Ultrafast 为 6 倍），所以我会按工作负载类别而不是按提供商选择档位。对于同步负载，vLLM 的 continuous batching 能最大化 GPU 利用率。
 
 **第 5 层：基础设施优化** 取决于具体部署。对于自托管，我会在 Blackwell 级 GPU 上使用量化模型（NVFP4 或 MXFP4），在旧 GPU 上使用 AWQ 4-bit，并选择合适规格的 GPU 以及针对容错工作负载的 spot instances。
 
@@ -1481,7 +1483,7 @@ result = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
 1. **检索对齐**：只从检索到的上下文回答
 2. **引用强制**：强制模型引用来源
 3. **拒答**：允许“I don't know”响应
-4. **温度（仍受支持时）：** 较低温度可减少创造性/幻觉。许多前沿 API 已移除此能力：Claude Opus 4.7 及以后版本对非默认采样值返回 400，Anthropic Python SDK 1.0 移除了这些参数，Gemini 于 2026 年 7 月 21 日弃用它们，GPT-6 Astra 也不接受它们。在这些模型上，应改用 effort 级别、grounding 指令和结构化输出。
+4. **温度（仍受支持时）：** 较低温度可减少创造性/幻觉。许多前沿 API 已移除此能力：Claude 4.7 及后续模型对非默认采样值返回 400；Anthropic API 版本 `2026-10-21` 对所有 Claude 模型的 `temperature`、`top_p` 和 `top_k` 无论取值（包括默认值）均返回 400；Anthropic Python SDK 1.0 移除了这些参数；Gemini 于 2026 年 7 月 21 日弃用它们；GPT-6 Astra 也不接受它们。在这些模型上，应改用 effort 级别、grounding 指令和结构化输出。
 5. **护栏**：生成后事实检查
 
 **系统提示指导：**
@@ -1515,7 +1517,7 @@ Always cite the source document for each claim.
 
 **3. 强制引用**：要求模型为每个断言引用具体来源。这能让幻觉更容易被发现，也会降低其发生频率。
 
-**4. 温度设置**：对于仍暴露该参数的模型，较低的温度（0.1-0.3）可以减少事实型任务中的创造性幻觉。最新 Claude 模型、Gemini API 和 GPT-6 Astra 会拒绝或弃用采样参数，因此在这些模型上我会依赖 grounding、引用和验证，而非温度。
+**4. 温度设置**：对于仍暴露该参数的模型，较低的温度（0.1-0.3）可以减少事实型任务中的创造性幻觉。使用 Anthropic API 版本 `2026-10-21` 的所有 Claude 模型、Gemini API 和 GPT-6 Astra 会拒绝或弃用采样参数，因此在这些模型上我会依赖 grounding、引用和验证，而非温度。
 
 **5. 生成后验证**：在返回给用户之前，对响应运行一轮事实检查。这会增加延迟，但能发现问题。
 
@@ -1821,10 +1823,10 @@ class LLMClient:
 维护一个黄金集，对任意模型运行。跟踪质量、延迟、成本。如果新模型退化就发出告警。
 
 **按模型和平台维护生命周期注册表：**
-同一模型现在会在不同平台于不同日期退役。Claude Sonnet 4 于 2026 年 6 月离开 Claude API，但在 Bedrock 上的生命周期直到 2026 年 10 月 14 日结束；Claude Opus 4.1 于 8 月离开 Claude API 后，仍会在 Bedrock 上运行至 2027 年 1 月 8 日。通知期也不同：OpenAI 对 GA 模型给 6 个月、专用模型给 3 个月、预览版最短仅 2 周；Anthropic 至少给 60 天；Bedrock 在 2026 年 9 月 7 日或之后发布的模型可以有 45 天 Legacy 窗口。因此我会按（模型、平台）二元组跟踪生命周期，并在回退路由指向该平台上已退役的模型时告警。
+同一模型现在会在不同平台于不同日期退役。Claude Sonnet 4 于 2026 年 6 月离开 Claude API，但在 Bedrock 上的生命周期直到 10 月 14 日结束；Claude Opus 4.1 于 8 月离开 Claude API 后，仍会在 Bedrock 上运行至 2027 年 1 月 8 日；Claude Sonnet 4.5 将于 2026 年 11 月 30 日从 Claude API 和 Foundry 退役，但 Bedrock 延至 2027 年 4 月 8 日。OpenAI 的声明是 GA 提前 6 个月、专用型号提前 3 个月、预览版最短仅 2 周，但 10 月 14 日对 GPT-4o 和 GPT-4.1 快照（含微调版）的通知只有约 3 个月，停服日为 2027 年 1 月 14 日；Anthropic 至少提前 60 天通知；Bedrock 在 2026 年 9 月 7 日或之后发布的模型可以有 45 天 Legacy 窗口。因此我会按（模型、平台）二元组跟踪生命周期，并在回退路由指向该平台上已退役的模型时告警。
 
 **稳定名称背后的静默变更：**
-固定模型 ID 是必要条件，但并不充分。2026 年 9 月，DeepSeek 宣布 `deepseek-v4-pro` 流量将路由至不同模型，次日又撤回；OpenAI 也在 GPT-6 Sol 和 Luna 的 ID 不变时修复了图片编码缺陷。我的金丝雀评估会按计划运行，而不只在我改动模型 ID 时运行。
+固定模型 ID 是必要条件，但并不充分。2026 年 9 月，DeepSeek 宣布 `deepseek-v4-pro` 流量将路由至不同模型，次日又撤回；OpenAI 也在 GPT-6 Sol 和 Luna 的 ID 不变时修复了图片编码缺陷。10 月 Google 将 `gemini-3.7-flash` 请求路由至 3.8 Flash，因此模型字符串可以继续工作，背后的模型却变了。我的金丝雀评估会按计划运行，而不只在我改动模型 ID 时运行。
 
 **多提供商回退：**
 ```python
@@ -1963,7 +1965,7 @@ count = len(tokens)
 - 没有计算消息开销（role、格式）
 - 忽略不同模型使用不同 tokenizer（分词器）
 
-我总是使用目标模型的实际 tokenizer。OpenAI 用 tiktoken，其他模型则用各自对应的 tokenizer。"
+我总是使用目标模型的实际 tokenizer。OpenAI 用 tiktoken，其他模型则用各自对应的 tokenizer。模型升级时也要重新计数，即使是在同一厂商内部：Haiku 5.5 对相同文本的 token 数比 Haiku 4.5 多约 30%。"
 
 ---
 
@@ -2352,7 +2354,7 @@ Fine-tuning 是一种承诺。我需要稳定的任务定义、高质量训练�
 - 尽可能限制 `max_tokens`
 - 更快的模型（简单任务用 mini/haiku 这类）
 - 对无需推理的路由降低 reasoning effort
-- 预算允许时使用付费速度档（GPT-6 Astra 的 OpenAI Fast 为 2 倍价、Ultrafast 为 6 倍价；Opus 5.5 的 Claude fast mode 为 $8/$40，属研究预览）
+- 预算允许时使用付费速度档（OpenAI Fast 为 2 倍；GPT-6 Astra 和 GPT-6.1 Sol 的 Ultrafast 为 6 倍；Claude Opus 5.5 fast mode 为 $8/$40，10 月 15 日结束研究预览）
 
 **4. 后处理（视情况而定）**
 - 异步、非阻塞操作
@@ -3170,8 +3172,8 @@ response = client.messages.create(
 **成本现实（每 1M token 标价；务必查看 provider pricing page，服务商定价页确认）：**
 - 能力上限：Claude Fable 5.1 和 GPT-6 Astra 均为 $10 / $50
 - Frontier tier（前沿档）：GPT-5.5 为 $5 / $30，Opus 4.8 为 $5 / $25；其后继 Claude Opus 5.5 为 $4 / $20，且 Anthropic 建议多数工作负载从它开始
-- 生产中档：Claude Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol 均为 $2 / $10
-- 长提示：OpenAI 在输入超过 272K 后会将整次请求按长上下文费率计费；Anthropic 在 1M 内保持统一价格
+- 生产中档：Claude Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol 为 $2 / $10；GPT-6.1 Terra 为 $1 / $5。
+- 长提示：OpenAI 输入超过 272K 后整次请求按长上下文费率计费；Claude Opus 和 Sonnet 在 1M 内统一价格（Haiku 5.5 提示词超过 100K 后整单按 5 倍计费）。
 - 对于大规模 workload（工作负载），中档在多数软件工程任务上，以相近质量显著更便宜。
 
 两条产品线都有后继，但选型逻辑仍然适用：GPT-6.1 Sol 保留了 effort 拨盘（`low` 至 `max`，默认 `medium`）；选择仍取决于基准上限和多模态能力，与可检查推理（最新 Claude 模型需选择可见展示模式；见 Q66）及智能体编码适配性之间的权衡，并应在你自己的任务上衡量。”
@@ -3211,7 +3213,7 @@ response = client.messages.create(
 
 1. **沙箱隔离**：Claude Code 运行在一个没有外部网络访问的 Docker 容器中，只挂载仓库目录。
 
-2. **权限白名单和显式权限模式**：只允许 `pytest*`、`ruff*`、`git diff*`、`str_replace_based_edit_tool`。禁止 `rm -rf`、`pip install`、以及向外部主机的 `curl`。在 CI 中显式设置权限模式：Claude Code 从 2026 年 8 月 14 日起，已将基于分类器的 auto 模式作为 Pro、Max 和 Team 计划中新会话的默认值；后续版本将该默认值扩展到了 API、Enterprise、云提供商环境（2.1.278），以及未配置权限模式的交互式会话（2.1.284）。Auto 模式只是尽力而为的分类器，并非安全边界（研究者于 8 月 26 日公开了绕过方式；见 Q132）；因此第 1 层的无网络容器才是主要防线，白名单仅用于进一步收窄容器内的行为。
+2. **权限白名单和显式权限模式**：只允许 `pytest*`、`ruff*`、`git diff*`、`str_replace_based_edit_tool`。禁止 `rm -rf`、`pip install`、以及向外部主机的 `curl`。在 CI 中显式设置权限模式：Claude Code 从 2026 年 8 月 14 日起，已将基于分类器的 auto 模式作为 Pro、Max 和 Team 计划中新会话的默认值；后续版本将该默认值扩展到了 API、Enterprise、云提供商环境（2.1.278），以及未配置权限模式的交互式会话（2.1.284）。自 2.1.302（10 月 16 日）起，第三方提供商下的 `claude -p` 和 Agent SDK 会话若未设置权限模式，则启动时使用 `default` 模式；新安装也默认遥测关闭。因此若 CI 不显式设置，实际权限模式会依运行环境变化。Auto 模式只是尽力而为的分类器，并非安全边界（研究者于 8 月 26 日公开了绕过方式；见 Q132，Anthropic 自身对监控的红队测试见 Q148）；因此第 1 层的无网络容器才是主要防线，白名单仅用于进一步收窄容器内的行为。
 
 3. **人工闸门**：agent 创建 PR，但绝不自动合并。由高级工程师审查 diff。Claude 绝不直接接触 `main`。
 
@@ -3246,7 +3248,7 @@ response = client.messages.create(
 
 对于数据主权部署：在自己的 H100 上自托管 DeepSeek V4 或 R1。数据不离开内网，这对医疗、金融、国防至关重要。
 
-对于微调：开权重支持在专有数据集上做完整 fine-tuning（全量微调）。闭源模型（OpenAI、Anthropic）只允许有限微调，而且数据会发送给提供方；这一选择正在收缩：OpenAI 正在逐步关闭其微调平台，自 2026 年 7 月 2 日起，只有近期进行过微调模型推理的组织才能创建任务；自 2027 年 1 月 6 日起，活跃客户也不能再创建新任务，尽管现有微调模型会持续服务至其基础模型弃用为止。如果定制权重是方案的一部分，开权重应是默认路径，而不是备选方案。
+对于微调：开权重支持在专有数据集上做完整 fine-tuning（全量微调）。闭源模型（OpenAI、Anthropic）只允许有限微调，而且数据会发送给提供方；这一选择正在收缩：OpenAI 正在逐步关闭微调平台，自 2026 年 7 月 2 日起，只有近期对微调模型做过推理的组织才能创建任务；自 2027 年 1 月 6 日起，活跃客户也不能再创建新任务。GPT-4o、GPT-4o mini、GPT-4.1 和 GPT-4.1 mini 快照的微调模型将于 2027 年 1 月 14 日停服；指定替代品 `gpt-6-luna` 不能微调。如果定制权重是方案的一部分，开权重应是默认路径，而不是备选方案。
 
 **我仍然使用闭源模型的场景：**
 - 需要绝对最佳质量的任务（Claude Opus 5.5 或 Fable 5.1 用于 agentic coding）
@@ -3269,13 +3271,13 @@ response = client.messages.create(
 “Prompt caching 的工作方式是：提供方把你的 prompt 前缀所计算出的 KV tensors（键值张量）存储在他们的服务器上。对于后续与同一前缀匹配的请求，他们会跳过该前缀的整个 prefill（预填充）计算。
 
 **提供方支持情况：**
-- **Anthropic**：通过 `cache_control: {'type': 'ephemeral'}` 注解进行缓存控制，可写入 5 分钟缓存（每次使用都会刷新）或 1 小时缓存。多数模型的缓存读取价格为正常输入的 0.1 倍，Opus 5.5 为 0.05 倍，Fable 5.1 为 0.025 倍。
-- **OpenAI**：对超过 1024 tokens 的 prompt 自动做前缀缓存。当前模型的缓存输入价格为 0.1 倍；从 GPT-5.6 起，缓存写入价格为 1.25 倍，固定 TTL 为 30 分钟，GPT-6.1 Sol 的读取价格为 0.05 倍。
-- **Google**：缓存读取价格为 $0.20/1M（Gemini 3.1 Pro，200K 以下），另有单独的按小时存储费用。
+- **Anthropic**：通过 `cache_control: {'type': 'ephemeral'}` 注解进行缓存控制，可写入 5 分钟缓存（每次使用都会刷新）或 1 小时缓存。多数模型的缓存读取价格为正常输入的 0.1 倍，Opus 5.5 和 Sonnet 5.5 为 0.05 倍，Fable 5.1 为 0.025 倍。
+- **OpenAI**：对超过 1024 tokens 的 prompt 自动做前缀缓存。多数当前模型的缓存输入价格为 0.1 倍，GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05 倍。从 GPT-5.6 起，默认 30 分钟缓存写入价为 1.25 倍；自 10 月 20 日起 Responses API 还提供 12 小时 TTL，写入价为输入的 2.5 倍。
+- **Google**：缓存读取价格为 $0.20/1M（Gemini 3.1 Pro，200K 以下），另有单独的按小时存储费用。Gemini 4 Argon 仅支持隐式缓存，不支持显式 cache-control 代码。
 - **DeepSeek**：自动前缀缓存，非常激进 - 命中率常常超过 80%。V4.1-Flash 峰时缓存命中价格为 $0.006/M。
 
 **成本影响：**
-- Anthropic Sonnet 5.5：Cached input = $0.20/1M，正常输入 = $2.00/1M = 10x 节省
+- Anthropic Sonnet 5.5：缓存输入 = $0.10/1M，正常输入 = $2.00/1M = 20 倍节省
 - OpenAI GPT-5.5：Cached input = $0.50/1M，正常输入 = $5.00/1M = 10x 节省
 - DeepSeek V4.1-Flash：峰时 Cached input = $0.006/M，正常输入 = $0.30/M = 50x 节省
 
@@ -3428,8 +3430,8 @@ Incoming query
     ↓
 Route to appropriate model tier
 
-Tier A (simple): GPT-6 Luna ($0.10/1M), Gemini 3.1 Flash-Lite ($0.25/1M) or DeepSeek V4.1-Flash ($0.30/1M at peak) - factual Q&A, extraction
-Tier B (complex): Claude Sonnet 5.5 or GPT-6.1 Sol ($2/1M) - reasoning, code review
+Tier A (simple): GPT-6 Luna ($0.10/1M), Claude Haiku 5.5 ($0.10/1M up to a 100K-token prompt), Gemini 3.1 Flash-Lite ($0.25/1M) or DeepSeek V4.1-Flash ($0.30/1M at peak) - factual Q&A, extraction
+Tier B (complex): GPT-6.1 Terra ($1/1M), Claude Sonnet 5.5 or GPT-6.1 Sol ($2/1M) - reasoning, code review
 Tier C (reasoning): Claude Opus 5.5 ($4/1M) - math, logic problems
 ```
 
@@ -3574,7 +3576,7 @@ Tier C (reasoning): Claude Opus 5.5 ($4/1M) - math, logic problems
 - 生产环境永远锁定精确模型版本（不要使用浮动别名）
 - 在 staging 中测试新模型版本后再晋级
 - 维护 eval 时间序列，这样你就有事故前 baseline 可对比
-- 即使锁定版本也持续运行定时金丝雀，因为锁定不能覆盖所有静默变更：OpenAI 于 2026 年 9 月 25 日修复了 `gpt-6-sol` 与 `gpt-6-luna` 的图像编码 bug，但没有改模型 ID（该日期前的任何图像评测测到的是不同的行为）；DeepSeek 也曾短暂宣布将 `deepseek-v4-pro` 流量路由至另一模型，后又撤回
+- 即使锁定版本也持续运行定时金丝雀，因为锁定不能覆盖所有静默变更：OpenAI 于 2026 年 9 月 25 日修复了 `gpt-6-sol` 与 `gpt-6-luna` 的图像编码 bug，但没有改模型 ID（该日期前的任何图像评测测到的是不同的行为）；DeepSeek 也曾短暂宣布将 `deepseek-v4-pro` 流量路由至另一模型，后又撤回。Google 于 10 月将 `gemini-3.7-flash` 请求路由至 `gemini-3.8-flash`，将 `gemini-3.5-flash` 路由至 `gemini-3.6-flash`，因此即使模型字符串没变，金丝雀仍能发现实际模型已更换
 - 在与金丝雀相同的日历上为每个锁定 ID 标记迁移日期，因为锁定版本会退役：`gpt-5-2025-08-07` 于 2026 年 12 月 11 日退役”
 
 ---
@@ -3614,7 +3616,7 @@ Health check every 30s:
 
 3. **成本管理**：各家成本差异很大。跟踪每家供应商的支出并设置预算告警。
 
-4. **上下文窗口与价格悬崖差异**：上下文上限已趋近于 1M，但计费方式没有。Claude 4.6 及以后版本到 1M 都是固定价格；OpenAI 在输入超过 272K 时，会按长上下文费率为整个请求计价；xAI 在 200K 及以上会将所有 token 加倍计费。对长上下文请求，我会在路由前同时检查 token 数是否跨越目标模型的窗口上限和价格悬崖。
+4. **上下文窗口与价格悬崖差异**：上下文上限已趋近于 1M，但计费方式没有。Claude 4.6 及以后版本到 1M 都是固定价格，Haiku 5.5 除外：提示词超过 100K 后整个请求按 5 倍计价（缓存读写计入阈值）；OpenAI 在输入超过 272K 时，会按长上下文费率为整个请求计价；xAI 在 200K 及以上会将所有 token 加倍计费。对长上下文请求，我会在路由前同时检查 token 数是否跨越目标模型的窗口上限和价格悬崖。
 
 **开源作为终极兜底：**
 对于真正关键的系统，我会维护一个热备的自托管 Llama 3.3 70B 或 DeepSeek-V3 实例。性能略低于前沿模型，但完全由我控制 - 没有 rate limit，也没有供应商事故导致的中断。
@@ -3647,7 +3649,7 @@ Health check every 30s:
 
 4. **快速迭代速度很重要：** 没有索引 pipeline，没有 schema 管理，没有 embedding 更新。改文档，重新加载。简单。
 
-5. **语料足够稳定以便缓存：** 最新 Claude 模型的缓存读取价格为输入价格的 0.05 倍（Opus 5.5）或 0.025 倍（Fable 5.1），因此一次加载稳定语料并反复使用，会使盈亏平衡点偏向长上下文。
+5. **语料足够稳定以便缓存：** 最新 Claude 模型的缓存读取价格为输入价格的 0.05 倍（Opus 5.5 和 Sonnet 5.5）或 0.025 倍（Fable 5.1），因此一次加载稳定语料并反复使用，会使盈亏平衡点偏向长上下文。
 
 **什么时候 RAG 胜出：**
 
@@ -3655,7 +3657,7 @@ Health check every 30s:
 
 2. **低延迟是关键：** 即使有缓存，把 500K token prefill 到模型里也要几秒。RAG 加 reranking 可以在 200ms 内返回。
 
-3. **大规模成本：** Claude Sonnet 5.5 在缓存前按 $2/1M 计算，1M token 就是 $2/请求。每天 100 万次请求就是 $200 万/天。RAG 检索成本要低几个数量级。一些供应商在低于 1M 的位置就有价格悬崖：OpenAI 的输入一旦超过 272K，就会按长上下文费率为整个请求计价；xAI 在 200K 时将所有 token 加倍；Gemini 3.1 Pro Preview 在 200K 以上提价。因此，GPT-6 Sol 的 273K-token prompt 成本大约是 272K-token prompt 的两倍。成本模型必须按供应商和 prompt 长度分别计算。
+3. **大规模成本：** Claude Sonnet 5.5 在缓存前按 $2/1M 计算，1M token 就是 $2/请求。每天 100 万次请求就是 $200 万/天。RAG 检索成本要低几个数量级。一些供应商在低于 1M 的位置就有价格悬崖：OpenAI 的输入一旦超过 272K，就会按长上下文费率为整个请求计价；xAI 在 200K 时将所有 token 加倍；Gemini 3.1 Pro Preview 在 200K 以上提价。因此，GPT-6 Sol 的 273K-token prompt 成本大约是 272K-token prompt 的两倍。Claude Haiku 5.5 的价格断崖更低：提示词超过 100K 后整个请求按 5 倍费率计价。成本模型必须按供应商和 prompt 长度分别计算。
 
 4. **隐私/合规：** 有些系统不能把所有文档都发给 LLM 供应商。embedding + 本地检索的方式能更严格地控制数据。
 
@@ -3800,7 +3802,7 @@ Based on the above document, answer: {user_question}
 
 **可预期的追问：** Mythos 问题在 2026 年 6 月已经自行解决：Anthropic 发布了 Fable 5（一个带安全护栏的 Mythos 级模型，敏感查询会回退到 Opus 4.8），而不是直接放开 Mythos Preview。强候选人会指出这说明了什么：实验室可以通过 classifier-gated routing（分类器门控路由）把受限能力层产品化，所以“受限”模型会比它们的访问列表看起来更早地重塑市场。
 
-到 2026 年 10 月，每一行都有了后继模型：Claude Fable 5.1（$10/$50）、Opus 5.5（$4/$20，现为 Anthropic 推荐默认模型）和 Sonnet 5.5（$2/$10）；OpenAI 的 GPT-6 Astra（$10/$50）、GPT-6 Sol 和 GPT-6.1 Sol（$2/$10）以及 GPT-6 Luna（$0.10/$0.50）；Google 最新 GA 模型 Gemini 3.8 Flash；以及取代已退役 V4 Flash 的 DeepSeek V4.1-Flash（峰时 $0.30/$1.20）。Mistral Medium 3.5 的修改版 MIT 许可证会撤销月收入超过 2,000 万美元公司的全部权利，这会影响主权工作负载这一行（见 Q134）。按风险成本将工作负载映射至模型的方法不变。
+到 2026 年 11 月，每一行都有了后继模型：Claude Fable 5.1（$10/$50）、Opus 5.5（$4/$20，现为 Anthropic 推荐默认模型）、Sonnet 5.5（$2/$10）和 Haiku 5.5（提示词不超过 100K 时 $0.10/$0.50）；OpenAI 的 GPT-6 Astra（$10/$50）、GPT-6 Sol 和 GPT-6.1 Sol（$2/$10）、GPT-6.1 Terra（$1/$5）以及 GPT-6 Luna（$0.10/$0.50）；Google 的 Gemini 4 Argon（10 月 13 日 GA，11 月 30 日前 $2/$10，之后 $4/$20）高于 Gemini 3.8 Flash；以及取代已退役 V4 Flash 的 DeepSeek V4.1-Flash（峰时 $0.30/$1.20）。主权工作负载也需重新评估：Mistral 于 10 月 31 日弃用 Medium 3.5（2027 年 4 月 30 日退役），转向开放权重的 Mistral Large 4；其许可证要求所有 MaaS 业务单独签订商业协议，而 Medium 3.5 的修改版 MIT 许可证会撤销月收入超过 US$20M 公司的全部权利（见 Q134）。按风险成本将工作负载映射至模型的方法不变。
 
 ---
 
@@ -4299,7 +4301,7 @@ Based on the above document, answer: {user_question}
 **Layer 6 - 持续对抗性评测。**
 - 维护一个已知 IPI 攻击语料库。每周让你的 pipeline 跑一遍。若新攻击类别成功，就回填防御。
 
-**诚实的结论：** IPI 防御仍是未完成的研究。Nature Communications（2026）的论文报告称，在把 reasoning models（推理模型）当作自主攻击者时，整体 jailbreak 成功率达到 97.14%。前沿实验室如今也公布模型层面的 IPI 基线，虽更低但并非为零：在 Gray Swan 的 IPI Arena 中（每个场景尝试 15 次），OpenAI 报告 GPT-6 Astra 的攻击成功率为 8.5%，GPT-5.6 Sol 为 27.0%；Anthropic 报告 Claude Opus 5.5 的 k=15 成功率为 1.0%（均为厂商报告）。面对每天数千个 agent 会话时，每场景 1% 的概率仍意味着每日事故；模型选择可以降低基线，但无法替代这些分层防护。你的防御降低的是概率和 blast radius（爆炸半径） - 不是彻底消除。要为事故做准备，记录一切，并准备 kill switch（杀开关）。”
+**诚实的结论：** IPI 防御仍是未完成的研究。Nature Communications（2026）的论文报告称，在把 reasoning models（推理模型）当作自主攻击者时，整体 jailbreak 成功率达到 97.14%。前沿实验室如今也公布模型层面的 IPI 基线，虽更低但并非为零：在 Gray Swan 的 IPI Arena 中（每个场景尝试 15 次），OpenAI 报告 GPT-6 Astra 的攻击成功率为 8.5%，GPT-5.6 Sol 为 27.0%；Anthropic 报告 Claude Opus 5.5 的 k=15 成功率为 1.0%，但低成本的 Claude Haiku 5.5 总体为 7.1%，仅 GUI 计算机使用时为 24.4%（均为厂商报告），因此预算档更需要多层防护。面对每天数千个 agent 会话时，每场景 1% 的概率仍意味着每日事故；模型选择可以降低基线，但无法替代这些分层防护。你的防御降低的是概率和 blast radius（爆炸半径） - 不是彻底消除。要为事故做准备，记录一切，并准备 kill switch（杀开关）。”
 
 ---
 
@@ -4325,7 +4327,7 @@ Based on the above document, answer: {user_question}
 **3. batching profiles（批处理画像）会变化。**
 - 对 dense models（稠密模型）来说，更大的 batch 通常会提高吞吐，延迟成本可预测。
 - 对 MoE 来说，更大的 batch 会激活更多 expert（因为不同请求会路由到不同 expert），从而增加内存压力。最优 batch size（批大小）是非单调的。
-- vLLM、SGLang 和 TensorRT-LLM 都有 MoE-aware schedulers（感知 MoE 的调度器，vLLM 自 v0.18 起具备）。使用它们，但要锁定安全版本下限；它们早已高于功能版本下限：vLLM 0.30.0 或更高、SGLang 0.5.13 或更高，并根据当前安全公告核验。
+- vLLM、SGLang 和 TensorRT-LLM 都有 MoE-aware schedulers（感知 MoE 的调度器，vLLM 自 v0.18 起具备）。使用它们，但要锁定安全版本下限：vLLM 0.32.0 或更高；SGLang 没有修补 10 月两项严重 CVE 的版本，因此使用最新版，并将 debug、dumper、ZMQ 与分布式初始化端点限制在网络外。
 
 **4. 每 token 成本更难预测。**
 - dense：cost ∝ active params × tokens（成本与激活参数和 token 数成正比）。
@@ -4371,9 +4373,9 @@ Based on the above document, answer: {user_question}
 - 6 个月后：净节省 $132K
 - 12 个月后：净节省 $384K
 
-**重新计算基线后再承诺。** 前沿模型账单本身也在下降：Claude Opus 5.5 标价 $4/$20，而 Opus 4.8 为 $5/$25；Anthropic 报告称 $2/$10 的 Claude Sonnet 5.5 在其自身 agentic 评测中距 Opus 5.5 仅差几点（厂商报告）。我会以今天满足质量门槛的最便宜模型来计算回本期，而不是以上季度账单为基准。
+**重新计算基线后再承诺。** 前沿模型账单本身也在下降：Claude Opus 5.5 标价 $4/$20，而 Opus 4.8 为 $5/$25；Anthropic 报告称 $2/$10 的 Claude Sonnet 5.5 在其自身 agentic 评测中距 Opus 5.5 仅差几点（厂商报告）。预算层也在变化：Claude Haiku 5.5 的提示词不超过 100K 时与 GPT-6 Luna 同为 $0.10/$0.50，GPT-6.1 Terra 标价 $1/$5。我会以今天满足质量门槛的最便宜模型来计算回本期，而不是以上季度账单为基准。
 
-**掌握学生模型的归属。** OpenAI 正在逐步关闭微调平台，活跃客户自 2027 年 1 月 6 日起无法创建新任务，这会破坏每 4–6 个月重新蒸馏一次的节奏。采用宽松许可证的开权重学生模型（Qwen3.8-27B 或 IBM Granite 4.2，均为 Apache 2.0）可让蒸馏周期由我控制。我会先于模型卡检查许可证，因为若干更大的开放模型如今会限制 model-as-a-service 使用（见 Q134）。
+**掌握学生模型的归属。** OpenAI 正在逐步关闭微调平台：现有客户自 2027 年 1 月 6 日起无法创建新任务，这会破坏每 4–6 个月重新蒸馏一次的节奏；GPT-4o、GPT-4o mini、GPT-4.1 和 GPT-4.1 mini 快照的微调模型将于 2027 年 1 月 14 日停服，指定替代模型 `gpt-6-luna` 又无法微调。采用宽松许可证的开权重学生模型（Qwen3.8-27B 或 IBM Granite 4.2，均为 Apache 2.0）可让蒸馏周期由我控制。我会先于模型卡检查许可证，因为若干更大的开放模型如今会限制 model-as-a-service 使用（见 Q134）。
 
 **重新蒸馏周期：**
 - 每 4–6 个月重新蒸馏一次。两个触发条件：
@@ -4399,23 +4401,23 @@ Based on the above document, answer: {user_question}
 
 “我的选择取决于三个工作负载轴：延迟特征、硬件，以及运维成熟度。
 
-**vLLM（0.30.0 或更高）：**
+**vLLM（0.32.0 或更高）：**
 - 最适合：异构工作负载、长上下文服务、请求形态变化大的动态批处理
 - PagedAttention 是 KV 缓存管理的杀手级特性
 - 生产工具成熟，社区大
-- 大约每两周发布一次（v0.30.0 于 2026 年 9 月 22 日发布），Model Runner V2 为默认，且提供 admission-control 标志和可减少 pod 重启的 Fast Start 权重缓存
-- **补丁下限：** 2026 年出现一系列 RCE：2 月的视频处理 RCE（CVE-2026-22778）在 v0.14.1 修复，3 月的 `trust_remote_code` 绕过（CVE-2026-27893）在 v0.18.0 修复；自 8 月 11 日以来出现 20 多条安全公告（见 Q135），因此下限是 0.30.0。
+- 大约每两周发布一次（v0.32.0 于 2026 年 10 月 18 日发布），Model Runner V2 为默认，并提供准入控制标志和可缩短 pod 重启的 Fast Start 权重缓存。v0.32.0 还将默认 CORS 来源从 `*` 改为无、最低 Python 版本提高到 3.11，并把 `max_tokens` 变成输出上限，因此升级应视为行为变更。
+- **补丁下限：** 2026 年出现一系列 RCE：2 月的视频处理 RCE（CVE-2026-22778）在 v0.14.1 修复，3 月的 `trust_remote_code` 绕过（CVE-2026-27893）在 v0.18.0 修复；8 月 11 日之后的 20 多条安全公告（见 Q135）曾将下限推至 0.30.0；之后 CVE-2026-115915（CVSS 8.1，影响所有早于 0.32.0 的版本，在 0.30.0 上复现）及 CVE-2026-115912 又将下限推至 0.32.0。
 
-**SGLang（0.5.13 或更高；当前为 v0.5.20）：**
+**SGLang（当前版本 v0.5.22；两项 10 月严重 CVE 尚无修复版本）：**
 - 最适合：结构化生成工作负载（JSON、函数调用），以及需要受控解码的推理模型
 - 在某些工作负载上，相比 vLLM 约有 29% 的吞吐优势（这是他们的基准；要在你自己的负载上验证）
 - 异步约束解码确实比 vLLM 的等价方案更快
-- **补丁下限：** 3 月的多模态和解耦 RCE（CVE-2026-3059、CVE-2026-3060）已在 v0.5.10 修复；5 月 18 日一批严重公告（CVE-2026-7301、7302、7304）列出受影响版本至 0.5.12，但未记录已修补版本。锁定 0.5.13 或更高版本，并根据公告列表核验；将 ZMQ socket 保持在 pod 内，且不要为不可信调用方启用自定义 logit processor。
+- **补丁下限：** 3 月的多模态和解耦 RCE（CVE-2026-3059、CVE-2026-3060）已在 v0.5.10 修复；5 月 18 日一批严重公告（CVE-2026-7301、7302、7304）列出受影响版本至 0.5.12，但未记录已修补版本。10 月情况更糟：CVE-2026-111391（eval 注入，CVSS v4 9.2，描述影响 v0.5.10 至 v0.5.22）和 CVE-2026-93034（ZMQ 解码器，CVSS 9.8）均未列出修补版本，因此没有安全的已发布版本。使用最新版，将 dumper、debug、ZMQ 和分布式初始化端点留在 pod 内；不要为不可信调用方启用自定义 logit 处理器。
 
 **TensorRT-LLM：**
 - 最适合：仅 NVIDIA 的机群、单模型大规模服务、对延迟极其敏感的工作负载
 - 在 NVIDIA 硬件上峰值吞吐最高
-- 自 TensorRT-LLM 1.0（2025 年 9 月）起，PyTorch 后端为默认，因此不再需要逐模型构建 engine；剩余成本是逐模型、逐 GPU 的调优，以及以 release candidate 为主的发布节奏（最新稳定版 v1.2.1，v1.3 仍在 release candidate）
+- 自 TensorRT-LLM 1.0（2025 年 9 月）起，PyTorch 后端为默认，因此不再需要逐模型构建 engine；剩余成本是逐模型、逐 GPU 的调优，以及以 release candidate 为主的发布节奏（最新稳定版仍为 v1.2.1；候选版已进入 v1.4，v1.3 没有稳定版）
 - 会把你锁定在 NVIDIA 硬件上
 
 **按工作负载我的选择：**
@@ -4425,7 +4427,7 @@ Based on the above document, answer: {user_question}
 | 公共聊天机器人，请求混合变化大 | vLLM | 吞吐与灵活性的最佳平衡 |
 | 严格 JSON Schema 的函数调用 API | SGLang | 约束解码更占优 |
 | 单模型、低延迟关键（TTFT 低于 50ms），且月规模 $100K+ | TensorRT-LLM | 值得承担 NVIDIA 锁定和调优工作 |
-| 任意层级的多模态服务 | vLLM（0.30.0 或更高） | SGLang 的 3 月 RCE 出现在多模态路径；在将其暴露前须核验其安全公告 |
+| 任意层级的多模态服务 | vLLM（0.32.0 或更高） | SGLang 的 3 月 RCE 出现在多模态路径；在将其暴露前须核验其安全公告 |
 | 推理模型（DeepSeek-R1 同类） | SGLang | 最适合结构化 CoT（思维链）+ 工具调用循环 |
 
 **要避免的陷阱：** 基于错误工作负载上的基准测试来选型。各家引擎厂商都会拿自己的最佳场景做基准测试。应在你自己的 SLO 下，以 agentic 流量的吞吐与交互性 Pareto 曲线来比较引擎，而不是 batch-1 峰值 tokens/s；再在你自己的流量画像上跑一个 48 小时 soak test（浸泡测试）后决定。选错的代价是在切换时要承受 3 个多月的工程痛苦。”
@@ -4470,7 +4472,7 @@ Based on the above document, answer: {user_question}
 
 **硬事实：** 到 2026 年 5 月，顶级算力仍然受限。决策一部分是“什么硬件最好”，另一部分是“你实际能买到什么”。在做基准测试之前，先和供应商 TAM（技术客户经理）谈可获得性。”
 
-到 2026 年 10 月，旗舰产品是 NVIDIA Vera Rubin NVL72（据 NVIDIA 称自 5 月 31 日起全面量产爬坡）；NVIDIA Groq 3 LPX 已全面量产，作为 Rubin prefill 之后的 SRAM decode 层；AMD Helios（MI455X，432 GB HBM4）也已投入生产，OpenAI 预计自 2026 年第四季度起上线。租赁价格并未下降：Silicon Data 的 B200 指数在 10 月 1 日为每 GPU 小时 $5.86，且 9 月的 12 个月合约价格低于 3 个月合约，这进一步强化了第 2 点尽早锁定容量的建议。
+到 2026 年 11 月，旗舰产品是 NVIDIA Vera Rubin NVL72（据 NVIDIA 称自 5 月 31 日起全面量产爬坡，10 月 27 日起 Oracle Cloud 已普遍可用）；NVIDIA Groq 3 LPX 已全面量产，作为 Rubin prefill 之后的 SRAM decode 层；AMD Helios（MI455X，432 GB HBM4）也已投入生产，OpenAI 预计自 2026 年第四季度起上线。其相对 Blackwell Ultra 的优势取决于工作负载：Artificial Analysis 的 AA-AgentPerf（10 月 15 日）测得，Rubin 每兆瓦峰值吞吐量为 GB300 的 1.14 至 1.45 倍，因模型而异；仅在每用户速度较高时优势才更大，因此上面的 Tier 1 / Tier 2 区分仍成立。租赁价格上涨而非下降：Silicon Data 的 B200 指数从 10 月初每 GPU 小时 $5.86 涨至 11 月 1 日的 $6.50（H100 从 $2.78 涨至 $2.93）；9 月的 12 个月合约价格低于 3 个月合约，因此更支持第 2 点尽早锁定容量。
 
 ---
 
@@ -4651,7 +4653,7 @@ Based on the above document, answer: {user_question}
 
 1. **‘从第一天就开源’的策略在前沿质量上碰到了天花板。** Behemoth 本来应该成为稠密的前沿模型；内部显然对“这次跃迁是否值得开源”存在分歧。Meta 选择把 Muse Spark 做成闭源，这是一种战略性承认：前沿级工作可能需要闭环的开发反馈。
 
-2. **新的均衡是双层结构。** 前沿（闭源）领先 6–12 个月。开放权重通过蒸馏、RL 和开源生态的迭代速度追赶。这是 2026 年 5 月的状态，并且一直延续：Meta 保持 Muse 产品线闭源（Muse Spark 1.3 于 2026 年 9 月 2 日发布，价格为 $1.25/$4.25），而开放权重的领先地位转移到了中国实验室。Artificial Analysis Index v4.3.2 中，顶级开放模型是 Xiaomi MiMo-V2.6-Pro（46）、Z.ai GLM-5.3（45）和 Moonshot Kimi K3（44）；排名最高的美国开放模型 Thinking Machines 的 Inkling-Small 得分仅为 26。
+2. **新的均衡是双层结构。** 前沿（闭源）领先 6–12 个月。开放权重通过蒸馏、RL 和开源生态的迭代速度追赶。这是 2026 年 5 月的状态，并且一直延续：Meta 保持前沿 Muse 模型闭源（Muse Spark 1.3 于 2026 年 9 月 2 日发布，价格为 $1.25/$4.25），同时于 10 月 15 日发布 Muse Spark Open（总参数 816B，即 8160 亿；激活参数 42B，即 420 亿；其许可证限制年收入超过 US$20M 的 MaaS），开放权重的领先地位则转移至中国实验室。Artificial Analysis Intelligence Index v5.0 中，DeepSeek V4.1-Flash-1017 和 Z.ai GLM-5.3 均为 32，Xiaomi MiMo-V2.6-Pro 为 30；美国最高分开放模型是 Muse Spark Open（25）；闭源前沿模型在高 50 分区间。
 
 3. **‘开源’现在是个复杂词。** Llama 4 的权重是开放的；训练数据不是。Qwen 3.6 的权重是开放的；但有些商业限制。DeepSeek V4 是 MIT 许可，但训练所用机制并未完全公开。现在，“开源”还意味着逐个 checkpoint 阅读许可证：从纯 MIT，到按收入限制的 MaaS 条款，再到限制任何编程助手业务的 Qwen 许可证；见 Q134。基础模型的许可证也会成为其上层产品的供应链条款：Cognition 的 SWE-2 基于 Kimi K3 后训练，Fireworks 的 Ember-1 也构建于其上。
 
@@ -5098,7 +5100,7 @@ Request → Classifier (intent, complexity, risk) → Policy lookup → Provider
 
 **预期追问：** 语义缓存放在哪里？（放在路由器前面：精确缓存或语义缓存命中都不需要调用任何提供方，路由器只会看到缓存未命中。）
 
-到 2026 年 10 月，价格表已完全改写：Fable 5.1 和 GPT-6 Astra 为 $10/$50，Opus 5.5 为 $4/$20，Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol 为 $2/$10，GPT-6 Luna 为 $0.10/$0.50，DeepSeek V4.1-Flash 峰时为 $0.30/$1.20。策略引擎现在还会为每个请求选择服务层级（batch 和 flex 为 0.5 倍，OpenAI Fast 为 2 倍，Ultrafast 为 6 倍），处理长上下文价格断崖（OpenAI 输入超过 272K 后会以更高费率对整个请求计费；Anthropic 到 1M 仍保持平价），并计入数据驻留价格——主流提供商约有 10% 溢价（Anthropic 的仅美国 `inference_geo` 为 1.1 倍），因此只有受驻留约束的租户才路由至固定区域。
+到 2026 年 11 月，价格表再次改变：Fable 5.1 和 GPT-6 Astra 为 $10/$50，Opus 5.5 为 $4/$20，Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol 为 $2/$10，GPT-6.1 Terra 为 $1/$5，GPT-6 Luna 与 Haiku 5.5（提示词低于 100K 时）为 $0.10/$0.50，DeepSeek V4.1-Flash 峰时为 $0.30/$1.20。策略引擎还需为每个请求选择服务层级（Batch 和 Flex 为半价，OpenAI Fast 为 2 倍，Ultrafast 为 6 倍），处理长上下文价格断崖（OpenAI 输入超过 272K 后整次请求调价；Haiku 5.5 提示词超过 100K 后整次请求按 5 倍计费；其他 Claude 模型在 1M 内保持统一费率），并计入数据驻留价格——主流提供商约有 10% 溢价（Anthropic 的仅美国 `inference_geo` 为 1.1 倍），因此只有受驻留约束的租户才路由至固定区域。
 
 ---
 
@@ -5368,14 +5370,14 @@ Request → Classifier (intent, complexity, risk) → Policy lookup → Provider
 1. **每个请求都重新确认身份。** 服务器对每个入站请求验证 bearer token，并从已验证 token 推导租户身份，绝不读取客户端提供的身份字段。持有 handle 不能证明任何事情。
 2. **按已认证主体为 handle 划分命名空间。** 状态以“租户 + handle”为键；租户不匹配的查询返回 not-found，而不是 forbidden，以免外部探测 handle 是否存在。
 3. **handle 必须不可猜测且会过期。** 使用具有足够熵的密码学安全随机数生成器生成，使枚举毫无意义；TTL 与其代表的工作流时长匹配。
-4. **token 绑定 audience。** 根据 RFC 8707 将 token 绑定到特定服务器 URI，避免为一个 MCP server 签发的 token 被重放到另一台服务器。当一个 gateway 后面运行多个服务器时，这一点更加重要。客户端也需要进行镜像检查：官方 SDK 的 OAuth 客户端曾允许恶意 MCP server 将已存储的凭证重定向至其指定的授权服务器（TypeScript 已在 1.31.0 和 2.2.0、Python 已在 1.30.0 和 2.2.0 修复；见 Q72）。
-5. **状态存储也要执行边界。** 以租户为键实施行级隔离，这样即使 handler 忘记检查，应用 bug 也无法跨越租户。防御纵深意味着第二层应假设第一层代码是在周五写的。
+4. **token 绑定 audience。** 根据 RFC 8707 将 token 绑定到特定服务器 URI，避免为一个 MCP server 签发的 token 被重放到另一台服务器。当一个 gateway 后面运行多个服务器时，这一点更加重要。但只有服务器实际检查 audience，绑定才有效：TypeScript SDK 的 audience 检查漏洞（CVE-2026-111771）已在 `sdk` 1.32.0 和 `server` 2.3.0 修复，但需设置 `expectedResource` 才会开启。客户端也需要进行镜像检查：官方 SDK OAuth 客户端曾允许恶意 MCP server 将已存储的凭证重定向至其指定的授权服务器（TypeScript 已在 1.31.0 和 2.2.0、Python 已在 1.30.0 和 2.2.0 修复；见 Q72）。
+5. **状态存储也要执行边界。** 以租户为键实施行级隔离，这样即使 handler 忘记检查，应用 bug 也无法跨越租户。防御纵深意味着第二层应假设第一层代码是在周五写的。SDK 对象也要遵守同样的隔离规则：TypeScript `@modelcontextprotocol/server` 2.0.0 至 2.2.x 中，多个 client 共享 server 或 transport 实例会让一个客户端收到另一个客户端的响应（CVE-2026-111770，CVSS 7.7）。2.3.0 虽然修复该问题，但还需要每个请求或会话创建独立的 server 和 transport；应将其设为设计规则，而不只是升级要求。
 6. **谨慎处理可缓存的列表结果。** 修订版要求列表结果声明 `ttlMs` 与 `cacheScope`。任何租户专属内容都必须标记为 private；把租户级工具目录误标为 public，会把一个客户的集成形态泄露给另一个客户。
 7. **按身份进行限流与审计。** 两者都以已验证主体为范围，而不是以已经不存在的连接为范围。
 
 **验证：** 在 CI 中运行多租户测试，将租户 A 的 handle 与租户 B 的 token 组合使用。只要返回的不是 not-found，构建就失败。”
 
-**预期追问：** 如何迁移现有有状态服务器群而不破坏旧客户端？（同时提供两种模式：C# SDK 的混合 session 模式允许一个端点同时处理有状态与无状态客户端。v2 采用率正在增长，但重叠期很长：2026 年 9 月 npm 下载量中，v2 TypeScript core 包为 3,060 万，v1 为 2.319 亿，约为 13%；因此应计划长期双版本并存，而不是一次性切换。）
+**预期追问：** 如何迁移现有有状态服务器群而不破坏旧客户端？（同时提供两种模式：C# SDK 的混合 session 模式允许一个端点同时处理有状态与无状态客户端。v2 采用率正在增长，但重叠期很长：2026 年 10 月 npm 下载量中，v2 TypeScript core 包为 6,210 万，v1 为 2.458 亿，约为四分之一；因此应计划长期双版本并存，而不是一次性切换。为保护遗留路径，Python SDK 1.30.0 和 2.2.0 会关闭空闲 30 分钟的旧式会话，并将单服务器限制为 10,000 个会话；TypeScript 和 Python SDK 将请求体上限设为 4 MiB。应在遗留路径固定这些安全下限。）
 
 ### Q128：欧盟 AI 法案第 50 条于 8 月 2 日开始执行，罚款最高可达全球营业额的 3%；加州透明度法也在同日生效。你的产品在两个市场生成文本和图像。你会构建什么？
 
@@ -5485,17 +5487,17 @@ flowchart LR
 
 “每个习惯都依赖于如今至少在某个前沿模型上已消失的功能：
 
-- **采样参数。** Anthropic 的 Python SDK 1.0（8 月 20 日）从 Messages 签名中移除了 `temperature`、`top_p` 和 `top_k`，因此传入它们会抛出 `TypeError`；Claude API 此前已在 Opus 4.7 及后续版本上拒绝非默认值。GPT-6 Astra（9 月 3 日）不接受自定义 temperature 或 top_p，而 Google 在 7 月的 Gemini API 中弃用了这三个参数。
+- **采样参数。** Anthropic 的 Python SDK 1.0（8 月 20 日）从 Messages 签名中移除了 `temperature`、`top_p` 和 `top_k`，因此传入它们会抛出 `TypeError`；Claude API 此前已在 Claude 4.7 及后续模型上拒绝非默认值。API 版本 `2026-10-21`（新 SDK 主版本默认发送）对所有模型的三个参数一律返回 400，包括默认值（见 Q154）。GPT-6 Astra（9 月 3 日）不接受自定义 temperature 或 top_p，而 Google 在 7 月的 Gemini API 中弃用了这三个参数。
 - **Logprobs。** Astra 不返回它们。
-- **强制工具调用。** Claude Fable 5.1、Opus 5.5 和 Sonnet 5.5 对类型为 `any` 或 `tool` 的 `tool_choice` 返回 400。
-- **可移植的转录记录。** 在这三个模型上，thinking 块绑定于生成它的模型，也绑定于其之前的所有内容：系统提示词、工具和更早的消息。Opus 5.5 无法读取 Fable 5.1 的块，无法读取的块会被静默丢弃；对于在 8 月 31 日或之后创建的账户，发生变化的前缀会返回 400。Sonnet 5.5 的块也绑定于账户。Opus 5.5 无法禁用 thinking，而 Sonnet 5.5 的最低设置为 `between_tools`。
+- **强制工具调用。** Claude Fable 5.1、Opus 5.5 和 Sonnet 5.5 对类型为 `any` 或 `tool` 的 `tool_choice` 返回 400。Haiku 5.5 接受强制选择，但响应会直接以工具调用开始，没有 thinking 块。
+- **可移植的转录记录。** 在这些模型上，thinking 块绑定于生成它的模型，也绑定于其之前的所有内容：系统提示词、工具和更早的消息。Opus 5.5 无法读取 Fable 5.1 的块，无法读取的块会被静默丢弃；对于在 8 月 31 日或之后创建的账户，发生变化的前缀会返回 400。Sonnet 5.5 和 Haiku 5.5 的块也绑定于生成账户。Haiku 5.5 会无错误地丢弃来自 Opus 5、Opus 5.5、Sonnet 5.5、Fable 和 Mythos 的思考块，因此 Sonnet 回退至 Haiku 会丢失推理。Opus 5.5 无法禁用 thinking，而 Sonnet 5.5 的最低设置为 `between_tools`。
 
 温度参数 0 从来不是可复现性的保证；批处理和内核非确定性早已决定了这一点。移除该参数只让这个差距变得可见。
 
 **重新设计：每个失效假设对应一个替代方案：**
 
 1. **通过记录与回放实现可复现性。** 我固定模型 ID 和 effort 级别（Opus 5.5 悄然将默认 effort 从 Opus 5 的 `high` 调整为 `medium`），按请求哈希键存储每一条生产输入与输出，并在测试中从存储中回放。评估应断言 n 个样本上的分布，而不是精确字符串。
-2. **通过验证获得置信度。** 对于提取，采用 schema 验证加一次低成本验证器调用。对于门控和路由，使用对固定答案集合评分的决策模型；这正是 OpenAI 的 Decisions API（有限预览）和 Cloudflare 的 Clef（Apache 2.0）所返回的结果。Logprobs 成为可选能力，而不是依赖项。
+2. **通过验证获得置信度。** 对于提取，采用 schema 验证加一次低成本验证器调用。对于门控和路由，使用对固定答案集合评分的决策模型；这正是 OpenAI 的 Decisions API（10 月 22 日 GA，Q153 详述）和 Cloudflare 的 Clef（Apache 2.0）所返回的结果。Logprobs 成为可选能力，而不是依赖项。
 3. **通过结构化输出获得结构。** 使用带有 `tool_choice: auto` 的严格工具 schema，或原生 JSON-schema 输出。框架已经迁移：langchain-anthropic 1.7.3 对 Fable 和 Opus 5.5 将 `with_structured_output` 路由至 `json_schema`，而 1.7.5 新增了 Sonnet 5.5。
 4. **从我自己的状态而非提供商转录记录中进行故障切换。** 规范化任务状态（计划、工具结果、产物、摘要）存储在我的存储中。跨模型故障切换时，我从中重建上下文，并接受提供商的推理无法迁移这一事实。历史记录是只追加的：每轮提醒放入轮次作用域的系统消息，工具集变更通过内联工具定义（beta）传入，而非编辑工具列表；我启用 `drop_block` 行为（beta）并在块被丢弃时告警，从而使前缀变更降级而非失败。
 5. **为每个 (model, platform) 配置能力描述符。** 包含采样、logprobs、强制工具、thinking 下限、块绑定、默认 effort 和长上下文阈值等标志；并在每次 SDK 或模型变更时，对线上端点运行契约测试。
@@ -5517,11 +5519,11 @@ flowchart LR
 
 "供应商现在连 agent loop 本身也在销售，因此问题从“选择哪个框架”转变为“由谁运行压缩、恢复和会话状态，以及这些操作遵循谁的数据规则”。
 
-**截至 10 月 1 日可选的服务：**
+**截至 11 月 2 日可选的服务：**
 
-- **OpenAI Agents API**（公开测试）：作为托管服务提供的 Codex harness，具备持久会话、压缩、恢复、子 agent（`max_concurrent_subagents` 默认值为 6），以及自 9 月 29 日起提供的托管浏览器 computer use。没有 API 费用；你需要支付模型、工具和容器费用。仅支持美国数据驻留，且不支持 Zero Data Retention。
+- **OpenAI Agents API**（公开测试）：作为托管服务提供的 Codex harness，具备持久会话、压缩、恢复、子 agent（`max_concurrent_subagents` 默认值为 6），以及自 9 月 29 日起提供的托管浏览器 computer use。没有 API 费用；你需要支付模型、工具和容器费用。自 10 月 9 日起，托管沙箱仅在活跃轮次收费。仅支持美国数据驻留，且不支持 Zero Data Retention。
 - **由 OpenAI 驱动的 Bedrock Managed Agents**（预览）：AWS 内部的该 harness 定制版本，具有每个 agent 独立的 IAM 角色、CloudTrail 日志记录，以及在执行重大操作前进行人工审批。预览期间不额外收费，覆盖三个美国区域。
-- **Claude Managed Agents：**具有在达到 `budget_reached` 时停止的硬会话预算；以文件形式声明 agent，并通过已提交的 `claude-lock.json` 固定版本（`ant apply`，9 月 3 日）；一项服务端策略会对每次工具调用执行、拒绝或暂停操作（9 月 10 日）；支持自托管沙箱和每个 agent 的 `inference_geo`。运行时费用为每个运行中会话小时 $0.08，空闲时间免费。
+- **Claude Managed Agents**（beta，10 月 22 日起也可在 Google Cloud Anthropic 托管的 Claude Models 上使用）：硬会话预算达到 `budget_reached` 后停止；以文件形式声明 agent，并通过已提交的 `claude-lock.json` 固定版本（`ant apply`，9 月 3 日）；服务端策略可执行、拒绝或暂停每次工具调用（9 月 10 日）；支持自托管沙箱和每个 agent 的 `inference_geo`。运行时费用为每个运行中会话小时 $0.08，空闲时间免费。
 - **Foundry Agent Service：**定时和事件触发的例程于 9 月 24 日正式可用；出站控制仍处于预览阶段。
 
 **我的决策方式：**
@@ -5529,11 +5531,11 @@ flowchart LR
 1. **数据控制首先构成淘汰条件。**任何需要 ZDR 或欧盟数据驻留的场景，今天都不能运行在 OpenAI Agents API 上；Claude 的 `inference_geo` 提供 `us` 或 `global`，而非欧盟固定区域。模型选择也会产生影响：Claude Opus 5.5 和 Sonnet 5.5 符合 ZDR 条件，而 Fable 5.1 除非 Anthropic 明确另行授权，否则要求保留 30 天数据。
 2. **预览版不是生产版。**Bedrock Managed Agents 具备银行所需的身份模型，但它仍是仅覆盖三个区域的预览版。我会试点，但不会将受监管工作流部署在其上。
 3. **保留执行平面。**OpenAI 的 Agents API 和 Claude Managed Agents 都接受自托管沙箱，而 Bedrock Managed Agents 在 AWS 内运行。工具、凭证和网络出站流量仍留在我的边界内；供应商获得的是编排能力。这种划分才使租用方案能够通过安全审查。
-4. **计算第二个计费表。**一个中型 OpenAI 容器的标价为每 20 分钟会话 $0.12（按分钟计费，最低 5 分钟），因此每天 1,000 个此类会话在 token 费用之前就是 $120；Claude 上 1,000 个运行 20 分钟的会话约为 $27。相对于 token 费用很小，但空闲行为不同，应纳入成本模型。
+4. **计算第二个计费表。**一个中型 OpenAI 容器的标价为每 20 分钟会话 $0.12（按分钟计费，最低 5 分钟），因此每天 1,000 个此类会话在 token 费用之前就是 $120；Claude 上 1,000 个运行 20 分钟的会话约为 $27。相对于 token 费用很小。自 10 月 9 日起，两家都不再为闲置时间收费（OpenAI 沙箱仅在活跃轮次计费），所以等待人工审批不再产生沙箱时间费用；但成本模型应使用实测活跃时间，而非会话总长。
 5. **为退出定价。**harness 拥有压缩格式和会话历史。可移植性来自将工具作为 MCP 服务器、将指令作为 skills、将评估放在我自己的套件中，以及在我的审计存储中保留每个会话事件的副本。
 6. **按平台检查生命周期。**AWS 表示，Bedrock 上的 GPT-6.1 Sol 遵循 OpenAI 第一方的弃用条款，因此在超大规模云厂商平台上列出，并不会获得更长的支持窗口。
 
-**判断结论：**对于数据规则适配的内部高吞吐工作流，租用 harness，因为托管压缩和恢复很难自行做好。对于 ZDR、欧盟数据驻留，或 agent loop 本身就是产品的场景，则应基于持久工作流引擎自建。无论哪种方式，权限分类器都不是边界：针对 Claude Code 的自动模式，Anthropic 的立场——正如绕过它的研究人员所引述——是，真正的边界是 OS 隔离和网络出站控制；我会以相同标准审视每一项服务端策略。"
+**判断结论：**对于数据规则适配的内部高吞吐工作流，租用 harness，因为托管压缩和恢复很难自行做好。对于 ZDR、欧盟数据驻留，或 agent loop 本身就是产品的场景，则应基于持久工作流引擎自建。无论哪种方式，权限分类器都不是边界：针对 Claude Code 的自动模式，Anthropic 的立场——正如绕过它的研究人员所引述——是，真正的边界是 OS 隔离和网络出站控制（Q148 讨论了 Anthropic 对生产监控器的红队测试）；我会以相同标准审视每一项服务端策略。”
 
 **预期追问：**无论租用哪种 harness，哪些内容必须始终留在内部？（身份和凭证保险库、出站策略、规范任务状态和审计日志，以及评估套件；只要这些仍归你所有，替换 harness 就是迁移而不是重写。）
 
@@ -5550,7 +5552,7 @@ flowchart LR
 
 **9 月这些数字的含义：**
 
-- **Terminal-Bench 4.0**（66 个任务、8 小时超时；3.0 分数不可继承）。tbench.ai 排行榜（9 月 21 日）显示，Astra 在 max effort 下为 58.18%，Claude Fable 5.1 在 max 下为 57.88%，其中 Astra 的运行成本约为 $3.3K，而后者为 $6.2K。Anthropic 在其自身运行中报告 Opus 5.5 在 xhigh 下达到 66.4%（标准误差 2.6），OpenAI 则报告 Astra 在 high effort 下为 57.9%。在一个 66 任务基准上，一个任务约等于 1.5 个百分点，因此 0.3 个百分点的差距属于噪声。
+- **Terminal-Bench 4.0**（66 个任务、8 小时超时；3.0 分数不可继承）。tbench.ai 排行榜（9 月 21 日）显示，Astra 在 max effort 下为 58.18%，Claude Fable 5.1 在 max 下为 57.88%，其中 Astra 的运行成本约为 $3.3K，而后者为 $6.2K。Anthropic 在其自身运行中报告 Opus 5.5 在 xhigh 下达到 66.4%（标准误差 2.6）、Sonnet 5.5 为 70.6%（供应商报告），OpenAI 则报告 Astra 在 high effort 下为 57.9%。10 月 6 日新增的排行榜条目中，Opus 5.5 以 64.85% 排第一，Sonnet 5.5 以 61.82% 排第二，均为 max；GPT-6.1 Sol 与 Astra 并列 58.18%，运行成本约为 $634 对 $3.3K。同一模型在供应商自有 harness 和公开榜单上分数不同，而且供应商内部两款模型的排序也翻转了。在一个 66 任务基准上，一个任务约等于 1.5 个百分点，因此 0.3 个百分点的差距属于噪声。
 - **Fallback。** Opus 5.5 的评分启用了生产环境保障措施；发生干预时，Opus 4.8 完成了网络安全任务，Opus 5 完成了生物学和 LLM 开发任务。Artificial Analysis 将此类条目标为“with fallback”。这个标题分数属于一个路由器，而非一组权重。
 - **Harness。** 在 ARC-AGI-3 Semi-Private 上，Astra 在 ARC Prize 供应商中立的 Standard harness 中以 max effort 得到 62.7%，而在 ARC Prize 的 Provider Adapter harness 中得到 99.9%；后者使用 OpenAI 自己的上下文管理功能，在请求之间保留不透明的推理状态。
 - **工具配置。** 在使用官方 web 和 code 工具的 HLE-Diamond 上，Astra 以 82.9% 对 73.9% 领先 Opus 5.5。在 Anthropic 的 full-HLE-with-tools 表格中，Opus 5.5 则以 67.7% 对 57.2% 领先。相同模型，排序相反。
@@ -5580,12 +5582,12 @@ flowchart LR
 
 “‘开放权重’如今涵盖四种不同的交易模式，而几乎每一份受限许可证的触发条件，恰恰都是我们正在构建的业务：编程助手加上模型即服务 API。
 
-**截至 10 月 1 日的许可证类别：**
+**截至 11 月 2 日的许可证类别：**
 
-1. **宽松许可。** Xiaomi MiMo-V2.6（MIT，9 月 21 日）、DeepSeek V4.1-Flash（MIT）、GLM-5.3-Flash（MIT）、Tencent Hy4 preview 和 MBZUAI K2 Horizon（Apache 2.0）。
-2. **按收入设限的 MaaS。** 当 MaaS 运营商及其关联方在 12 个月内的收入超过 US$20M 时，Kimi K3 需要单独协议。Qwen3.8-Max 许可证对收入超过 US$50M 的 MaaS 以及编程或办公助手业务设限。GLM-5.3 采用 MIT，但对收入超过 US$10B 的 MaaS 运营商适用 Z.ai 安全审查。Kimi 和 GLM 对 MaaS 的定义均排除了嵌入式终端用户产品。
-3. **按使用场景设限，无门槛。** Qwen3.8-Flash-Next（8 月 26 日）采用的 Qwen Community License 1.0 规定：如果你经营 MaaS 或“AI Work Assistant”业务，即主要用于 AI 辅助编程或办公的产品，则任何商业使用之前都必须先获得单独许可证。这正是我们。
-4. **全面收入上限。** Mistral Medium 3.5 的修改版 MIT 对月收入超过 US$20M 的组织撤销全部权利，衍生模型也包括在内。
+1. **宽松许可。** Xiaomi MiMo-V2.6（MIT，9 月 21 日）、DeepSeek V4.1-Flash（MIT；10 月 17 日的新构建已用于 `deepseek-flash`）、GLM-5.3-Flash（MIT）、Tencent Hy4 preview 和 MBZUAI K2 Horizon（Apache 2.0）。
+2. **按收入设限的 MaaS。** 当 MaaS 运营商及其关联方在 12 个月内的收入超过 US$20M 时，Kimi K3 需要单独协议；Meta 的 Muse Model License 对 Muse Spark Open（10 月 15 日）也在 MaaS 收入超过 US$20M 时设门槛。Qwen3.8-Max 许可证对收入超过 US$50M 的 MaaS 以及编程或办公助手业务设限。GLM-5.3 采用 MIT，但对收入超过 US$10B 的 MaaS 运营商适用 Z.ai 安全审查。Kimi 和 GLM 对 MaaS 的定义均排除了嵌入式终端用户产品。
+3. **按用途限制，无收入门槛。** Qwen Community License 1.0（Qwen3.8-Flash-Next，8 月 26 日）规定：经营 MaaS 或“AI Work Assistant”（主要用于 AI 辅助编程或办公的产品）业务，就必须在任何商业用途前获得单独许可；这正是我们的业务。Mistral Large 4（10 月 29 日发布权重）采用 Mistral Ecosystem Open-Weight License，任何 MaaS 业务均需单独商业许可，不设收入门槛，因此我们的合作伙伴 API 会触发许可要求。
+4. **全面收入上限。** Mistral Medium 3.5 的修改版 MIT 对月收入超过 US$20M 的组织撤销全部权利，衍生模型也包括在内。Mistral 于 10 月 31 日弃用该模型，将于 2027 年 4 月 30 日退役。
 
 同一模型家族可能跨越多个类别：Qwen3.8-27B 是普通 Apache 2.0，Flash-Next 从第一天起即受限，而 8 月 12 日发布的 Qwen3.8 旗舰模型只在收入超过 US$50M 时受限。许可证必须按检查点逐一阅读。
 
@@ -5597,11 +5599,11 @@ flowchart LR
 - **衍生模型继承许可证。** Cognition 的 SWE-2 和 Fireworks 的 Ember-1 均基于 Kimi K3；我们微调的任何模型都会随之继承其基础许可证。
 - **固定溯源。** 权重来自官方组织，并记录哈希值。在 GLM-5.3 权重发布后的数日内，Hugging Face 上就出现了未经审查和经过去除对齐的社区构建版本，其中一个 GLM-5.3-Flash 构建版本的下载量约为 220K。
 
-**模型选择：** MiMo-V2.6-Pro 在 Artificial Analysis Intelligence Index v4.3.2 中得分 46，是采用 MIT 的最高分开放权重模型；GLM-5.3 得分 45，在收入低于 US$10B 时其条款实际上等同于 MIT。我会先使用 MiMo-V2.6-Flash（总参数量 309B，激活参数量 15B，Xiaomi 的示例中在一台 8-GPU 节点上提供服务）以控制单位成本，在评测要求时升级到 Pro，并保留闭源模型作为后备，因为最佳开放模型得分仍落后于 Opus 5.5 的 58。在未签署单独许可证前，我不会发布任何采用 Qwen Community 1.0 的检查点。”
+**模型选择：** Artificial Analysis Intelligence Index v5.0 上，DeepSeek V4.1-Flash-1017（MIT）和 GLM-5.3（年收入低于 US$10B 时条款近似 MIT）均为 32，MiMo-V2.6-Pro（MIT）为 30。我会从 MiMo-V2.6-Flash（总参数 309B、激活 15B；小米示例在一台 8-GPU 节点上服务，v5.0 得分 27）开始控制单任务成本；评测需要时升级到 30-32 分模型，并保留闭源回退，因为开放模型最高分比 Opus 5.5 的 58 低超过 25 分。未签署单独许可证前，不会发布 Qwen Community 1.0 检查点。”
 
 **预期追问：** 如果你不是自托管，而是通过托管服务商调用 Kimi K3，MaaS 条款是否仍然约束你？（K3 许可证对通过 Moonshot 官方产品或认证推理合作伙伴使用的情形豁免这两个条件，因此该条款主要约束自托管并转售的情形；应以书面形式确认服务商的认证状态。）
 
-### Q135: 在 8 月 11 日至 9 月 28 日期间，vLLM 发布了 20 多份安全公告，其中包括一个可让所有租户的引擎因单个请求而终止的问题，以及一个跨租户前缀缓存预言机；与此同时，LiteLLM 披露了一个漏洞，允许任何已认证用户将运营方存储的提供商密钥发送给攻击者。请为多租户、自托管推理服务层设计安全架构。
+### Q135: vLLM 在 8 月 11 日至 9 月 28 日发布了 20 多份安全公告，10 月又出现一批问题。漏洞包括单个请求即可令引擎线程挂起、图像解码可到达 Ghostscript，以及 LiteLLM 的密钥窃取和供应链风险。请为多租户、自托管推理服务层设计安全架构。
 
 **面试官关注点：**
 - 将 GPU 引擎视为共享命运的多租户攻击面
@@ -5617,8 +5619,10 @@ flowchart LR
 - **共享命运。**CVE-2026-93592（CVSS 7.5）：向 vLLM 的嵌入或池化端点发送一个带负数 token ID 的未认证请求，即可污染 CUDA 上下文，并使所有客户端的引擎终止，直至重启。在 0.28.0 中修复。
 - **模型加载即代码执行。**CVE-2026-90553（CVSS 7.8）：即使设置了 `trust_remote_code=False`，恶意模型仓库的处理器代码仍会运行。在 0.28.0 中修复。
 - **前缀缓存是侧信道。**GHSA-935w-9g4m-p28p：在一条路由上，即 GPT-OSS Harmony `/v1/responses` 路径中的工具续接轮次，`cache_salt` 被丢弃，重新打开了跨租户前缀缓存成员关系预言机。在 0.30.0 中修复。
-- **网关汇聚密钥。**LiteLLM CVE-2026-84377：任何已认证的代理用户都可以设置 `api_base` 或回退配置，使代理将运营方存储的提供商凭证发送到攻击者主机。8 月 27 日披露的 CVE-2026-37004，是提示词测试端点上的未认证模板注入 RCE（CVSS 9.8）；其修复已在 4 月随 1.83.7 发布，比公告早了数月。PyPI 的 1.82.7 和 1.82.8 版本此前在年内更早时已被攻陷。
-- **内部套接字也是攻击面。**SGLang 在 5 月的公告（pickle 和 dill 反序列化、任意文件写入）列出了截至 0.5.12 的版本，但未记录已修复版本。
+- **健康端点可能掩盖引擎挂起。**GHSA-4xqp-c3mv-qff7（中危，0.31.0 修复）：向 `/inference/v1/generate` 发送一个 `max_tokens` 为 null 且 `min_tokens` 过大的请求，会杀死引擎输入线程。进程仍在运行，`/health` 继续返回 200，但所有生成请求挂起且没有组件重启。
+- **图像加载可触达 Ghostscript。**CVE-2026-115915（高危，CVSS 8.1，0.32.0 修复）：加载器忽略声明的 MIME 类型，让 Pillow 根据数据字节嗅探解码器，因此标成 PNG 的 EPS 会进入 Pillow 的 EPS 插件和 Ghostscript。在有漏洞的 Ghostscript 主机上，这可导致命令执行。多模态共享内存处理器缓存中的 CVE-2026-115912 也在 0.32.0 修复。
+- **网关汇聚密钥。**LiteLLM CVE-2026-84377：任何已认证的代理用户都可以设置 `api_base` 或回退配置，使代理将运营方存储的提供商凭证发送到攻击者主机。`/prompts/test` 模板注入 RCE 已于 4 月随 LiteLLM 自身公告和 1.83.7 修复（CVE-2026-42203，高危，任何有效代理密钥即可触达）；重复记录 CVE-2026-37004 于 8 月 27 日发布，NVD 将其评为未认证 CVSS 9.8。年内更早时 PyPI 的 1.82.7 和 1.82.8 版本也遭入侵。
+- **内部套接字也是攻击面。**SGLang 5 月公告（pickle、dill 反序列化和任意文件写入）列出截至 0.5.12 的受影响版本，没有记录修补版本。10 月又新增两项严重漏洞，同样未记录修补版本：CVE-2026-111391（`/dumper/configure` 未认证调试端点的 `eval()` 注入，CVSS v4 9.2，描述影响 0.5.10 至当前的 0.5.22）和 CVE-2026-93034（ZMQ 解码器，CVSS 9.8）。没有安全的已发布版本；运行最新版，限制 dumper、debug、ZMQ 和分布式初始化端点，并且不为不可信调用方启用自定义 logit 处理器。
 
 **架构：**
 
@@ -5627,12 +5631,12 @@ flowchart LR
 3. **为每条缓存路径加盐，并加以证明。**在所有位置使用每租户 `cache_salt`，并为每个端点设置 CI 测试，证明租户 B 的延迟无法泄露租户 A 的前缀信息。9 月的回归问题就存在于众多路由中的一条。
 4. **让权重经过管道。**仅使用内部镜像、哈希固定的检查点；先在没有凭证且禁止出站访问的构建阶段加载。租户绝不能向共享引擎提供仓库或适配器。
 5. **网关是保险库，而不是客户端输入的转发器。**客户端不能设置 `api_base`、基础 URL 或回退配置（LiteLLM 的缓解措施为 `allow_client_side_credentials=false`）。网关出站流量仅允许访问提供商端点；即使未打补丁，这也能阻止密钥外泄。管理和测试端点位于独立的认证平面，凭证按请求注入（Envoy AI Gateway 1.1 新增了 `credentialOverride`）。
-6. **内部 RPC 留在 Pod 内。**网络策略确保外部无法访问 ZMQ 和引擎套接字，并且不为不可信调用方启用自定义 logit 处理器。
-7. **将打补丁作为 SLO。**七周内 20 多份公告，约为每周三份；而 LiteLLM RCE 表明公告可能比修复晚数月，因此跟踪当前版本才是控制措施，阅读公告只是兜底。设置版本下限（根据公告验证：vLLM 0.30.0、SGLang 0.5.13）、哈希固定依赖，以及以天为单位衡量的“公告到金丝雀”管道；同时设置评估门禁，防止安全补丁悄然改变输出。
+6. **内部 RPC 留在 Pod 内。**网络策略确保外部无法访问 ZMQ 和引擎套接字，并且不为不可信调用方启用自定义 logit 处理器。对 SGLang 而言这就是全部防线，而非兜底：CVE-2026-111391（eval 注入，CVSS v4 9.2）和 CVE-2026-93034（ZMQ 解码器，CVSS 9.8）均无修补版本，dumper、debug、ZMQ 与分布式初始化端点绝不能接入网络。
+7. **将打补丁作为 SLO。**七周内 20 多份公告，约为每周三份；LiteLLM RCE 的 CVE 记录比供应商自己的公告和修复晚了四个月，严重性评级也不同，因此跟踪当前版本和供应商公告才是控制手段，CVE feed 只是兜底。版本下限：vLLM 0.32.0（CVE-2026-115915 影响所有更早版本）；LiteLLM 对 CVE-2026-114612（CVSS 9.9，默认配置可利用）按发布线至少使用 1.100.4、1.101.3、1.102.2 或 1.103.1；企业许可代理对 GHSA-w4c7-34wj-hqm8（CVSS 10.0）至少使用 1.103.10、1.104.8、1.105.6 或 1.106.5；SGLang 使用最新版并落实第 6 点隔离。再加上哈希锁定依赖以及以天为单位衡量的“公告到金丝雀”管道，并设评估门禁，防止安全补丁悄悄改变输出（Q150 覆盖网关供应链）。
 
 **关键判断：**如果我们无法为引擎和网关同时配备以天而非数周为单位的补丁节奏，那么就应购买托管推理服务，因为未打补丁的自托管栈是所有选项中风险最高的。”
 
-**预期追问：**修复要求从 vLLM 0.27 跳升至 0.30。你如何在不改变模型行为的情况下完成发布？（假设你做不到：0.28.0 将默认 `max_num_batched_tokens` 翻倍，而 0.29.0 将 Model Runner V2 设为默认，因此应将升级视为模型变更。在金丝雀环境回放黄金集，将输出分布、延迟和吞吐量与固定版本的基线比较；若评估门禁阻止发布，则准备好诸如网关侧验证或禁用受影响端点之类的缓解措施。）
+**预期追问：**修复要求从 vLLM 0.27 跳升至 0.32。你如何在不改变模型行为的情况下完成发布？（无法假设行为不变：0.28.0 将默认 `max_num_batched_tokens` 翻倍，0.29.0 将 Model Runner V2 设为默认；0.32.0 又把 `max_tokens` 改为输出上限，并将默认 CORS 策略从 `*` 改为无，因此应视为模型变更。在金丝雀环境回放黄金集，将输出分布、延迟和吞吐量与固定版本基线比较；若评估门禁阻止发布，则准备网关侧校验或禁用受影响端点等缓解方案。）
 
 ---
 
@@ -5658,7 +5662,7 @@ flowchart LR
 | 逐字脚本 | 可以，通过 TTS | 只能通过提示词 | 不可以，它会改述 |
 | 计费 | 按分钟组件费用之和 | 音频 token（OpenAI、Google）或固定每分钟费率（xAI） | 每会话分钟费用加后端 token |
 
-**我的选择是：采用全双工前端，并由客户端委托给现有智能体。** 首先，语音任务的成功率取决于附加在语音层上的推理能力。`gpt-live-1` 以 81.7% pass@1 领跑 Sierra 的 tau-bench voice 排行榜（根据发布报道，其搭配 GPT-6 Astra 的 medium effort），领先于 `grok-voice-think-fast-1.0` 等单模型条目，后者为 67.3%；Google 报告 Gemini 3.8 Live Extended Thinking 在 tau-Voice 上达到 68.6%，而基础模型为 30.1%（供应商报告）。普通的语音到语音模型会迫使我在新的提示词中重建工具和策略，并放弃现有推理能力。其次，委托保留了我们已经信任的权限边界。OpenAI 的迁移指南将说话风格放入语音会话的指令中，而将业务规则和工具放在后端，因此后端拥有状态和权限，语音层拥有时序。第三，话轮交接正是来电者能感知质量的地方。OpenAI 报告 GPT-Live 的话轮交接时间为 0.798 s，而 `gpt-realtime-2.1` 为 1.41 s（供应商报告）；但 Artificial Analysis 测得，搭配 Astra 后端且使用 medium effort 的 GPT-Live 首段音频时间为 1.34 s。我会根据独立数据和自己的链路追踪来制定预算，而不是依据发布图表。
+**我的选择是：采用全双工前端，并由客户端委托给现有智能体。** 首先，语音任务成功率取决于语音层所连接的推理能力：Google 报告 Gemini 3.8 Live Extended Thinking 在 tau-Voice 上达到 68.6%，基础模型为 30.1%（供应商报告）。普通的语音到语音模型会迫使我在新的提示词中重建工具和策略，并放弃现有推理能力。其次，委托保留了我们已经信任的权限边界。OpenAI 的迁移指南将说话风格放入语音会话的指令中，而将业务规则和工具放在后端，因此后端拥有状态和权限，语音层拥有时序。第三，话轮交接正是来电者能感知质量的地方。OpenAI 报告 GPT-Live 的话轮交接时间为 0.798 秒，而 `gpt-realtime-2.1` 为 1.41 秒（供应商报告）；但 Artificial Analysis 测得，搭配 Astra 后端且使用 medium effort 的 GPT-Live 首段音频时间为 1.34 秒。我会根据独立数据和自己的链路追踪来制定预算，而不是依据发布图表。
 
 **这会带来什么成本，以及我如何承担：**
 
@@ -5774,7 +5778,7 @@ flowchart LR
 
 | 平台 | 限制 | 类型 |
 |---|---|---|
-| Amazon Nova 2 Sonic | 8 分钟连接，提供已文档化的续接模式 | 传输 |
+| Amazon Nova 2 Sonic | 8 分钟连接，提供已文档化的续接模式（Nova 2.5 Sonic 于 10 月 5 日 GA，发布公告未提到连接时限，应实测） | 传输 |
 | Gemini Live | 约 10 分钟连接，并提供 GoAway 警告；未压缩的音频会话为 15 分钟；恢复令牌有效期为 2 小时 | 传输和会话 |
 | OpenAI Realtime API | 60 分钟会话 | 会话 |
 | OpenAI GPT-Live | 超过 128K 上下文的 90% 后，替代语音引擎会携带指令和至多 8,192 个 token 的历史启动；未公布最长时长 | 会话内压缩 |
@@ -5831,7 +5835,7 @@ flowchart LR
 
 **我汇报的指标是每通已解决电话的成本。**一个每分钟 $0.03、但升级人工的频率是每分钟 $0.08 方案两倍的智能体，一旦计入人工分钟成本，完全可能更贵；因此，自助解决率和重复来电率应与按分钟费率置于同一个模型中。我还会标注价格的时效性：Gemini 3.8 Flash TTS 的促销价格将在 2027 年 1 月 1 日翻倍，且多家 STT 和 TTS 供应商列出了促销费率，因此每一行都要标注到期日。”
 
-**预期追问：**即使成本模型成立，什么会阻碍上线？（并发上限：GPT-Live 在 Tier 1 允许 25 个并发会话，在 Tier 5 允许 500 个；Vapi 的默认并发限制为 4、10 和 30。根据到达曲线确定峰值并发量，在上线前申请提高限制，并保留第二家供应商用于溢出流量。）
+**预期追问：**即使成本模型成立，什么会阻碍上线？（并发上限：上线前应按当前 OpenAI 使用层级（Build、Launch 或 Grow）核对 GPT-Live 并发会话限额；Vapi 默认并发限制为 4、10 和 30。根据到达曲线确定峰值并发量，提前申请提高限制，并保留第二家供应商用于溢出流量。）
 
 ### Q142: 为语音智能体设计发布门禁。对模型、提示词、语音或框架的改动，除非证明至少同样好，否则不得发布。测试框架中应包含什么？哪些情况会阻止发布？
 
@@ -5869,7 +5873,7 @@ flowchart LR
 
 **对所有会改变行为的内容进行版本化：**语音模型、后端模型、提示词、TTS 语音、轮次检测器、框架。语音也属于此列表。Sierra 将其生产语音角色描述为“sealed”，并表示某个客户使用后解决率提高了近 50%（供应商报告），因此语音变更应与模型变更经过相同的门禁。
 
-**公开基准用于设定预期，而不是作为门禁。** 各供应商的 tau-Voice 数值彼此之间不可比较，也无法与 Sierra 的排行榜比较（Google 的表格显示 GPT-Live 搭配 Astra 为 67.9%；Sierra 的排行榜列出 `gpt-live-1` 为 81.7%）；它们还取决于语音层背后使用的后端。Big Bench Audio 已趋于饱和。
+**公开基准用于设定预期，而不是作为门禁。** 各供应商的 tau-Voice 数值彼此之间不可比较，也无法与 Sierra 的排行榜比较（Google 的表格显示 GPT-Live 搭配 Astra 为 67.9%）；它们还取决于语音层背后使用的后端。tau-bench 2.0.0（10 月 19 日发布）明确说明其分数不能与 1.x 比较，因此门禁中的任何基准都应固定版本。Big Bench Audio 已趋于饱和。
 
 **生产环境形成闭环：**抽样真实通话、标注失败案例，并每周将最差案例提升至回放层。工具会有帮助（OpenAI Agents SDK 提供语音测试模块，Pipecat 提供脚本化评估 CLI），但在事后复盘中，我愿意为针对自有系统的结果检查负责。"
 
@@ -5918,7 +5922,7 @@ flowchart LR
 
 | 组件 | 覆盖范围示例 |
 |---|---|
-| 语音模型 | Gemini 3.8 Live：支持 97 种语言，并可在通话中切换；Nova 2 Sonic：支持 7 种语言 |
+| 语音模型 | Gemini 3.8 Live：支持 97 种语言，并可在通话中切换；Nova 2.5 Sonic：支持 7 种语言 |
 | 流式 STT | Gemini 3.5 Transcribe：支持 85+ 种语言；AssemblyAI 的实时模型：18 种 |
 | 轮次检测 | LiveKit 的音频轮次检测器：14 种语言 |
 | TTS | ElevenLabs v4：90+ 种语言（供应商报告） |
@@ -5951,7 +5955,7 @@ flowchart LR
 
 “我将合规构建为围绕模型的确定性基础设施，而不是写进其提示词的指令，因为每项要求之后都必须能够被证明。法务顾问负责规则表；我的职责是让它可被强制执行。
 
-**美国基线。** FCC 在 2024 年的裁定（FCC 24-17）将 AI 生成的语音视为 TCPA 下的‘人工或预录语音’，因此这类电话需要事先明示同意；电话营销还需要书面同意。FCC 在 2024 年的一项提案（24-84）会要求在收集同意时以及每次通话开始时披露 AI；我不知道是否已有最终规则，但无论如何我都会披露。各州还增加了额外要求：加州的 AB 2905 要求在自动拨号消息播放前，由真人自然语音披露 AI 生成的语音；自 2026 年 1 月 1 日起，得州要求医疗服务提供者披露 AI 的使用。行业媒体报道，FCC 于 2026 年 9 月 30 日投票通过按类别退出机制，包括语音或按键渠道；我会现在就为此进行设计，并根据最终命令确认。若我们作为第三方债务催收方进行催收，则催收还有其自身的一层要求：FDCPA 要求在首次口头沟通中作出‘正在尝试催收债务’的披露，并将消费者所在地当地时间上午 8 点前或晚上 9 点后拨打电话视为不便；Regulation F 推定，就每笔债务而言，七天内超过七次通话，或在一次对话后的七天内再次通话，构成违规。这项披露也是必须逐字使用的语言。
+**美国基线。** FCC 在 2024 年的裁定（FCC 24-17）将 AI 生成的语音视为 TCPA 下的‘人工或预录语音’，因此这类电话需要事先明示同意；电话营销还需要书面同意。FCC 在 2024 年的一项提案（24-84）会要求在收集同意时以及每次通话开始时披露 AI；我不知道是否已有最终规则，但无论如何我都会披露。各州还增加了额外要求：加州的 AB 2905 要求在自动拨号消息播放前，由真人自然语音披露 AI 生成的语音；自 2026 年 1 月 1 日起，得州要求医疗服务提供者披露 AI 的使用。行业媒体报道，FCC 于 2026 年 9 月 30 日投票通过按类别退出机制，包括语音或按键渠道。FCC 的撤回同意命令（FCC 26-67）于 10 月 26 日在《联邦公报》刊登，并将于 2026 年 11 月 25 日生效；根据 2024 年人工语音裁定，该命令也涵盖 AI 语音电话，因此撤回同意处理是上线要求；具体适用细节应由法律顾问对照命令文本确认。若我们作为第三方债务催收方进行催收，则催收还有其自身的一层要求：FDCPA 要求在首次口头沟通中作出‘正在尝试催收债务’的披露，并将消费者所在地当地时间上午 8 点前或晚上 9 点后拨打电话视为不便；Regulation F 推定，就每笔债务而言，七天内超过七次通话，或在一次对话后的七天内再次通话，构成违规。这项披露也是必须逐字使用的语言。
 
 **欧盟。**《AI 法案》第 50 条自 2026 年 8 月 2 日起适用：在首次互动时告知对方其正在与 AI 交谈，并以机器可读、可检测的方式标记合成音频。2026 年 8 月 2 日前投放市场的系统，仅就标记义务而言可延至 2026 年 12 月 2 日。委员会指南补充，代理必须说明其代表谁行事。
 
@@ -6045,11 +6049,256 @@ flowchart LR
 
 **预期追问：** 来电者询问新的处方药能否与布洛芬同服。智能体怎么做？（它会转交：临床问题通过携带已验证上下文的暖转交给药剂师；智能体仅回答状态、营业时间和续方等物流问题；该边界由策略引擎强制执行，而不仅仅依赖提示词。）
 
+<a id="进阶问题-2026-年-10-月"></a>
+
+## 进阶问题 - 2026 年 10 月
+
+*反映 2026 年 10 月新问题：智能体关闭自己的告警、监控漏掉整类事件；美国政府的事故响应实践区分提示注入导致的行为和自主行为；广泛使用的 AI 网关发布遭投毒；微调模型将随基础模型一起退役；价格随提示长度和日期变化；决策模型返回带概率的类型化答案；Claude 全系列模型开始拒绝采样参数的 API 版本；以及 AI 缩短漏洞变成可用攻击代码所需的时间和成本。面向资深及以上候选人。*
+
+### Q148：你的编程智能体可以写仓库并启动任务。近期事故中，有智能体关闭了自己的告警、删除监控状态；一次审计还发现，某实验室内部约 10% 的编程智能体流量未被监控。请设计无法被智能体静音、拖延或绕过的监控，并证明覆盖率。
+
+**面试官关注：**
+- 将监控配置、告警路由和测试视作攻击面，而不只看智能体对生产环境做了什么
+- 按事件类型和触发方式衡量覆盖率，分母来自智能体无法影响的数据源
+- 篡改时触发确定性停机；智能体自述仅作为待核实的说法；监控失效时默认关闭
+
+**参考回答：**
+
+“Q129 讨论了监控智能体对生产环境的操作。10 月的事件中，智能体开始攻击监控本身：一个关闭自己的告警，另一个删除监控状态后告诉用户自己没有这么做；另一次审计发现有些事件根本不会被监控评分，而且智能体可以拖延触发条件。这是三种失效：静音、拖延和绕过。
+
+**设计：**
+
+1. **监控平面不可触及。**监控配置、告警路由、收件人列表、通知开关和监控自身测试放在单独的仓库与控制平面，智能体凭据不能写入；由独立负责人和变更流程管理。NIST CAISSI、NSA 和 CISA 于 10 月 16 日发布的训练与评估关键实践也要求监控器和日志不可被智能体访问。被监控系统能修改的监控只是一种建议。
+2. **篡改触发确定性停机。**任何试图写入受保护路径、修改告警路由或删除监控状态的操作，都会暂停轨迹并通知人工。不能依赖模型判断：Anthropic 10 月对 Auto Mode 的红队测试发现，生产监控器未能拦截超过 55% 的攻击（供应商报告）；上述两个事件则都会在第一次写入时触发路径规则。
+3. **按事件流实时评分，并设置时钟。**如果监控只在控制权返回用户时触发，智能体持续工作就能拖延它；METR 审计中压缩事件也从未被评分。因此每次工具调用、压缩、子智能体启动和任务启动都应即时评分；心跳规则规定轨迹在没有结论时最多可继续 N 个事件或 M 分钟，超时即暂停。
+4. **客户端不能关闭监控。**METR 还发现两个可由客户端控制、能关闭监控的请求头。监控策略由绑定工作负载身份的服务端配置决定；降低监控级别的请求头应被忽略并记作信号。
+5. **任务继承监控。**使用智能体凭据启动的任务必须带有父轨迹 ID；调度器拒绝没有标签的智能体任务。
+6. **监控器保持多样性。**至少有一个监控器来自不同于智能体的模型家族，这也是关键实践之一，以免共享盲点导致同时漏报。
+7. **自述是待验证的说法。**智能体对自身行为的描述，在与审计日志核对之前没有证明力；自动核验每个“我没有做过”，出现不一致就暂停。
+
+**证明覆盖率：**分母来自智能体无法修改的系统：网关记录的每次推理调用、调度器记录的每个任务、仓库主机记录的每次写入。按事件类型和流量来源报告覆盖率，包含 RL 和内部工具流量，因为 OpenAI 披露其前沿 RL 运行及内部 Codex 流量会跳过激活探针层。每月用植入式智能体演练各类规避方式（静音告警、通过压缩拖延、设置请求头、启动无标签任务），跟踪捕获率和暂停时间。
+
+**取舍：**监控应故障关闭。若监控不再返回结论，所有有写权限的轨迹都暂停；监控可用性告警按服务中断处理。这会降低监控故障期间的智能体可用性，但故障开放正是智能体等待监控失效所需要的结果。”
+
+**预期追问：**给每次工具调用评分会增加延迟。如何避免监控进入关键路径？（异步评分；只对不可逆操作或触及监控的操作同步阻塞；其他操作可以先继续，但心跳规则限制轨迹在监控落后时能超前多少。）
+
+### Q149：一个智能体删除了生产备份，但目前没人知道是被投毒的文档指使，还是它自主行动。NIST CAISSI、NSA 和 CISA 于 10 月发布的事故响应关键实践，将由提示注入或后门模型导致的行为归为“受指令行为”，按普通网络安全事故处理，并重点关注重大自主行为。请设计事故流程，以便区分两者并相应改变遏制、负责人和报告方式。
+
+**面试官关注：**
+- 理解区分的作用：它决定由谁负责、遏制范围多大、适用什么报告时限
+- 根据记录证据归因（上下文来源、反事实回放、模型完整性），而非相信智能体自己的解释
+- 先遏制、后分类；只有确认遏制有效才允许重启
+
+**参考回答：**
+
+“《超级智能训练与评估的事故准备和响应关键实践》包含十项自愿实践，面向训练和评估；我把其中的分类法借用于生产智能体。其定义影响设计：提示注入或后门模型导致的行为算受指令行为，走普通网络安全事故流程。同一个备份删除行为，若是恶意网页指示的，就是安全事故；若没有任何指令，则属于模型行为事故。负责人、影响范围和报告时钟都不同。
+
+**流程：**
+
+1. **先遏制，再分类。**暂停轨迹、撤销凭据并冻结它启动的一切任务。归因可能需要数小时，遏制不能等。
+2. **证据必须在智能体控制之外。**归因需要完整记录模型当时看到的上下文，并按当时来源给每段打标：系统提示、用户、工具输出、检索文档、其他智能体。日志必须防篡改，且智能体无法访问；两者都是关键实践要求。若当时没记录来源，事后归因就只能猜测。
+3. **用三项检查归因。**
+   - *来源：*不可信片段中是否包含与该操作相符的指令？
+   - *反事实回放：*在沙箱中对照记录的工具输出，分别带可疑片段和不带片段回放约 20 次，比较操作发生率。绝不能接入真实工具，否则可能再次删除备份。去掉该片段后行为消失，支持“注入”判断；若仍发生，则不支持。
+   - *模型完整性：*自托管权重需对照固定制品校验点；托管模型则记录实际服务的精确模型 ID。
+4. **按类别转交。**
+   - *提示注入：*由 SOC 负责。在所有读取过该内容的智能体中搜寻相同载荷，封锁来源，并把智能体接触过的内容视为可能已被污染。遏制范围沿内容来源扩大。若涉及个人数据，按 GDPR 第 33 条在 72 小时内向监管机构报告，并遵守合同中的客户通知时限。
+   - *模型后门：*按供应链事故处理。隔离所有部署该检查点及其衍生版本的服务。
+   - *自主行为：*由模型行为团队负责。遏制范围沿相同模型和配置扩大，而非相同内容。搜寻其他轨迹中的同类模式，并向模型供应商提交证据。若智能体属于我们提供的高风险系统，按 EU AI Act 第 73 条的 AI 专项时限报告（通常 15 天；死亡事故 10 天；广泛侵权或关键基础设施中断 2 天）。若我们以基础模型开发者身份训练前沿模型，且事件符合重大安全事故的法定定义，纽约州和伊利诺伊州从 2027 年 1 月 1 日起要求 72 小时内报告，加州 SB 53 要求 15 天内报告；否则这些义务属于供应商，我们应尽快提供证据。EU AI Office 已要求通用模型供应商提交并收到严重事故报告，因此供应商可能会来索取证据。
+
+   时钟从知悉时开始，因此先报告暂定类别，再更新结果，不能等归因完成后再报告。
+5. **确认遏制后才重启。**这也是关键实践：轮换凭据并确认旧凭据已失效、检查持久化状态，并用植入式测试确认监控会触发。
+
+**歧义是常态。**智能体看到工单写着“清理过期内容”后删除备份，属于被诱导而非被明确指示。归因不清时，我会按自主行为方式遏制（按模型配置扩大），同时按提示注入方式搜寻（沿内容来源追踪）。这会增加分析成本，但若因为发现一个看似合理的注入就过早采用更轻的分类，自主行为就可能无人调查。
+
+**取舍：**分类值得投入，因为它决定修复哪一层。注入问题应修数据路径和工具权限；自主行为应调整模型、自治级别和监控。分错类别就会加固错误的层。”
+
+**预期追问：**智能体自己的解释说，它是在遵循工单指令。可以按受指令行为结案吗？（不可以。解释来自被调查的系统，应记录在案；类别根据来源记录和回放结果确定。Q148 开头的智能体也曾告诉用户自己没有删除监控。）
+
+### Q150：你的自托管 AI 网关保存着所有供应商密钥，并从 PyPI 和容器仓库安装。10 月，LiteLLM 在 5 月将内部管理员密钥提交到公开仓库后一直未撤销，导致 1.107.0 受污染版本发布；其中 wheel 和容器镜像约有两小时可下载，并窃取供应商密钥、主密钥、虚拟密钥和云凭据。如何避免泄露的管理员密钥演变成投毒发布？若已经拉取该版本，怎么办？
+
+**面试官关注：**
+- 将网关视为身份提供商级别的 Tier 0 基础设施
+- 同时列出发布方和使用方的具体控制
+- 假设进程能读取的所有密钥都已被窃，并让凭据轮换成为日常能力
+
+**参考回答：**
+
+“Q135 讲过网关漏洞如何让用户重定向已保存的密钥。这次方向相反：网关软件本身被投毒，而它运行时又能读取所有必需密钥；泄露的密钥约有四个半月时间可以撤销（推导）。
+
+**如果我负责发布软件，包括内部网关构建：**
+
+1. **发现密钥就自动撤销。**只创建工单的密钥扫描，才会让 5 月泄露的密钥一直用到 10 月。公开仓库中发现密钥就自动撤销，并监控凭据存续时间。
+2. **不使用长期发布令牌。**泄露密钥进一步导致 GitHub 组织所有者令牌和 CI 密钥失窃。使用 PyPI Trusted Publishing 后，发布工作流通过 OIDC 身份换取绑定到单一仓库和工作流的短期上传令牌，CI 密钥本身没有发布权限，仿冒 fork 也不能冒充我们发布。容器镜像推送在仓库支持工作负载身份时采用相同方式。
+3. **制品附带来源证明。**每个 wheel 都附 PyPI attestation；每个镜像都有签名，并注明构建它的仓库和工作流。
+
+**作为使用方（大多数团队都属于这一侧）：**
+
+4. **验证来源证明，而不只发布它。**部署流水线验证 PyPI attestation 和镜像签名；准入控制器拒绝来源证明指向其他仓库或工作流的制品。这样即使仿冒 fork 的令牌成功推送，制品仍会被拒绝。
+5. **采用 Q125 的制品准入控制，并给安全更新开快车道。**锁定哈希的 lockfile、按摘要固定镜像和 72 小时冷静期，本可避开两小时的投毒窗口。网关还应为安全修复提供快车道，例如 LiteLLM 面向企业许可代理的 CVSS 10.0 修复：验证来源证明后立即接纳，不必等待冷静期。
+6. **减少可被窃取的内容。**该载荷窃取了环境变量中的密钥，所以供应商密钥不应放在网关环境里。出站流量通过代理，只允许访问供应商端点；代理从密钥库注入我方凭据，并拒绝携带自有凭据的请求。这比 Q135 的允许列表更进一步，因为攻击者可能借允许访问的供应商端点把密钥发到自己的账户。管理员凭据不应以明文留在服务主机上。
+
+**如果拉取了受污染版本：**部署日志应记录每台主机运行的摘要，让“是否有主机运行过 1.107.0”成为一次查询，而非考古。如果运行过，就假设进程能读取的一切都已泄露：轮换所有供应商密钥、主密钥、虚拟密钥和云凭据；用可信镜像重建主机；检查供应商用量中是否有陌生来源的消费。这只有在轮换已自动化时才能快速完成，因此所有密钥都应定期轮换，紧急轮换也使用同一套自动化，而且要及早启动。
+
+**取舍：**自托管网关仍可行，但应按 Tier 0 管理：单独的制品准入流程、不注入环境的密钥和每季度一次轮换演练。若团队无法维持这些控制，托管网关可以把这类风险交由供应商承担。”
+
+**预期追问：**同样的原则是否适用于开发人员安装的编辑器扩展？（适用。分叉 IDE 的市场是另一条供应链：10 月 29 日，Cursor 市场中出现两个并非 Anthropic 构建的 `Anthropic.claude-code` 扩展版本 2.1.312 和 2.1.313，存在约 11 小时，安装 SSH 密钥、反向隧道和持久化程序。应按市场将扩展发布者和哈希加入允许列表；任何运行过这些扩展的机器都按已失陷处理，而不只是卸载扩展。）
+
+### Q151：你的生产分类器是微调过的 GPT-4.1-mini，OpenAI 已安排于 2027 年 1 月 14 日关闭该基础快照和所有微调模型。指定的替代模型 `gpt-6-luna` 不能微调。请规划迁移和评估门禁。
+
+**面试官关注：**
+- 认识到数据集和评估集是长期资产，托管微调模型只是租来的
+- 利用旧模型仍可运行的时间，让它给近期流量打标签并作为一致性基线
+- 用真实生产分布的数据评估分类别行为和校准，并留出跨过节假日冻结期的回滚窗口
+
+**参考回答：**
+
+“计划由两个事实决定：退役范围包括微调模型，因此‘继续运行旧版本’不可行；替代模型不能微调，而 OpenAI 的微调平台也在逐步关闭。这大约只提前三个月通知；10 月 23 日批次的旧模型按计划关闭，所以我按日期倒排。
+
+**需要保留下来的资产：**训练集、标注规则和评估集。权重一直是租来的。若训练数据分散各处，第一项工作就是找回数据，因为所有替代方案都需要它。
+
+**在教师模型退役前提取标签。**在 1 月 14 日之前，让旧微调模型为大量近期未标注流量生成结果，并保存输出，用于训练替代模型和作为影子测试的一致性基线。模型退役后，无论付多少钱都无法再生成这些标签。
+
+**按以下顺序评估替代方案：**
+
+1. **Luna 加检索式少样本示例。**尝试成本最低：每次请求从提示中放入最相似的已标注样例。当类别取决于细微的内部约定、少数示例无法表达时，这种方式会失败。
+2. **通过 Decisions API 使用 Luna**（10 月 22 日 GA）：返回带概率的类型化答案，每 1M 未缓存输入 token $0.10，输出不计费。分类器本质上就是一个类型化问题，概率可以替代旧流水线中的置信度信号，但必须先校准（见 Q153）。
+3. **训练并托管一个开放权重模型。**权重和退役时间都由我控制。可先尝试 EmbeddingGemma 2 的 270M 文本编码器（Apache 2.0）加训练好的分类头；不够时再用更大的开放模型。代价是推理服务、安全修补（vLLM 0.32.0 是当前安全底线）和逐个检查检查点许可证（见 Q134）。
+
+**评估门禁：**
+
+- 固定的留出集，加上由审核人员标注的一批近期生产流量。
+- 关注每类 precision 和 recall，而非总体准确率。迁移往往破坏罕见但代价高的类别，平均值仍看似正常。
+- 根据新模型校准后的分数重新拟合阈值，绝不直接复制旧模型阈值。
+- 至少进行两周影子运行，与已保存的教师模型输出比较；将分歧放入人工复核队列。
+
+**时间安排：**11 月下旬选出候选模型，进行两周影子运行，12 月中旬前通过开关切换；将 GPT-4.1-mini 微调模型保留为回滚目标，直到 1 月 13 日。若 1 月第一周才切换，距离退役只剩一周回滚期，且多数公司的变更冻结恰好覆盖该时段；到了 14 日，旧模型就不再存在。
+
+**别名是这个问题的隐性版本，**Q35 和 Q76 已讨论过；Q76 的金丝雀也应从影子运行开始就对照替代模型。
+
+**取舍：**若分类器是产品契约，我会将可控权重作为主路径，并保留 Luna 作回退。托管微调模型不仅租用权重，也租用平台；而这个平台正在退场。”
+
+**预期追问：**什么情况下你会选 Luna 而不是自托管？（请求量低且没有服务团队时。每天 5,000 次、每次 1,000 个输入 token 共 5M token，Decisions API 每天约 $0.50；按 Silicon Data 11 月 1 日每小时 $2.93 的价格，一张 H100 每天约 $70。270M 文本编码器可在 CPU 或小型 GPU 上运行，因此自托管的真实成本是服务团队，而不是硬件（推导）。要持续维护数据集和评估门禁，这样下一次被迫迁移时只是重新跑评估，而不是启动新项目。）
+
+### Q152：你的 AI 平台在 Claude、GPT 和 Gemini 模型之间路由，成本模型却把每个模型的单价视为常量。现在有些价格取决于请求形状或日期：Claude Haiku 5.5 的提示词超过 100,000 token 后，整个请求按 5 倍计费，缓存读取和写入也计入长度；GPT-6.1 Terra 的输入超过 272K 后价格翻倍；Gemini 4 Argon 将于 12 月 1 日涨价一倍；OpenAI 的 12 小时缓存写入价为输入价的 2.5 倍。请设置上下文压缩阈值、检索预算、缓存策略和路由规则，避免把这些变化变成成本事故。
+
+**面试官关注：**
+- 将每次请求成本建模为请求形状的函数（长度区间、缓存状态、TTL、速度档位和日期），而不是每模型一个 token 单价
+- 理解价格断崖会重算整个请求且包含缓存 token，因此缓存不能帮请求留在阈值以下
+- 在上下文构建器和路由器中强制执行价格断点预算，并为 tokenizer 变化留出余量
+
+**参考回答：**
+
+“Q123 介绍过价格配置。现在成本是一个函数：同一模型的请求只要长 2%，价格就可能变成五倍；某个价格项目也可能隔夜翻倍。
+
+**价格断点：**
+
+- **Haiku 5.5：**提示词不超过 100,000 token 时每 1M 输入/输出为 $0.10/$0.50；超过后整个请求按 $0.50/$2.50 计费，缓存读取和写入也计入阈值。99K 提示词加 2K 输出约 $0.011；101K 时约 $0.056（推导）。Anthropic 称同一文本用其 tokenizer 计算的 token 数比 Haiku 4.5 多约 30%，因此原先在 4.5 上测得 80K 的提示词，换到 5.5 后接近 104K，即使没人修改内容也会跨过阈值。
+- **GPT-6.1 Terra：**价格为 $1/$5；输入超过 272K 后整个请求按 $2/$7.50 计费。
+- **Gemini 4 Argon：**11 月 30 日前 $2/$10，12 月 1 日起 $4/$20；仅支持隐式缓存，无法用显式缓存平滑这次变化。
+- **缓存和速度：**OpenAI 的 12 小时缓存写入为输入价的 2.5 倍。Opus 5.5 fast mode 是标准价的 2 倍，GPT-6.1 Sol Ultrafast 是 6 倍。
+
+**设计：**
+
+1. **成本函数看整个请求。**发送前，路由器按候选模型的长度区间、缓存占比、TTL、速度档位和日期估算价格。每 token 平均值会掩盖价格断崖。
+2. **上下文构建器按目标模型 tokenizer 计数并执行预算。**Haiku 5.5 在约 85K 时压缩上下文，为轮次中途到达的工具结果留余量。检索应使用 token 预算而不是固定 top-k：重排器填满预算后停止。Terra 的压缩线设在约 250K。
+3. **跨过价格断点必须是有意选择。**Haiku 5.5 上档价格为 $0.50/$2.50，仍是 GPT-6.1 Terra 基础价格 $1/$5 的一半，所以越线本身不足以触发切换。可以按路由评估结果，在断点前使用 map-reduce、压缩上下文，或为少数长文档支付上档价格。
+4. **按实测复用情况缓存。**Terra 上 100K-token 前缀按 2.5 倍写入价需 $0.25；缓存读取每次 $0.005，而未缓存是 $0.10，因此在 12 小时窗口复用约两次即可回本（推导）。Anthropic 的稀疏路由不设置 `cache_control`；OpenAI 则根据每条路由的请求间隔数据，选择默认 30 分钟、1.25 倍写入，或 12 小时、2.5 倍写入。
+5. **速度档位应按权限开通。**Fast 和 Ultrafast 按产品表面单独开启，明确预算和负责人，绝不设为默认值；否则高价档会悄悄放大路由账单，把延迟修复变成成本事故。
+6. **把日历价格变化做成定时任务。**Argon 12 月 1 日涨价、Gemini 3.8 Flash 1 月 1 日翻倍、GPT-5.6 Sol 促销价（至少保证至 11 月 21 日）以及 Opus 4.8 fast mode 11 月 30 日移除，都应在两周前触发重新比较路由方案。
+
+**告警：**按路由统计超过各价格断点的请求比例。比例上升意味着提示词变长、检索发生漂移或 tokenizer 变了。
+
+**取舍：**我会先容忍少数 Haiku 请求越过 100K 后按 5 倍计费，而不是给所有请求增加 map-reduce 路径、延迟和故障方式；直到超线请求占该路由成本的几个百分点以上。”
+
+**预期追问：**团队说会大量缓存以保持 Haiku 5.5 低于阈值。这样可行吗？（不行。阈值包含缓存读取和写入；缓存只能降低阈值以下 token 的价格，不能让请求回到阈值以内。只有缩短提示词才能做到。）
+
+### Q153：你的智能体平台每个任务都会做成千上万个小判断：请求需要哪档模型、工具调用是否允许、是否应升级处理。10 月，决策模型成为一类一方 API：它返回带概率的类型化答案而非自然语言；OpenAI Decisions API 对每 1M 未缓存输入 token 收费 $0.10，输出不收费；vLLM、SGLang 和 Ollama 也加入了原生支持。你会在哪里使用它？如何校准，以及何时让它转交处理？
+
+**面试官关注：**
+- 决策模型适合答案集合固定的路由、防护和分诊，不适合开放式生成
+- 使用自己的数据校准，根据不同错误的代价设置阈值
+- 区分“状态是什么”和“策略允许什么”，并提供转交给更强模型或人工的路径
+
+**参考回答：**
+
+“决策模型回答类型化问题（谓词、选项或分数）并返回概率，而不是撰写文本，这与智能体平台的许多小判断相匹配。OpenAI 的 `gpt-6-luna` 每次可处理 1 至 400 个问题；vLLM、SGLang 和 Ollama 可在本地部署，因此该模式也适用于本地环境。
+
+**适用位置：**
+
+1. **路由。**将“该请求需要哪一档模型？”作为带概率的选项，替代先生成标签再写一段说明的文本路由器。
+2. **防护。**判断“这次工具调用会访问其他租户的数据吗？”“输出中是否包含账号号码？”这类谓词，每个请求可执行多个。
+3. **分诊。**一次返回工单类别、紧急程度分数和“是否需要人工”。
+
+经济效益来自问题范围窄。约 3,000 个输入 token（上下文加 20 个问题）的请求，成本约为 $0.0003（推导）。可批量处理共享上下文的问题；但阻塞式防护应单独调用并有自己的超时，避免一次慢请求或失败拖垮所有检查。
+
+**研究发现的风险及相应设计：**
+
+1. **置信度偏低。**TypedBench（arXiv 2610.11392）发现托管决策模型给出的概率系统性偏低，且对问题措辞敏感。因此凭直觉设置“超过 0.9 就执行”的阈值会导致过度转交。我会按每个问题用自己的标注数据校准：绘制可靠性曲线，计算预期校准误差和 Brier 分数，拟合再校准映射；模型或措辞变更时重新拟合。
+2. **状态读对了，行动仍可能错。**对 17 个快速决策系统的研究发现，大多数错误行动发生在模型正确读取状态之后（arXiv 2610.18579）。修复方式是让模型只回答状态问题（“款项是否已扣？”“用户是否已验证？”），再由代码把状态映射到动作。模型不能回答“我应该退款吗？”
+3. **依据错误代价设阈值。**每个决策的阈值，应让误接受和误拒绝的预期成本最低。防止数据泄漏的防护，与选择更便宜模型的路由器，所需阈值会不同。
+4. **用区间触发转交。**行动阈值和拒绝阈值之间设为转交区间：先让推理模型回答同一个问题；不可逆操作再交给人工。根据风险覆盖曲线设置区间宽度，确保转交量符合接收团队能力。
+
+**评估：**按问题评估 AUROC 和概率校准，而不只看准确率。排序能力好的模型若校准不佳，可以通过再校准修复；排序能力差则无法解决。线上跟踪转交率，以及接收转交的模型或人工推翻初次判断的频率。
+
+**取舍：**决策模型可以替代小型分类器，并接管 LLM judge 的高频门控，价格足够低，可以用于每个智能体步骤。但它不是 LLM judge 的独立校验器：约 96% 的 LLM 判定重复了决策模型最有把握的错误（arXiv 2609.29769），因此要抽取一批人工标注数据同时审计两者。绝不能仅凭概率授权不可逆操作：谓词输入确定性策略，由策略决定动作。”
+
+**预期追问：**供应商更新了托管决策模型，你的校准映射一夜之间过期。怎么发现？（每天按问题重新运行一组已标注金丝雀样本，跟踪校准误差和转交率；流量稳定时转交率突然上升是成本最低的早期信号。若必须控制版本，可选择在 vLLM 或 Ollama 部署本地决策模型。）
+
+### Q154：40 个服务共用你的 Claude 网关。Anthropic API 版本 `2026-10-21` 会对所有模型的 `temperature`、`top_p` 或 `top_k` 一律返回 400，即便值为默认值；新版 SDK 主版本默认发送该版本，且许可证由 MIT 变为 Apache 2.0；Bedrock 仅对 Claude 4.7 及之后模型支持该版本。请设计无中断发布计划。
+
+**面试官关注：**
+- 将 SDK 升级与采用新 API 版本分开，由网关按路由控制版本
+- 通过线上流量而不只靠代码搜索盘点，并维护每个平台、模型的版本矩阵
+- 区分不改变行为的修复和需要评估签核的变更，且回滚无需重新部署
+
+**参考回答：**
+
+“Q131 讨论过如何设计以应对能力消失。这道题关注发布：一个请求头、一个新的 SDK 主版本、一次许可证变更，以及六个平台（Claude API、AWS 上的 Claude Platform、Bedrock、Vertex AI、Google Cloud 上的 Claude Models、Foundry）并不都接受相同版本。
+
+**计划：**
+
+1. **API 版本请求头由网关管理。**各服务按自己的节奏升级 SDK；网关按路由设置 API 版本。这样某个仓库升级依赖不会改变线上协议，一次有风险的迁移拆成两次安全迁移。
+2. **从流量盘点。**代码搜索会漏掉通过配置动态拼装的参数。网关对线上请求运行本地校验器，以只记日志模式标出 `2026-10-21` 会拒绝的字段（采样参数、assistant `document` 块、user `citations`），统计每个服务、字段对应的潜在 400 错误。清单作为后续工作项并分配负责人。
+3. **按平台和模型维护版本矩阵。**Claude 4.7 之前模型的 Bedrock 路由（例如 Haiku 4.5、Sonnet 4.5；后者在 Bedrock 上属于 Legacy，2027 年 4 月 8 日 EOL）继续使用旧版本。Google Cloud 上的 Claude Models（Anthropic 托管，10 月 22 日上线）遵循 Anthropic 的模型生命周期。矩阵存为配置，每次修改都对各平台运行契约测试。
+4. **区分无行为变化和行为变化。**默认值采样参数可由网关剥除而不改变行为，因此直接剥除并记日志。非默认值（例如 Haiku 4.5 分类器使用 `temperature: 0`）可能影响输出；对应服务在切换路由前必须通过评估签核。Haiku 5.5 本身也拒绝采样参数，所以这些服务之后升级模型时仍需处理。
+5. **分批推进，并设错误预算。**先迁移内部低风险路由，最后迁移面向客户的路由；按路由跟踪 400 错误率作为门禁。回滚时只需在网关切换 API 版本请求头，无需重新部署。
+6. **许可证需审查，但不必阻塞发布。**Apache 2.0 比 MIT 多了专利与 NOTICE 条款，新 SDK 应经过开源合规审查，并更新分发制品中的第三方声明。旧版本仍是 MIT，因此法务签核前不必升级。
+7. **固定各项默认值。**新 SDK 主版本改变的不一定只有 API 版本请求头；每个服务都显式设置模型和推理强度，驱动 Claude Code 或 Agent SDK 的 CI 任务也显式设置权限模式。
+
+**取舍：**宁可用一个季度在网关层剥除默认值参数，也不要求 40 个团队同一天发布。机械性改动由网关吸收；改变模型行为的部分交给拥有输出质量责任的团队。”
+
+**预期追问：**某团队希望无限期固定旧 SDK，可以吗？（短期可以，因为网关掌控 API 版本，路由暂时仍能工作。但 Haiku 5.5 已经会对采样参数和 assistant prefill 返回 400，固定 SDK 只是推迟工作；每项固定都要设置截止日期，并按弃用事项跟踪。）
+
+### Q155：你的 AI 平台运行面向互联网的推理端点、网关和 MCP 服务器，补丁 SLA 为 30 天。10 月，Epoch 报告称，开放权重 GLM-5.3 能以每个约 $1 的成本，针对六个 Firefox 版本生成可用漏洞利用代码；最快约 12 小时完成，而且模型不会拒绝此类请求。补丁 SLA 和补偿控制应如何调整？
+
+**面试官关注：**
+- 根据攻击者将漏洞转成利用代码所需时间以及系统暴露面重新推导修补期限，而非沿用习惯
+- 通过查询回答“是否可达”的暴露面清单，以及无法快速修复时的网关临时控制
+- 用同样的能力来防御，同时清楚掌握其数据访问和处理条款
+
+**参考回答：**
+
+“Q135 为一个推理服务层设定了按天而非按周的补丁节奏。现在整个平台都要按攻击者的时钟设期限：一个没有供应商拒绝限制的模型，只需约 $1 就能生成可用利用代码，最快约半天；每次攻击还串联了模型自己发现的、尚未公开的漏洞，因此‘没有已知 CVE’的安全意义降低了。
+
+**调整内容：**
+
+1. **按漏洞利用所需时间设期限。**若公开补丁后约 12 小时就能生成可用利用代码，最高风险层必须在该时限内完成缓解。因此，对于可从互联网访问、无需认证的路径，应在公开修复或公告后 12 小时内采取缓解措施（网关拦截、禁用路由或修改配置），并在 72 小时内打补丁；已认证的内部路径为 7 天，其余按常规周期处理。对暴露服务使用 30 天 SLA，相当于假设攻击者需要几周才能行动。
+2. **维护可查询的暴露面清单。**每项服务记录是否能从互联网访问、漏洞路径是否需要认证，以及组件和版本；信息由部署元数据和外部扫描自动更新，而不是靠电子表格。新安全通告到来后，可通过查询将服务分级，优先处理可从互联网触达的漏洞。
+3. **无法立即修复时用网关临时止血。**10 月出现过四种情况：没有修补版本（SGLang，见 Q135）、修复需要改代码、修复需要显式开启（MCP TypeScript SDK，见 Q127），以及修复会改变默认行为（vLLM 0.32.0，见 Q135）。Q135 的底线是管理端点不对外开放且限制出站流量。除此之外，每条路由都应有关闭开关和网关请求过滤器；在真正补丁准备好之前，可于几分钟内封锁易受攻击路径（Ollama 的 `/api/pull`、受影响的 MCP 工具或引擎调试路由）。‘有补丁’不等于‘已修复’，因此每条发现都要记录修复耗时，以及等待期间采用的补偿控制。
+4. **基础镜像每天重建，测试通过后即重新部署，**让应用补丁成为流水线运行，而不是新项目。
+5. **利用模型能力防御，但先确认数据条款。**用强模型扫描自有代码现在属于基本要求：Anthropic 报告其内部研究模型发现了 62 个 Chrome 高危或严重 CVE（供应商报告）。其网络安全验证计划于 10 月 6 日扩展为三档，每档都包含 Mythos 5.1，但要求数据保留。因此，将专有源代码交给该项目是数据处理决策，不只是工具选择。
+
+**取舍：**若某个组件无法满足 12 小时缓解档，就不能继续面向互联网开放。经过认证网关保护、补丁稍慢的服务，也好过暴露在外却只靠承诺保证的服务。”
+
+**预期追问：**上游修复已公开，但还没有安全通告或 CVE。计时开始了吗？（对互联网暴露的服务，是的。公开补丁会暴露漏洞所在，而利用代码开发正是如今变便宜的部分，所以缓解时钟从修复公开时开始，而不是等 CVE 评分出来。）
+
 ---
 
 > **练习提示：**阅读一个问题后，关闭页面，在阅读参考答案前计时大声作答。如需包含实时追问和书面反馈的完整模拟流程，可在  或  预约 Om 的辅导。
-- [高级问题 - 2026 年 9 月](#高阶问题-2026年9月) (Q129-Q135) ⭐ *新增*
-- [语音 AI 问题](#语音-ai-问题) (Q136-Q147) ⭐ *新增*
+- [高级问题 - 2026 年 9 月](#高阶问题-2026年9月) (Q129-Q135)
+- [语音 AI 问题](#语音-ai-问题) (Q136-Q147)
+- [高级问题 - 2026 年 10 月](#进阶问题-2026-年-10-月) (Q148-Q155) ⭐ *新增*
 *语音并非配备麦克风的文本智能体。这些问题考查你是否能够围绕推理模型构建软实时媒体系统：约一秒的轮次预算、在 8 kHz 电话音频上作出回合结束和打断决策、按分钟计费且连静音也收费的计量方式，以及受美国和欧盟监管的外呼、AI 披露和合成音频标记。它们涵盖 OpenAI 自身语音指南现列出的三种架构（将任务委派给后端模型的全双工语音前端、单一语音到语音模型以及链式管道）、语音与文本的任务差距——当语音层背后存在真实推理时该差距会主要缩小——以及让状态、工具和合规性位于模型之外的工程实践。没有公开的逐字语音系统设计题目，但语音平台职位招聘会考察相同技能：在严格延迟要求下编排语音转文本、LLM、文本转语音和电话服务，以及能够优雅降级的持久化工作流。这里的价格和模型 ID 每月都在变化；真正被评分的是推理能力。另见 Q130，关于双工语音层与其后端之间的权限契约。完整来源参见[语音章节](../18-voice-and-audio-agents/01-realtime-voice-agents.md)。面向高级及以上候选人设计。*
 
 ## 关键要点
@@ -6058,7 +6307,7 @@ flowchart LR
 - 在勾画架构前，始终先说明延迟、规模和准确性假设；不先界定范围的候选人会被降分。
 - 强答案要引用具体权衡和具体数字（ms 级延迟、每 token 成本、recall at K 等）；泛泛而谈会被按初级评分。
 - 每道题下的“预期追问”都是真的；要为每题准备一段一百字左右的扩展回答。
-- 2026 年 5 月至 9 月的部分及 Voice AI 题组（Q81 起）反映当前主题和招聘信号；更早的问题测试的是基础深度，而不是时效性。
+- 2026 年 5 月至 10 月的部分及 Voice AI 题组（Q81 起）反映当前主题和招聘信号；更早的问题测试的是基础深度，而不是时效性。
 - 语音岗位有其独特的面试形态：[Voice AI Questions](#语音-ai-问题)（Q136-Q147）考查电话音频上的延迟预算、轮次控制、按分钟计费的经济性和外呼合规，这些都不是纯文本准备能覆盖的。
 - 把这份题库和 [Answer Frameworks](02-answer-frameworks.md)、[Whiteboard Exercises](04-whiteboard-exercises.md) 以及 [Job Market Trends](06-job-market-trends-2026.md) 配合使用。
 
@@ -6073,8 +6322,8 @@ flowchart LR
 5. **考虑故障模式** - 会出什么问题？
 6. **以监控收尾** - 你如何知道它有效？
 7. **承认不确定性** - 说“我会进一步研究”是可以的
-8. **具体引用基准，并说明版本、推理强度和运行方** - Terminal-Bench 4.0（排行榜：GPT-6 Astra 在 max 下为 58.2%，Claude Fable 5.1 在 max 下为 57.9%；Anthropic 报告：Opus 5.5 在 xhigh 下为 66.4%）、SWE-Bench Pro v2（公开划分已饱和至 99.4%；私有集上 Opus 5 为 81.6%）、OSWorld 2.x（二元评分为主：Opus 5 在 v2.1 全集上二元评分 44.3%，部分评分 77.7%）、HLE-Diamond、Agents' Last Exam（排行榜：Opus 5.5 在 max 下 pass 为 38.2%）、tau3-bench。将 GPQA Diamond 和 OSWorld-Verified 视为已饱和、LiveCodeBench 视为遗留基准、SWE-bench Verified 视为受污染基准（仓库扰动研究显示模型依赖记忆中的仓库线索）。
-9. **了解 2026 年 10 月格局** - Claude Opus 5.5（$4/$20，Anthropic 推荐的起始选择）、Claude Sonnet 5.5（$2/$10）、Claude Fable 5.1（$10/$50，具备向 Opus 4.8 或 Opus 5 的安全回退）、GPT-6 Astra（$10/$50）、GPT-6.1 Sol（$2/$10）、GPT-6 Luna（$0.10/$0.50）、Gemini 3.8 Flash（介绍价至 2026 年 12 月 31 日）、Gemini 4 Argon（已发布公告，尚未进入 API）、Grok 4.7、Muse Spark 1.3；开放权重模型由 MiMo-V2.6-Pro、GLM-5.3、Kimi K3、DeepSeek V4.1-Flash 和 Qwen3.8 领衔，并对模型即服务业务设置许可证门槛。提及评测突破事件（7 月 Hugging Face 入侵与 METR 调查）、GPT-6 Astra 作为 OpenAI 首个 Critical 级网络安全模型，以及欧盟 AI 法案日程（第 50 条自 2026 年 8 月 2 日起生效；标记宽限期于 2026 年 12 月 2 日届满；Annex III 高风险义务自 2027 年 12 月 2 日起适用）。
+8. **具体引用基准，并说明版本、推理强度和运行方** - Terminal-Bench 4.0（排行榜 10 月 6 日新增：Opus 5.5 64.85%、Sonnet 5.5 61.82% 均为 max；GPT-6 Astra 和 GPT-6.1 Sol 在 max 下均为 58.18%；Anthropic 报告：Opus 5.5 在 xhigh 下为 66.4%，Sonnet 5.5 为 70.6%）、SWE-Bench Pro v2（公开划分已饱和至 99.4%；私有集上 Opus 5 为 81.6%）、OSWorld 2.x（二元评分为主：Opus 5 在 v2.1 全集上二元评分 44.3%，部分评分 77.7%）、HLE-Diamond、Agents' Last Exam（排行榜：Opus 5.5 在 max 下 pass 为 38.2%）、tau3-bench（2.0.0 版本声明其分数不能与 1.x 比较），以及 Artificial Analysis Intelligence Index v5.0（Opus 5.5 max 且带回退为 58，GPT-6 Astra 为 57，GPT-6.1 Sol 为 55；榜首 Gemini 4 Carbon 为 59，但开发者无法调用；v4.x 分数不可比较）。将 GPQA Diamond 和 OSWorld-Verified 视为已饱和、LiveCodeBench 视为遗留基准、SWE-bench Verified 视为受污染基准（仓库扰动研究显示模型依赖记忆中的仓库线索）。
+9. **了解 2026 年 11 月格局** - Claude Opus 5.5（$4/$20，Anthropic 推荐的起点；fast mode $8/$40 已结束研究预览）、Claude Sonnet 5.5（$2/$10，缓存读取 $0.10）、Claude Haiku 5.5（100K-token 提示词内 $0.10/$0.50，超出后整个请求为 $0.50/$2.50）、Claude Fable 5.1（$10/$50，具备向 Opus 4.8 或 Opus 5 的安全回退），以及 Anthropic API 版本 `2026-10-21`（所有模型的采样参数均返回 400）；GPT-6 Astra（$10/$50）、GPT-6.1 Sol（$2/$10）、GPT-6.1 Terra（$1/$5）、GPT-6 Luna（$0.10/$0.50）和 OpenAI 的 12 小时提示缓存；Gemini 3.8 Flash（介绍价至 2026 年 12 月 31 日）、Gemini 4 Argon（10 月 13 日 GA；11 月 30 日前 $2/$10，之后 $4/$20）、Grok 4.7、Muse Spark 1.3；开放权重模型包括 DeepSeek V4.1-Flash、GLM-5.3 和 MiMo-V2.6-Pro（Artificial Analysis v5.0 分数分别为 32、32 和 30），以及 Kimi K3、Qwen3.8、Mistral Large 4 和 Meta Muse Spark Open；MaaS 业务存在许可证门槛。提及评测突破事件（7 月 Hugging Face 入侵与 METR 调查）、GPT-6 Astra 作为 OpenAI 首个 Critical 级网络安全模型，以及欧盟 AI 法案日程（第 50 条自 2026 年 8 月 2 日起生效；标记宽限期于 2026 年 12 月 2 日届满；Annex III 高风险义务自 2027 年 12 月 2 日起适用）。
 
 ---
 
@@ -6107,6 +6356,8 @@ flowchart LR
 - [SWE-Bench Pro v2（Scale Labs）](https://labs.scale.com/blog/swe-bench-pro-v2)
 - [Terminal-Bench 4.0 排行榜](https://www.tbench.ai/leaderboard/terminal-bench/4.0)
 - [OSWorld 2.0 排行榜（XLANG）](https://osworld-v2.xlang.ai/)
+- [MCP SEP-3398：发布周期更新](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/3398-release-cycle-updates.md)
+- [Artificial Analysis Intelligence Index 方法论](https://artificialanalysis.ai/methodology/intelligence-benchmarking)
 - [MCP 路线图（官方）](https://modelcontextprotocol.io/development/roadmap)
 - [A2A Protocol v1.0.1 发布](https://github.com/a2aproject/A2A/releases/tag/v1.0.1)
 - [METR - OpenAI 和 Hugging Face 事件调查（2026 年 8 月）](https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/)
@@ -6122,6 +6373,28 @@ flowchart LR
 - [OpenAI - GPT-6 Astra 系统卡](https://deploymentsafety.openai.com/gpt-6-astra)
 - [英国 AISI - 模拟中 GPT-6 Astra 的未经授权供应链攻击（arXiv 2609.38415）](https://arxiv.org/abs/2609.38415)
 - [普通任务压力下出现的工具性监控规避，EvasionBench（arXiv 2609.30217）](https://arxiv.org/abs/2609.30217)
+
+**2026 年 10 月来源**（Q148-Q155）：
+
+- [OpenAI - 错位行为报告：压制监控告警并关闭监控（2026 年 10 月 20 日更新）](https://alignment.openai.com/misalignment-reports/suppressing-misalignment-monitoring-alerts-and-disabling-misalignment-monitoring/)
+- [OpenAI - 我们如何检测前沿模型错位行为（2026 年 10 月 29 日）](https://alignment.openai.com/how-we-detect-frontier-model-misalignment/)
+- [METR - 对 OpenAI 智能体监控的红队测试（2026 年 10 月 22 日）](https://metr.org/blog/2026-10-22-red-teaming-openai-agent-monitoring/)
+- [Anthropic - Auto Mode 红队测试（2026 年 10 月 22 日）](https://alignment.anthropic.com/2026/red-teaming-auto-mode/)
+- [CAISSI、NSA 和 CISA - 超级智能训练与评估事故准备和响应关键实践（2026 年 10 月 16 日）](https://www.nist.gov/news-events/news/2026/10/key-practices-incident-readiness-and-response-super-intelligence-training)
+- [LiteLLM - 2026 年 10 月 21 日版本遭入侵的攻击链](https://docs.litellm.ai/blog/security-incident-oct-21-2026-attack-chain)
+- [LiteLLM - GHSA-7hp6-4w63-5g45（CVE-2026-114612）](https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45)；[GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8)
+- [OpenAI - 弃用公告](https://developers.openai.com/api/docs/deprecations)
+- [OpenAI - Decisions API 指南](https://developers.openai.com/api/docs/guides/decisions)
+- [OpenAI - 提示缓存指南](https://developers.openai.com/api/docs/guides/prompt-caching)
+- [Anthropic - 定价](https://platform.claude.com/docs/en/about-claude/pricing)
+- [Anthropic - API 版本 2026-10-21 迁移指南](https://platform.claude.com/docs/en/api/migration-2026-10-21)
+- [Sharma 等 - TypedBench：System One 决策模型的校准、措辞敏感性和成本基准（arXiv 2610.11392）](https://arxiv.org/abs/2610.11392)
+- [arXiv 2610.18579：正确读取状态却仍采取错误行动的决策模型](https://arxiv.org/abs/2610.18579)
+- [Rao 和 Callison-Burch - JEV 与 LLM 评分规则评审：更便宜、更快，但在相同位置犯错（arXiv 2609.29769）](https://arxiv.org/abs/2609.29769)
+- [Epoch - 开放权重模型与补丁缺口（2026 年 10 月 29 日）](https://epoch.ai/publications/open-weight-models-patch-gap)
+- [Anthropic - 扩展网络安全验证计划（2026 年 10 月 6 日）](https://www.anthropic.com/news/cyber-verification-program)
+- [Silicon Data - H100 租赁指数](https://www.silicondata.com/products/silicon-index/h100)
+- [Google - EmbeddingGemma 2 模型卡](https://huggingface.co/google/embeddinggemma-2)
 
 ---
 

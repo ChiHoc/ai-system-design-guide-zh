@@ -247,13 +247,13 @@ class SupportKnowledgeBase:
         return await self.reranker.rerank(query, candidates, top_k=top_k)
 ```
 
-### 响应生成（Claude Haiku 4.5 与 Sonnet 5.5 分层）
+### 响应生成（Claude Haiku 5.5 与 Sonnet 5.5 分层）
 
-这个设计的 2025 版会在单个模型上按请求切换扩展思考。最新模型上，这个开关已经不复存在：Sonnet 5.5 默认运行自适应思考，对 `thinking: {type: "disabled"}` 返回 400，深度通过 `output_config.effort` 设置。Haiku 4.5 则拒绝 effort 参数。如今的按请求调节方式是**模型路由加 effort**。
+这个设计的 2025 版会在单个模型上按请求切换扩展思考。最新模型上，这个开关已经不复存在：Sonnet 5.5 默认运行自适应思考，对 `thinking: {type: "disabled"}` 返回 400，深度通过 `output_config.effort` 设置。Haiku 5.5 也默认运行自适应思考，默认 effort 为 `medium`，因此普通请求会显式设为 `low`，避免密码重置任务也消耗思考 token。如今的按请求调节方式是**模型路由加 effort**。
 
 ```python
 class ResponseGenerator:
-    ROUTINE_MODEL = "claude-haiku-4-5"   # $1 / $5 per 1M; no thinking unless enabled
+    ROUTINE_MODEL = "claude-haiku-5-5"   # $0.10 / $0.50 per 1M for prompts up to 100K tokens; adaptive thinking on
     COMPLEX_MODEL = "claude-sonnet-5-5"  # $2 / $10 per 1M; adaptive thinking on by default
 
     async def generate(self, query: str, context: list[dict]) -> dict:
@@ -264,8 +264,7 @@ class ResponseGenerator:
             "system": SUPPORT_SYSTEM_PROMPT,
             "messages": [{"role": "user", "content": f"Context: {context}\nQuery: {query}"}],
         }
-        if is_complex:
-            request["output_config"] = {"effort": "medium"}
+        request["output_config"] = {"effort": "medium" if is_complex else "low"}
         response = await self.anthropic.messages.create(**request)
         text = "".join(b.text for b in response.content if b.type == "text")
         return {"response": text, "model": request["model"]}
@@ -274,7 +273,7 @@ class ResponseGenerator:
 要按路径而非整个系统设置延迟预算。思考 token 会在第一个可见 token 前产生，以常见输出速度生成约 1K 个 token 需要数秒，因此复杂路径无法满足 1 秒 TTFT 目标。应为复杂计费轮次设置独立延迟目标，并在模型工作时流式输出状态信息；对于无需事先推理的路径，也可发送 `thinking: {type: "between_tools"}`，同时实测质量是否保持。
 
 > [!NOTE]
-> **生产经验：为强制迁移预留预算。** 支持团队需要数月才能围绕某个模型的语气和拒绝模式调好护栏，这些调校不会免费迁移。Sonnet 4.5 将于 2026 年 11 月 30 日退役。Haiku 4.5 在 Claude API 上的最早退役日期为 2026 年 10 月 15 日（尚未发布通知，Anthropic 至少提前 60 天通知），在 Foundry 上于 11 月 15 日退役；Haiku 5.5 已预告但尚未发布。应保存真实对话的回归集，包含预期语气、升级交接和拒绝行为，并在每次模型变化时运行。
+> **生产经验：为强制迁移预留预算。** 支持团队需要数月才能围绕某个模型的语气和拒绝模式调好护栏，这些调校不会免费迁移。Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役（Bedrock 于 10 月 8 日将其移至 Legacy，生命周期结束日期为 2027 年 4 月 8 日）。Haiku 4.5 仍为 Active，尚未发布退役通知；根据 Anthropic 至少提前 60 天通知的政策，它在 Claude API 上最早约于 2027 年 1 月退役。将本设计的普通路径迁移到 Haiku 5.5（标价约比 Haiku 4.5 低 90%），让每段对话的成本从约 $0.014 降至 $0.002 以下，但这不是只替换模型字符串：`temperature`、`top_p`、`top_k`、`budget_tokens` 和 assistant prefill 都会返回 400；同样文本使用新 tokenizer 约增加 30% token；语气和拒绝行为也可能变化。应保存真实对话的回归集，包含预期语气、升级交接和拒绝行为，并在每次模型变化时运行。
 
 ---
 
@@ -430,7 +429,7 @@ class QualityMonitor:
 
 ## 成本分析
 
-### 每次对话成本拆解（2026 年 10 月标价）
+### 每次对话成本拆解（2026 年 11 月标价）
 
 假设每次对话 4 轮，每轮约 3K 个输入 token（系统提示、检索片段、账户上下文及历史）。
 
@@ -438,22 +437,22 @@ class QualityMonitor:
 |-----------|------|-------|
 | 意图分类 | $0.0003 | GPT-6 Luna（$0.10/$0.50）：每轮一次调用，约 500 输入/50 输出 token |
 | 检索与重排序 | $0.0040 | 每轮查询嵌入及 50 个候选 × 每个约 400 token 的重排（Voyage rerank-3，每百万 token $0.05）：每轮约 $0.001 |
-| 生成，常规路径 | $0.0136 | Claude Haiku 4.5 处理 80% 的对话：4 ×（3K 输入/250 输出）= $0.017，加权后为 $0.0136 |
+| 生成，常规路径 | $0.0017 | Claude Haiku 5.5 使用 `low` effort 处理 80% 的对话：4 ×（3K 输入/250 输出及约 200 思考 token）= $0.0021，加权后为 $0.0017 |
 | 生成，复杂路径 | $0.0148 | Claude Sonnet 5.5 处理 20%：相同轮次，每轮另有约 1K 思考 token = $0.074，加权后为 $0.0148 |
 | 质量抽样 | $0.0013 | 5% 的对话由中档裁决模型评分 |
-| **总计** | **约 $0.034** | **每次对话，尚未计入提示缓存** |
+| **总计** | **约 $0.022** | **每次对话，尚未计入提示缓存** |
 
-复杂路径只占 20% 流量，却占模型支出的 40% 以上，主要来自按输出价格计费的思考 token。缓存静态系统提示和工具定义可以削减输入成本（两种模型的缓存读取价格均为输入价的 0.1 倍）。
+复杂路径只占 20% 流量，却占模型支出的约三分之二，主要来自按输出价格计费的思考 token。缓存静态系统提示和工具定义可以削减输入成本（Haiku 5.5 的缓存读取按输入价 0.1 倍计费，Sonnet 5.5 为 0.05 倍）。每个常规轮次都远低于 Haiku 5.5 的 100K token 价格门槛；若把完整账户历史塞进提示词，就会跨过门槛，整次请求按 5 倍计价。
 
 ### 月度成本预测
 
 | 项目 | 计算 | 成本 |
 |------|-------------|------|
-| 对话量 | 500K × $0.034 | $17,000 |
+| 对话量 | 500K × $0.022 | $11,000 |
 | 基础设施 | 固定 | $2,000 |
 | 人工升级 | 190K × $5（人工成本） | $950,000 |
-| **总计** | | $969,000 |
-| **相较全人工的节省** | 500K × $5 - $969K | 每月约 $1.53M |
+| **总计** | | $963,000 |
+| **相较全人工的节省** | 500K × $5 - $963K | 每月约 $1.54M |
 
 模型支出不到总额的 2%。真正重要的杠杆是升级率：每有 1 个百分点的升级请求被正确自动解决，每月就能节省约 $25,000（5,000 次对话 × $5），超过整笔模型费用。
 
@@ -466,7 +465,7 @@ class QualityMonitor:
 1. **基于意图的路由（Intent-based routing）** 通过聚焦相关来源进行检索，降低了延迟
 2. **基于置信度的升级（Confidence-based escalation）** 在降低人工负载的同时保持了质量
 3. **账户上下文（Account context）** 让回复更个性化且更准确
-4. **结构化输出与固定版本的提示词**比采样设置更能提高一致性。temperature 已不再是可靠旋钮：最新 Claude 模型对非默认值返回 400，GPT-6 Astra 则不接受该参数
+4. **结构化输出与固定版本的提示词**比采样设置更能提高一致性。temperature 已不再是可靠旋钮：Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型对任何 `temperature` 值（包括默认值）都返回 400；GPT-6 Astra 则不接受该参数
 
 ### 初期未奏效的做法
 

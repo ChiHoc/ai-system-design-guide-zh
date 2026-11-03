@@ -362,7 +362,7 @@ MLA 已扩展至 DeepSeek 之外（Kimi K2 采用 MLA，Tencent Hy4 和 GLM-5.3-
 API 提供方（OpenAI、Gemini、Anthropic、DeepSeek）均提供 **Context Caching（上下文缓存）**，也称 prompt caching。
 - **工作方式**：对长“前缀”（例如一本 10 万 token 的法律书）预先计算并存储 KV 张量；当后续请求以相同字节开头时复用它们。
 - **延迟收益**：跳过已缓存前缀的 prefill，因此 TTFT 节省量取决于共享提示词的比例。
-- **成本收益**：当前大多数 OpenAI、Anthropic 和 Google 模型的缓存读取按输入价格的 0.1 倍计费；Claude Opus 5.5 和 GPT-6.1 Sol 为 0.05 倍，Claude Fable 5.1 为 0.025 倍。其他供应商不同（xAI Grok 4.7 为 0.25 倍；DeepSeek V4.1-Flash 缓存命中为 0.02 倍）。写入会产生额外成本：OpenAI GPT-5.6 及之后版本（固定 30 分钟 TTL）和 Anthropic 5 分钟缓存为 1.25 倍，Anthropic 1 小时缓存为 2 倍；Google 则按小时对显式缓存存储收费。当前费率参见[定价与成本](../02-model-landscape/03-pricing-and-costs.md)，设计模式参见[KV Cache 与上下文缓存](../04-inference-optimization/02-kv-cache-and-context-caching.md)。
+- **成本收益**：当前大多数 OpenAI、Anthropic 和 Google 模型的缓存读取按输入价格的 0.1 倍计费；Claude Opus 5.5、Claude Sonnet 5.5、GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05 倍，Claude Fable 5.1 为 0.025 倍。其他供应商不同（xAI Grok 4.7 为 0.25 倍；DeepSeek V4.1-Flash 缓存命中为 0.02 倍）。写入会产生额外成本：OpenAI 30 分钟缓存（GPT-5.6 及之后版本）和 Anthropic 5 分钟缓存为 1.25 倍，Anthropic 1 小时缓存为 2 倍，OpenAI 12 小时缓存为 2.5 倍；Google 则按小时对显式缓存存储收费（Gemini 4 Argon 仅提供隐式缓存）。当前费率参见[定价与成本](../02-model-landscape/03-pricing-and-costs.md)，设计模式参见[KV Cache 与上下文缓存](../04-inference-optimization/02-kv-cache-and-context-caching.md)。
 
 ### 滑动窗口注意力（SWA）
 它将一层的注意力限制在固定窗口内（Mistral 7B：4,096 token），使该层的 KV cache 不再随上下文增长。现代模型会将 SWA 层与少量全局层交错使用，以保留长距离召回能力：Gemma 3 每 1 个全局层配有 5 个局部层，MiMo-V2.6-Pro 则有 60 个滑动窗口层（128-token 窗口）和 10 个全局层。

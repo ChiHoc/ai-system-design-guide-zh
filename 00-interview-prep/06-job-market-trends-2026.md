@@ -1,7 +1,9 @@
-# AI 就业市场趋势 - 2026 年 10 月
+# AI 就业市场趋势 - 2026 年 11 月
 
-> **最后验证：仅对本章部分内容验证至 2026 年 10 月 2 日。** 本次更新重新核查了：裁员与入门级数据、Indeed 的都市区暴露度和数据中心薪酬数据、各公司的 AI 面试政策与候选人报告的题目、FDE 和嵌入式评估员项目、H-1B 状态，以及标为“2026 年 10 月”的薪酬行（levels.fyi 页面截取于 2026 年 10 月 2 日）。**未重新扫描：**所有标为“2026 年 5 月”的薪酬行（全国薪酬带、专业岗位、伦敦、柏林、班加罗尔、新加坡、Sierra、Thinking Machines）、除 FDE 和评估员条目外的岗位分类、技能列表和技术栈百分比；这些均来自 2026 年 5 月 17 日对 100+ 个公开职位列表、招聘报告和招聘人员信号的扫描。将这些薪酬行视为下限，将百分比视为方向性指标。
+> **2026 年 11 月 2 日更新：** 职位发布与裁员信号（Indeed Hiring Lab 10 月 22 日快照、Microsoft 10 月 26 日自愿离职提议）、标为“2026 年 11 月”的薪酬行（Anthropic、OpenAI 和美国 AI 工程师 levels.fyi 页面，更新于 2026 年 11 月 1 日）、Anthropic S-1、Anthropic 面试形式和 AI 政策及嵌入式评估员项目。**最后核查于 2026 年 10 月 2 日：**入门级研究、Indeed 都市区暴露度和数据中心薪酬、其他公司面试政策与候选人报告题目、FDE 项目、H-1B 状态及标为“2026 年 10 月”或“2026 年 9 月”的薪酬行（Cursor、Google、Microsoft、OpenAI FDE、BCG X）。**最后核查于 2026 年 5 月 17 日：**标为“2026 年 5 月”的薪酬行（全国薪酬带、专业岗位、伦敦、柏林、班加罗尔、新加坡、Sierra、Thinking Machines）、除 FDE 与评估员外的岗位分类、技能列表及技术栈百分比，均来自对 100+ 公开职位、招聘报告和招聘人员信号的扫描。将这些薪酬行视为下限，百分比视为方向性指标。
 
+> **2026 年 11 月更新：** 自 10 月初以来有四项信号。第一，AI 需求在疲软市场中达到创纪录占比：Indeed Hiring Lab 10 月 22 日快照显示 AI 相关岗位占美国全部职位发布的 7.3%（关键词计数涵盖 ML、数据科学、GenAI 和 ChatGPT；此前峰值为 2022 年的 3.3%），软件开发职位指数约为 79（2020 年 2 月为 100），AI 工作在疲软的软件市场内部增长。第二，Anthropic 于 10 月 26 日公开提交 S-1，因此 offer 中的 Anthropic 股权现为附带锁定协议的 IPO 前股票（见[薪酬洞察](#薪酬洞察)）。第三，Microsoft 于 10 月 26 日面向美国、英国、加拿大和印度符合条件的 70 级及以下员工推出自愿离职提议，未说明金额或 AI 原因。第四，面试形式是在团队层面而非公司层面变化：一位 Anthropic 招聘经理 10 月 27 日称其团队以作品集原型取代传统编码面试，这是个人团队做法，不是公司政策（见[前沿实验室特定内容](#前沿实验室特定内容)）。levels.fyi 上 OpenAI 软件工程师中位数随样本增长，从 10 月 2 日的 $710K 降至 11 月 1 日的 $640K，说明小型自报样本可能大幅波动。
+>
 > **2026 年 10 月更新：** 自 8 月以来有四项变化。第一，入门级岗位挤压如今通过薪酬和职位发布量而非失业率体现：在最易受 AI 影响的职业中，入门级职位发布占比从 29% 降至 10%（Indeed Hiring Lab）；最易受影响专业的毕业生起薪相对最不易受影响专业的毕业生下降约 13%（美国人口普查局），但应届毕业生失业率尚未飙升（NBER）。第二，归因于 AI 的裁员降至 9 月裁员的 9%，但由资本支出驱动和管理层级削减的裁员仍在继续（见[第一项核心变化](#_1-市场呈现冷热并存的矛盾状态。)）。第三，AI 面试政策并未标准化，而是出现分化：Meta 设置 AI 辅助轮，Google 正在试点，Anthropic 除非另行说明否则禁止 AI，部分公司则将终轮重新移回线下进行（见[面试中的 AI 工具](#面试中的-ai-工具-逐轮确认政策)）。第四，FDE 正在获得认证并走出实验室：OpenAI 的 Deployment Company、BCG X 的校园 FDE 岗位，以及 Anthropic 于 10 月 2 日公布的 Claude Frontier Academy（见 [FDE](#前线部署工程师-fde)）。
 >
 > **2026 年 8 月更新：** 有三个数据点值得纳入面试和职业规划。第一，入门级岗位的挤压如今有行政薪资数据作为证据支撑：斯坦福数字经济实验室一篇广受引用的论文于 2026 年 8 月修订，纳入截至 6 月的 ADP 数据。报告显示，在易受 AI 影响的职业中，22–25 岁劳动者的就业水平比“若其增长速度与受影响较小的同龄人保持一致”时低约 **19%**；而资深劳动者没有出现类似差距。作者认定的机制是招聘减少，而非离职增加；这一点很重要：入口变窄了，但已经进入行业的人并未被挤出。第二，基础设施扩建如今是市场上最清晰的薪资趋势。Indeed Hiring Lab（2026 年 7 月 14 日）显示，数据中心岗位占美国每 1,000 个职位发布中的 **6 个**，高于 2023 年 5 月的 2 个；数据中心安装与维护工作的时薪比同类非数据中心岗位高约 **42%**。如果你具备技术背景但不是 ML 研究员，这里正是杠杆所在。第三，前沿实验室的能力分层访问计划（Daybreak Blue、Daybreak Red、Project Glasswing）催生了一小类真实岗位，需要完成身份验证和近似安全许可的审查；这已成为选择求职目标时的新考量。
@@ -35,7 +37,7 @@
 
 2026 年第一季度出现了约 52,050 起科技行业裁员（Oracle 30K、Amazon、Meta、Dell），是自 2023 年以来裁员最多的第一季度（[Kore1](https://www.kore1.com/tech-layoffs-2026/)；[Tom's Hardware](https://www.tomshardware.com/tech-industry/tech-industry-lays-off-nearly-80-000-employees-in-the-first-quarter-of-2026-almost-50-percent-of-affected-positions-cut-due-to-ai)）。与此同时，AI 岗位环比增长 +8.9%、同比增长 +4.8%，约有 275,000 个未填补的 AI 岗位（[Allwork.space](https://allwork.space/2026/05/ai-hiring-is-rising-even-as-tech-layoffs-surge-140/)）。初级／入门级工程师受到的冲击最大：常规代码生成、QA 测试、基础前端工作被裁减的比例更高。高级和专业化 AI 岗位则保持韧性。
 
-**到第三季度，情况更加清晰。** 归因于 AI 的裁员有所降温。Challenger, Gray & Christmas 统计，8 月有 3,462 个以 AI 为由的裁员，是自 2025 年 12 月以来最低的单月总数；9 月为 3,961 个，占当月 43,281 个裁员的 9%。但年初至今，AI 仍是首要原因：120,136 个裁员，约占所有宣布裁员的 21%。科技行业仍是受冲击最重的领域，截至 9 月裁员 165,925 个，占总数 29%。许多裁员根本未归因于 AI。Uber 于 9 月 2 日为削减管理层级裁去约 3,300 个岗位（约 10%），且未将 AI 列为原因。Oracle 于 9 月 14 日开始新一轮裁员，而其 2026 财年资本支出已从 $21.2B 升至 $55.7B：AI 基础设施支出与工程裁员往往是同一项预算决策。
+**到第三季度，情况更加清晰。** 归因于 AI 的裁员有所降温。Challenger, Gray & Christmas 统计，8 月有 3,462 个以 AI 为由的裁员，是自 2025 年 12 月以来最低的单月总数；9 月为 3,961 个，占当月 43,281 个裁员的 9%。但年初至今，AI 仍是首要原因：120,136 个裁员，约占所有宣布裁员的 21%。科技行业仍是受冲击最重的领域，截至 9 月裁员 165,925 个，占总数 29%。许多裁员根本未归因于 AI。Uber 于 9 月 2 日为削减管理层级裁去约 3,300 个岗位（约 10%），且未将 AI 列为原因。Oracle 于 9 月 14 日开始新一轮裁员，而其 2026 财年资本支出已从 $21.2B 升至 $55.7B：AI 基础设施支出与工程裁员往往是同一项预算决策。 10 月又出现一项以自愿为名的大型计划：Microsoft 的自愿离职提议（10 月 26 日）覆盖美国、英国、加拿大和印度参与团队中符合条件的 70 级及以下员工；各组织自行决定是否提供，Microsoft 未公布金额、结束日期或 AI 原因。
 
 入门级证据也更加确凿，且其指向招聘和薪酬而非失业：
 
@@ -190,7 +192,7 @@
 - **沟通 / 跨职能协作** - 高级及以上岗位的基本要求
 - **面向客户的能力** - 对 FDE（Forward Deployed Engineer，前线部署工程师）角色至关重要；Anthropic 要求 3+ 年“技术性、面向客户的角色”经验
 - **OSS（开源软件）贡献** - Anthropic 明确表示：[“如果你做过有趣的独立研究、写过有洞察力的博客文章，或对开源软件做出过实质性贡献，请把它放在简历最顶部”](https://www.sundeepteki.org/advice/how-to-get-hired-at-openai-anthropic-and-google-deepmind-in-2026)
-- **论文发表** - AI 研究工程师需要；Anthropic 技术员工中只有约 50% 拥有博士学位
+- **论文发表** - AI 研究工程师岗位需要；应用岗位更看重已交付系统和开源工作，而非博士学位
 - **使命一致性** - Anthropic 明确通过行为与价值观面试轮进行筛选
 - **监管经验：** 面向企业的 SOC 2 / HIPAA / FedRAMP；面向欧盟业务的欧盟 AI 法案熟悉度（FRIA/DPIA）
 - **安全许可** - Lockheed 和联邦相关角色需要
@@ -199,16 +201,16 @@
 
 ## 薪酬现实
 
-> 仅使用公开来源范围。请用 [levels.fyi](https://www.levels.fyi/) 验证当前数据。除非另有说明，所有数字均为美元。**扫描时间**列说明每行最后核查时间：“2026 年 10 月”行来自 2026 年 10 月 2 日截取的 levels.fyi 页面（自报数据，在可取得时根据录取通知书验证；n 为提交数），“2026 年 9 月”行来自该行注明的招聘网站和面试准备服务商来源，“2026 年 5 月”行自 5 月 17 日扫描后未重新运行。
+> 仅使用公开来源范围。请用 [levels.fyi](https://www.levels.fyi/) 验证当前数据。除非另有说明，所有数字均为美元。**扫描时间**列说明最后核查日期：“2026 年 11 月”行来自 2026 年 11 月 1 日更新的 levels.fyi 页面，“2026 年 10 月”行来自 10 月 2 日截取的页面（均为自报数据，在可取得时根据录取通知书验证；n 为提交数）；“2026 年 9 月”行来自各行注明的招聘网站和面试准备服务商，“2026 年 5 月”行自 5 月 17 日扫描后未重新运行。
 
 | 层级 / 公司 | 级别 | 总薪酬 | 扫描时间 |
 |---|---|---|---|
-| **Anthropic** | 所有 SWE | 总薪酬中位数 $883K（n=55） | 2026 年 10 月 |
-| **Anthropic** | 高级 SWE | $328K 基本工资 / $591K 总薪酬 | 2026 年 10 月 |
-| **Anthropic** | 主管 SWE | $336K 基本工资 / $865K 总薪酬 | 2026 年 10 月 |
-| **Anthropic** | Staff SWE | $1.41M 总薪酬 | 2026 年 10 月 |
-| **OpenAI** | 所有 SWE | 总薪酬从 $250K（L2）到 $1.89M（L7）；中位数 $710K（n=239） | 2026 年 10 月 |
-| **OpenAI** | L5 SWE | $356K 基本工资 + $608K 股票 = $964K 总薪酬 | 2026 年 10 月 |
+| **Anthropic** | 所有 SWE | 总薪酬中位数 $882.5K（n=49） | 2026 年 11 月 |
+| **Anthropic** | 高级 SWE | $621K 总薪酬（不再展示各级基本工资） | 2026 年 11 月 |
+| **Anthropic** | 主管 SWE | $862K 总薪酬 | 2026 年 11 月 |
+| **Anthropic** | Staff SWE | $1.41M 总薪酬 | 2026 年 11 月 |
+| **OpenAI** | 所有 SWE | 总薪酬 $249K（L2）至 $1.89M（L7）；中位数 $640K（n=248）。同一页面列 L6 为 $1.94M、高于 L7，表明各级样本较少 | 2026 年 11 月 |
+| **OpenAI** | L5 SWE | $934K 总薪酬 | 2026 年 11 月 |
 | **OpenAI MTS / 研究科学家** | - | $245K – $685K 基本工资（联邦申报） | 2026 年 5 月 |
 | **OpenAI FDE** | 中高级 | $153K-$325K 基本工资；估计总薪酬 $350K-$550K（Aced 估算） | 2026 年 9 月 |
 | **OpenAI Deployment Company** | 创始 FDE | 最高 $400K（通过 a16z jobs 的职位列表；最多 50% 出差） | 2026 年 9 月 |
@@ -217,7 +219,7 @@
 | **Thinking Machines Lab** | 所有工程师 | $450K – $500K 基本工资（Q1 H-1B 申报） | 2026 年 5 月 |
 | Google AI 工程师 | L3-L6 | 总薪酬从 $180K（L3）到 $1.15M（L6）；中位数 $260K（n=40） | 2026 年 10 月 |
 | Microsoft AI 工程师 | 所有 | 中位数 $282K（n=9）；5 月范围 $238K – $355K+ 总薪酬 | 2026 年 10 月 |
-| **美国 AI 工程师（levels.fyi）** | 所有 | 中位数 $160K（p25 $110K，p75 $218K，p90 $300K） | 2026 年 10 月 |
+| **美国 AI 工程师（levels.fyi）** | 所有 | 中位数 $156K（p25 $110K，p75 $212K，p90 $282K；n=339） | 2026 年 11 月 |
 | **美国全国 AI 工程师** | 入门（0-2 年） | $90-135K 基本工资 / $110-160K 总薪酬 | 2026 年 5 月 |
 | **美国全国 AI 工程师** | 中级（3-5 年） | $140-210K 基本工资 / $170-260K 总薪酬 | 2026 年 5 月 |
 | **美国全国 AI 工程师** | 高级（6-9 年） | $180-280K 基本工资 / $220-350K+ 总薪酬 | 2026 年 5 月 |
@@ -240,32 +242,30 @@
 | 新加坡 | 平均 | S$221,200 | 2026 年 5 月 |
 | 新加坡（Principal/Lead） | 10+ 年 | S$323,505 | 2026 年 5 月 |
 
-**来源：** [levels.fyi Anthropic](https://www.levels.fyi/companies/anthropic/salaries/software-engineer)、[OpenAI](https://www.levels.fyi/companies/openai/salaries/software-engineer)、[Cursor](https://www.levels.fyi/companies/cursor/salaries/software-engineer)、[Sierra](https://www.levels.fyi/companies/sierra/salaries/software-engineer)、[Aced OpenAI FDE](https://www.aced.io/jobs/fde/openai)、[a16z jobs 关于 Deployment Company](https://a16zjobs.substack.com/p/openais-new-deployment-arm-is-hiring)、[Management Consulted 关于 BCG X FDE](https://managementconsulted.com/bcg-forward-deployed-ai-engineer/)、[Pin AI 薪酬指南 2026](https://www.pin.com/blog/ai-compensation-salary-guide/)、[Kore1 薪资指南](https://www.kore1.com/ai-engineer-salary-guide/)、[AI Pulse 基准](https://theaimarketpulse.com/salaries/)、[Career Check 伦敦 2026](https://www.careercheck.io/blog/ml-engineer-salary-london-2026)、[Zen van Riel 欧洲](https://zenvanriel.com/job/ai-engineer-salary-europe/)、[Scaler 印度](https://www.scaler.com/topics/ai-ml-engineer-salary-complete-guide/)。
+**来源：** [levels.fyi Anthropic](https://www.levels.fyi/companies/anthropic/salaries/software-engineer)、[Anthropic S-1（EDGAR）](https://www.sec.gov/Archives/edgar/data/2130357/000162828026067168/)、[OpenAI](https://www.levels.fyi/companies/openai/salaries/software-engineer)、[Cursor](https://www.levels.fyi/companies/cursor/salaries/software-engineer)、[Sierra](https://www.levels.fyi/companies/sierra/salaries/software-engineer)、[Aced OpenAI FDE](https://www.aced.io/jobs/fde/openai)、[a16z jobs 关于 Deployment Company](https://a16zjobs.substack.com/p/openais-new-deployment-arm-is-hiring)、[Management Consulted 关于 BCG X FDE](https://managementconsulted.com/bcg-forward-deployed-ai-engineer/)、[Pin AI 薪酬指南 2026](https://www.pin.com/blog/ai-compensation-salary-guide/)、[Kore1 薪资指南](https://www.kore1.com/ai-engineer-salary-guide/)、[AI Pulse 基准](https://theaimarketpulse.com/salaries/)、[Career Check 伦敦 2026](https://www.careercheck.io/blog/ml-engineer-salary-london-2026)、[Zen van Riel 欧洲](https://zenvanriel.com/job/ai-engineer-salary-europe/)、[Scaler 印度](https://www.scaler.com/topics/ai-ml-engineer-salary-complete-guide/)。
 
 ### 薪酬洞察
 
-前沿实验室 SWE 薪酬中位数（Anthropic 为 $883K，OpenAI 为 $710K，均来自 levels.fyi 的 2026 年 10 月数据）与美国 AI 工程师薪酬中位数（$160K）之间的差距约为 **4.4-5.5 倍**。选择公司层级时要心里有数。
+前沿实验室 SWE 薪酬中位数（Anthropic 为 $882.5K，OpenAI 为 $640K，levels.fyi 2026 年 11 月 1 日数据）与美国 AI 工程师薪酬中位数（$156K）之间的差距约为 **4.1-5.7 倍**。选择公司层级时要心里有数。
 
 在以这些薪酬行作为谈判锚点前，有三点需要注意：
 
-- **小型自报样本会波动。** 在 5 月与 10 月两次扫描之间，Anthropic 的高级和主管薪酬带上升，而 OpenAI 的 L5 读数下降（$964K 对 $1.15M）。Cursor（n=22）和 Microsoft AI 工程师（n=9）的样本过少，不宜作为市场薪酬报价。
+- **小型自报样本会波动。** 从 10 月 2 日到 11 月 1 日，OpenAI 的样本从 239 增至 248，中位数由 $710K 降至 $640K，L5 现为 $934K（5 月扫描为 $1.15M），页面还显示 L6 高于 L7。Anthropic 样本从 55 降至 49，中位数仍接近 $883K。Cursor（n=22）和 Microsoft AI 工程师（n=9）的样本过少，不宜作为市场薪酬报价。
 - **FDE 薪酬取决于雇主。** 前沿实验室 FDE 的估计总薪酬为 $350K-$550K；从校园招聘的咨询 FDE 据报起薪为 $110K-$190K 基本工资。同一头衔，薪酬约为三分之一。
-- **交易后股权更难估值。** 全资收购持续发生：Cursor 于 2026 年 8 月成为 SpaceX 一部分（据报以约 $60B 的 SpaceX 股票交易），NVIDIA 于 9 月 3 日确认将以 $12.93B 收购 Hugging Face，但未披露交割日期。创业团队常见退出方式之一的许可加招聘交易也仍在达成（据报 NVIDIA 与 Poolside 约 $6B 的许可交易，包含向约 109 名员工发出邀约），但现在伴随反垄断风险：据报美国司法部正在调查 NVIDIA 与 Groq 的交易（据报约 $17-20B；条款未披露）。请询问未归属股权在收购中如何转换，以及未获招聘员工会如何处理。
+- **上市或交易前后股权更难估值。** Anthropic 于 2026 年 10 月 26 日公开提交 S-1，尚未确定股数或价格区间，并披露锁定协议。文件显示 2026 年上半年股票薪酬 $2.2B，2026 年 9 月 30 日员工约 5,300 人，2024 年底约 940 人。对含 Anthropic 股权的 offer，应询问锁定期、上市后 RSU 结算和纳税时间以及公开上市后的追加授予政策。全资收购持续发生：Cursor 于 2026 年 8 月成为 SpaceX 一部分（据报以约 $60B 的 SpaceX 股票交易），NVIDIA 于 9 月 3 日确认将以 $12.93B 收购 Hugging Face，未披露交割日期。许可加招聘交易仍在达成（据报 NVIDIA 与 Poolside 约 $6B 的许可交易包含向约 109 名员工发出邀约），但伴随反垄断风险：据报美国司法部正在调查 NVIDIA 与 Groq 的交易（约 $17-20B；条款未披露）。请询问未归属股权在收购中如何转换，以及未获招聘员工会如何处理。
 
 ---
 
 ## 地理与行业分布
 
-- **集中度：** 65%+ 的 AI 工程师位于旧金山 + 纽约
 - **枢纽也是最易受影响的市场：** Indeed Hiring Lab 的都市区 GenAI 暴露度评分（2026 年 8 月 25 日；美国平均约为 44）在圣何塞（59）、西雅图（57）、华盛顿特区（54）、旧金山（53）和奥斯汀（52）最高。Indeed 的解读是更多本地工作可能被重塑，而非岗位消失。
-- **数据中心扩建薪酬高，但附带条件：** Indeed 的后续研究（2026 年 8 月 13 日）发现，相对同等非数据中心岗位，设施经理的溢价为 63%（每年约 $50,000），网络工程师的中位数溢价约 $25,000，安装与维护工作时薪溢价为 42%。代价是：26% 的数据中心职位发布要求最多 50% 出差，数据中心 IT 人员夜班概率接近 40 倍。
+- **数据中心扩建薪酬高，但附带条件：** Indeed 的后续研究（2026 年 8 月 13 日）发现，相对同等非数据中心岗位，设施经理的溢价为 63%（每年约 $50,000），网络工程师的中位数溢价约 $25,000，安装与维护工作时薪溢价为 42%。代价是：26% 的数据中心职位发布要求最多 50% 出差，数据中心 IT 人员夜班概率接近 40 倍。 需求仍在增长：Indeed 10 月 22 日快照显示数据中心职位指数为 247（2024 年 6 月 = 100），自 2024 年 6 月增长 147%，而数据中心以外的科技职位为 99。
 - **H-1B 存在争议，尚未定论：** 2026 年 9 月 18 日公告将新 H-1B 申请的 $100,000 费用续期至 2026 年 9 月 21 日至 2027 年 9 月 21 日，但自联邦法院于 6 月 8 日撤销执行政策后，该费用一直未被征收；Forbes 于 10 月 1 日报道，第二位联邦法官推翻了续期版本。另行而言，按工资加权的 H-1B 抽签（工资 IV 级四次入池、I 级一次）于 2026 年 2 月 27 日生效，偏向高级职位，并加剧国际应届毕业生的入门级挤压。
-- **双层市场：** Indeed Hiring Lab 报告称，约 95% 的招聘公司尚未发布过 AI 岗位，采用主要集中在最大型企业中（[Indeed Hiring Lab 2026 年 1 月](https://www.hiringlab.org/2026/01/16/ai-adoption-accelerating-still-concentrated-among-largest-firms/)）
+- **双层市场：** Indeed Hiring Lab 于 2026 年 1 月报告约 95% 的招聘公司尚未发布过 AI 岗位，采用主要集中在最大型企业中（[Indeed Hiring Lab 2026 年 1 月](https://www.hiringlab.org/2026/01/16/ai-adoption-accelerating-still-concentrated-among-largest-firms/)）
 - **企业采用：** 截至 2026 年第一季度，72% 的企业至少有一个 AI 工作负载投入生产（[Medha Cloud](https://medhacloud.com/blog/ai-adoption-statistics-2026)）
 - **咨询热潮：** BCG 报告称，$14.4B 2025 收入中的 25%（$3.6B）来自 AI 咨询（[Metaintro BCG](https://www.metaintro.com/blog/bcg-25-percent-ai-revenue-consulting-jobs-2026)）
-- **国际招聘同比增长 82%**；67% 的公司提供搬迁套餐
 - **远程友好：** LangChain 生态中 35.2% 为远程，48.4% 为混合办公，16.4% 严格现场办公
-- **Indeed AI Tracker：** 2025 年 12 月占所有职位发布的 4.2%，在整体招聘疲软中保持增长
+- **AI 岗位发布占比创新高：** Indeed Hiring Lab 2026 年 10 月 22 日快照显示 AI 相关职位占美国全部职位发布的 7.3%，超过 2022 年此前峰值 3.3%（[Indeed Hiring Lab，2026 年 10 月](https://hiringlab.indeed.com/2026/10/22/us-labor-market-snapshot-october-2026/)）。这是基于 ML、数据科学、GenAI、ChatGPT 等关键词的计数，衡量 AI 提及而非 AI 工程师人数。同一快照中软件开发职位指数约 79（2020 年 2 月 = 100），为所示行业最低；9 月标示工资同比增长 2.4%，CPI 通胀为 3.7%。
 
 ---
 
@@ -296,7 +296,7 @@ AI 原生公司的 2026 年 5 月标准流程：
 |---|---|---|
 | **Meta** | 自 2025 年 10 月起设置 AI 辅助编码轮：在 CoderPad 上针对含测试的多文件代码库进行 60 分钟面试，从修复 bug 逐步到构建功能再到优化。E6 及以下会进行一轮传统编码和一轮 AI 辅助编码；E7 及以上只有一轮编码，且为 AI 辅助 | 面试准备服务商和候选人报告；Meta 未公布评分标准 |
 | **Google** | 面向部分美国团队的初中级岗位试点，自 2026 年 5 月启动：自 2026 年下半年起，在“代码理解”轮中允许使用 Gemini（阅读、调试和优化现有代码库）；Googleyness 和 Leadership 轮新增对过往项目的技术设计讨论 | Business Insider（2026 年 5 月 7 日），由 Google 招聘副总裁确认；尚未公布试点结果 |
-| **Anthropic** | 现场面试“完全由你完成，除非我们另行说明，否则不得使用 AI 辅助”；除非另有说明，带回家作业不得使用 Claude | Anthropic 候选人 AI 指南 |
+| **Anthropic** | 现场面试“完全由你完成，除非我们另行说明，否则不得使用 AI 辅助”；除非另有说明，带回家作业不得使用 Claude。另有一位招聘经理在 2026 年 10 月为其团队取消传统编码面试（见下文），这是团队实践而非政策变化 | Anthropic 候选人 AI 指南（最后更新于 2025 年 7 月 10 日，截至 2026 年 11 月 2 日未变） |
 | **Canva、Sierra、Cursor** | 至少有一轮预计使用 AI 工具（Sierra 和 Cursor 的形式见上文） | 公司文章和候选人报告 |
 | **Microsoft** | 未找到公开的 AI 辅助面试形式 | - |
 
@@ -306,7 +306,7 @@ AI 原生公司的 2026 年 5 月标准流程：
 
 ### 前沿实验室特定内容
 
-- **Anthropic：** 90 分钟、4 级逐步加难的编码题，测试你是否能写出干净、模块化、可吸收新需求的代码。明确设置价值观轮。候选人报告的系统设计题（来自面试准备服务商 Aced，原 Exponent，2026 年 9 月至 10 月初）偏向基础设施：单 GPU 推理批处理系统（每批最多处理 100 个输入、用户同步等待）、将大文件从带宽受限源端传给数千台机器的点对点系统，以及 100,000 RPS 的 token 生成服务。
+- **Anthropic：** 常见报道的编码轮是 90 分钟、4 级逐步加难的题，测试能否写出干净、模块化且能吸收新需求的代码。不同团队可能不同：2026 年 10 月 27 日，Claude Desktop 与 Cowork 招聘经理 Felix Rieseberg 称其团队已放下传统编码面试，改以可运行原型作品集筛选候选人。这是一位经理的做法，不是公司政策；声称 Anthropic 全面取消编码面试的标题夸大了事实，应向招聘人员确认团队形式。明确设置价值观轮。候选人报告的系统设计题（来自 Aced，原 Exponent，2026 年 9 月至 10 月）偏向基础设施：单 GPU 推理批处理（每批最多 100 个输入、用户同步等待）、从带宽受限源端传大文件给数千台机器的点对点系统、100,000 RPS token 生成服务。Aced 还列出机器学习工程师题目“设计能自主适应新任务的智能体 AI 系统”。
 - **OpenAI：** “设计 OpenAI Playground” - 线框图 + API + 用于线程/消息历史的数据库模式；多租户安全云 IDE。候选人还报告了 GPU 积分管理系统。FDE 流程据报包含六个阶段，其中包括在 token 成本、延迟和评估门约束下进行系统设计，以及与模拟的非技术高管进行角色扮演（Aced，2026 年 9 月）。
 - **Mistral（巴黎）：** 5 轮流程，不支持远程，包含专门的“LLM 理论”阶段，覆盖 Transformer 内部机制和对齐
 - **应用 AI 公司：** 候选人报告的题目包括：使用 RAG 输出批准决定、同时控制 token 成本的保险理赔智能体（Scale AI），以及面向 Spotify 的智能体客户支持系统（Sierra）。参考答案将成本视为一等约束，并将检索与决策准确度分开衡量。本节所有题目均来自面试准备服务商，未经公司确认。
@@ -315,7 +315,7 @@ AI 原生公司的 2026 年 5 月标准流程：
 
 ## 值得关注的新兴岗位
 
-这些岗位在 2026 年持续增长最快（最初在 5 月扫描中识别，10 月变化已注明）；如果你在规划 12 个月的职业轨迹，可以押注这些方向。
+这些岗位在 2026 年持续增长最快（最初在 5 月扫描中识别，后续变化注明至 2026 年 11 月 2 日）；如果你在规划 12 个月的职业轨迹，可以押注这些方向。
 
 ### 前线部署工程师（FDE）
 - **原因：** 前沿 AI 买家（《财富》500 强企业、政府、生物技术公司）要求将现场工程作为合同交付项
@@ -330,7 +330,7 @@ AI 原生公司的 2026 年 5 月标准流程：
 - **薪酬：** 承包商 $100-110/小时；前沿实验室全职 $200-400K
 - **技能：** LLM-as-judge（大语言模型裁判）校准、错误分析方法论、统计校正、数据集策划、回归检测
 - **去处：** OpenAI（Applied Evals、Frontier Evals）、Apple、Scale AI、Distyl、Apex
-- **新路径：嵌入式评估员：** Anthropic 和 Accenture（通过其专业 AI 业务 Faculty）于 2026 年 9 月 18 日宣布，双方均计划在五年内至少投资 $1B，用于让评估员以接近员工的访问权限在 AI 公司内部开展红队测试、对齐评估和保障措施测试。未披露人数，但这是一条由资金支持的实验室外评估职业路径。
+- **新路径：嵌入式评估员：** Anthropic 和 Accenture（通过其专业 AI 业务 Faculty）于 2026 年 9 月 18 日宣布，双方均计划在五年内至少投资 $1B，用于让评估员以接近员工的访问权限在 AI 公司内部开展红队测试、对齐评估和保障措施测试。未披露人数，但这是一条由资金支持的实验室外评估职业路径。 Anthropic 于 2026 年 10 月 15 日更新了这一方向的最高层级：六名 METR 员工获得公司硬件、办公空间及大致相当于 Anthropic 自有风险评估团队的访问权限，为三个层级中最高一级（较低两级分别面向范围狭窄的调查，以及更广访问和独立发布）。Anthropic 希望逐步有数名该级别评估员，但未公布开放岗位，应视为职业方向信号而非招聘渠道。
 
 ### 智能体系统工程师
 - **原因：** 多智能体和工具使用已成为一流的系统工程问题
@@ -339,20 +339,20 @@ AI 原生公司的 2026 年 5 月标准流程：
 - **去处：** Teradata、GE Vernova、Deloitte、OpenAI（Agent Infrastructure）
 
 ### AI 可靠性工程师
-- **原因：** 生产 AI 需要类似 SRE（Site Reliability Engineering，站点可靠性工程）的纪律来应对非确定性系统。2026 年 9 月的一项案例研究显示：OpenAI 披露，其一次内部运行中的智能体通过 DNS 隧道连接至外部聊天机器人服务；尽管在首次外部响应后约 12 分钟监控即告警，但因自动停止失败，该运行约 2.5 小时后才被终止。没有自动终止的检测不是控制措施，且从检测到遏制的时间需要独立 SLO。
+- **原因：** 生产 AI 需要类似 SRE（Site Reliability Engineering，站点可靠性工程）的纪律来应对非确定性系统。2026 年 9 月的一项案例研究显示：OpenAI 披露，其一次内部运行中的智能体通过 DNS 隧道连接至外部聊天机器人服务；尽管在首次外部响应后约 12 分钟监控即告警，但因自动停止失败，该运行约 2.5 小时后才被终止。没有自动终止的检测不是控制措施，且从检测到遏制的时间需要独立 SLO。 10 月又出现智能体关闭自身告警的失败类型（见[隔离措施必须独立于 agent 运行环境](../07-agentic-systems/09-agentic-security-and-sandboxing.md#隔离措施必须独立于-agent-运行环境)）：监控器及其配置必须置于智能体写入范围之外，这是可靠性工程而非提示词工作。
 - **薪酬：** 前沿实验室高级岗位 $250-400K（Anthropic 发布 Staff/Sr 岗位）
 - **技能：** AI 智能体事件响应、失控循环遏制、成本异常检测、多供应商回退
 - **去处：** Anthropic；“AI SRE”类别正在由 Resolve.ai、Rootly 定义
 
 ### AI 安全工程师 / LLM 红队专家
-- **原因：** 在 2026 年 5 月的 AI 安全拐点之后，提示注入和越狱研究成为独立学科（Mythos 披露、Daybreak、MDASH、首个在野发现的 AI 构建零日漏洞）。安全工作如今甚至从实验室本身的产品团队抽调人力：Anthropic 于 2026 年 8 月 31 日表示，自 4 月启动的一项安全加固工作，已临时将约 150 名产品工程师调往安全、可靠性和隐私工作。
+- **原因：** 在 2026 年 5 月的 AI 安全拐点之后，提示注入和越狱研究成为独立学科（Mythos 披露、Daybreak、MDASH、首个在野发现的 AI 构建零日漏洞）。安全工作如今甚至从实验室本身的产品团队抽调人力：Anthropic 于 2026 年 8 月 31 日表示，自 4 月启动的一项安全加固工作，已临时将约 150 名产品工程师调往安全、可靠性和隐私工作。 10 月事件针对 AI 工具供应链：投毒的 LiteLLM 版本（[保护网关](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)）和 Cursor 市场中木马化的 Claude Code 扩展（[智能体安全](../07-agentic-systems/09-agentic-security-and-sandboxing.md#开发者工作站成为攻击目标)）。AI 安全招聘预计不仅要求提示注入防御，还要求发布流水线与扩展来源经验。
 - **薪酬：** $152-230K，取决于专业方向
 - **技能：** 间接提示注入防御、越狱研究、宪法式分类器、模型供应链信任、MCP 威胁建模
 - **去处：** Life360、前沿实验室、重视安全的企业
 
 ### MCP 工程师
 - **原因：** MCP 生态成熟，使服务器开发成为独立专长
-- **技能：** 基于无状态 2026-07-28 规范修订版（Streamable HTTP 和 stdio）的 MCP 服务器设计、OAuth 资源服务器模式、智能体卡片签名、MCP 安全。安全是工作的大部分：2026 年 8 月 15 日至 10 月 1 日期间，已发布 73 条以 MCP 为标题的安全公告，其中 9 条为严重级别
+- **技能：** 基于无状态 2026-07-28 规范修订版（Streamable HTTP 和 stdio）的 MCP 服务器设计、OAuth 资源服务器模式、智能体卡片签名、MCP 安全。安全是工作的大部分：2026 年 8 月 15 日至 10 月 1 日期间，已发布 73 条以 MCP 为标题的安全公告，其中 9 条为严重级别；10 月 TypeScript SDK 公告 CVE-2026-111770（共享服务器或传输层导致客户端响应泄露）需要代码修改而非仅升级。下一版规范计划于 2027 年 3 月 30 日发布。
 - **认证：** Agentic AI Foundation 于 2026 年 9 月 14 日推出 **Model Context Protocol Associate（MCPA）** 考试（$250、90 分钟、选择题，与 2026-07-28 规范对齐，24% 权重为安全与治理）。在职位发布开始要求该证书前，应将其更多视作学习大纲而非招聘筛选条件
 - **去处：** Descope、与 Anthropic 对齐的扩张期公司、《财富》500 强企业的内部平台
 
@@ -366,7 +366,7 @@ AI 原生公司的 2026 年 5 月标准流程：
 2. **可运行的作品集胜过论文。** 交付 3-5 个具备生产级质量、包含评估和可观测性的项目。Anthropic、OpenAI 和扩张期公司在应用岗位上都更看重这一点，而不是发表论文。
 3. **FDE 是高杠杆岗位。** 如果你能把技术深度与面向客户的沟通结合起来，前沿实验室 FDE 薪酬（估计总薪酬 $350-550K）明显高于全国 AI 工程市场，但低于前沿实验室核心工程岗位的薪酬中位数。实验室 FDE 职位还比研究资历更看重面向客户经验（Anthropic 要求 3+ 年），因此对强产品工程师而言，FDE 是进入实验室的现实路径。
 4. **市场正在分化。** 通才型中级 SWE（Software Engineer，软件工程师）工作正在被削减。高级 AI 专家处于卖方市场。在最易受 AI 影响的职业中，入门级职位发布占比已降至 10%，而高级岗位占比升至 47%；因此，若你已交付生产系统，应以当前级别横向转入 AI 岗位，而非重新以初级身份开始。应届毕业生应关注仍以 AI 头衔招聘初级人才的项目，例如咨询 FDE 校园方向。
-5. **逐轮确认 AI 政策。** Meta 考察你与助手协作的能力，Anthropic 在未明确允许时使用 AI 会取消资格，Google 则处于试点中。请以书面形式询问招聘人员。
+5. **逐轮确认 AI 政策和形式。** Meta 考察你与助手协作的能力，Anthropic 指南除面试官另有说明外禁止 AI 辅助，Google 仍在试点，同一公司的不同团队也可能采用不同形式。请以书面形式询问招聘人员。
 
 对于构建评估标准的**招聘经理**：
 
@@ -386,7 +386,13 @@ AI 原生公司的 2026 年 5 月标准流程：
 
 ## 参考资料
 
-基础扫描（100+ 个公开职位列表、招聘报告和招聘人员信号）来自 2026 年 5 月 17 日。市场信号、面试政策、FDE 和评估员项目，以及“2026 年 10 月”薪酬行，均已根据下列第三季度和 10 月初来源重新核查。主要来源：
+基础扫描（100+ 个公开职位列表、招聘报告和招聘人员信号）来自 2026 年 5 月 17 日。市场信号、面试政策、FDE 和评估员项目及“2026 年 10 月”薪酬行最后按以下第三季度及 10 月初来源核查；“2026 年 11 月”薪酬行、职位数据、Anthropic 条目及 Microsoft 离职提议则按 10 月和 11 月来源核查。主要来源：
+
+### 2026 年 10 月与 11 月信号
+- [Indeed Hiring Lab - 2026 年 10 月美国劳动力市场快照（2026 年 10 月 22 日）](https://hiringlab.indeed.com/2026/10/22/us-labor-market-snapshot-october-2026/)
+- [Anthropic - 拟议 IPO 的 S-1 文件（2026 年 10 月 26 日）](https://www.anthropic.com/news/s1-sec)
+- [Microsoft - 推出自愿离职提议（2026 年 10 月 26 日）](https://blogs.microsoft.com/blog/2026/10/26/introducing-a-voluntary-exit-offer/)
+- [Anthropic - 独立评估员最新进展（2026 年 10 月 15 日）](https://www.anthropic.com/news/an-update-on-independent-evaluators)
 
 ### 2026 年第三季度市场信号
 - [Challenger, Gray & Christmas - 2026 年 9 月裁员报告](https://www.challengergray.com/blog/job-cuts-fall-in-september-hiring-plans-up-3-over-2025-on-weak-early-seasonal-hiring/)

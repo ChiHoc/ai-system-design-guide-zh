@@ -1,6 +1,6 @@
 # Pydantic AI 与 Mastra：类型化 Agent 框架（2026）
 
-Agent 框架之争已经不再是“LangGraph 还是 LlamaIndex”。对于优先考虑类型安全而非生态广度的团队来说，两个较新的进入者已经占据了有意义的生产份额：Python 世界中的 **Pydantic AI**（截至 2026 年 10 月 1 日的一个月内，PyPI 下载量约 530 万次）和 TypeScript 世界中的 **Mastra**（2026 年 8 月 31 日至 9 月 29 日，`@mastra/core` 的 npm 下载量约 690 万次）。两者都拒绝旧框架所接受的“字符串输入，字符串输出”表面接口，并且都押注于：一个完全类型化的 Agent，比一个聪明但无类型的 Agent 更容易测试、评估和运维。
+Agent 框架之争已经不再是“LangGraph 还是 LlamaIndex”。对于优先考虑类型安全而非生态广度的团队来说，两个较新的进入者已经占据了有意义的生产份额：Python 世界中的 **Pydantic AI**（截至 2026 年 11 月 1 日的 30 天内，PyPI 下载量约 540 万次）和 TypeScript 世界中的 **Mastra**（2026 年 10 月，`@mastra/core` 的 npm 下载量约 820 万次）。两者都拒绝旧框架所接受的“字符串输入，字符串输出”表面接口，并且都押注于：一个完全类型化的 Agent，比一个聪明但无类型的 Agent 更容易测试、评估和运维。
 
 ## 目录
 
@@ -32,7 +32,7 @@ Pydantic AI 和 Mastra 都源于对框架锁定和无类型提示词拼接的不
 
 ### 当前状态
 
-[Pydantic AI](https://ai.pydantic.dev/) 于 2025 年 9 月发布 v1.0，在经过七个 beta 版本后于 **2026 年 6 月 23 日发布稳定版 v2.0.0**（v2 beta 从 v1.100.0 分支而来）；2026 年 9 月 30 日已达到 **2.52.0**，1.x 补丁版本仍在更新（同日发布 1.107.7）（[PyPI 发布历史](https://pypi.org/project/pydantic-ai/#history)）。该库由 Pydantic 背后的团队构建，该团队也运营 [Pydantic Logfire](https://pydantic.dev/logfire)。它以 MIT 许可证开源。
+[Pydantic AI](https://ai.pydantic.dev/) 于 2025 年 9 月发布 v1.0，在经过七个 beta 版本后于 **2026 年 6 月 23 日发布稳定版 v2.0.0**（v2 beta 从 v1.100.0 分支而来）；2026 年 10 月 31 日已达到 **2.64.0**，1.x 补丁版本仍在更新（1.107.9 于 10 月 21 日发布）（[PyPI 发布历史](https://pypi.org/project/pydantic-ai/#history)）。小版本每周发布数次，也可能改变行为：2.62.0（10 月 27 日）默认将托管 MCP 能力的工具名称加上服务名前缀（可通过 `tool_prefix` 配置），这会破坏依赖旧名称的允许列表和评估。该库由 Pydantic 背后的团队构建，该团队也运营 [Pydantic Logfire](https://pydantic.dev/logfire)。它以 MIT 许可证开源。
 
 V2 **以 harness 为中心**：*capability* 是可组合的单元，将工具、生命周期钩子、指令和模型设置打包；第一方 Pydantic AI Harness 库提供更多此类单元，包括用于保存和恢复的 `StepPersistence`。从 1.x 升级时需检查以下破坏性和行为变化：
 
@@ -111,7 +111,7 @@ assert isinstance(result.output, RefundDecision)
 
 ### 当前状态
 
-[Mastra](https://mastra.ai/) 由 Gatsby 背后的团队创立（YC W25 毕业），于 2025 年 10 月 8 日宣布获得 Y Combinator、Paul Graham、Gradient 和其他 120 多位投资者提供的 **1,300 万美元种子轮融资**（[Mastra 公告](https://mastra.ai/blog/seed-round)），并于 **2026 年 1 月 20 日发布 v1.0**。`@mastra/core` 于 2026 年 10 月 1 日达到 **1.74.0**；GitHub 约有 **28.5K 星标**，2026 年 8 月 31 日至 9 月 29 日约有 **690 万次 npm 下载**（[mastra-ai/mastra](https://github.com/mastra-ai/mastra)）。
+[Mastra](https://mastra.ai/) 由 Gatsby 背后的团队创立（YC W25 毕业），于 2025 年 10 月 8 日宣布获得 Y Combinator、Paul Graham、Gradient 和其他 120 多位投资者提供的 **1,300 万美元种子轮融资**（[Mastra 公告](https://mastra.ai/blog/seed-round)），并于 **2026 年 1 月 20 日发布 v1.0**。`@mastra/core` 于 2026 年 10 月 30 日达到 **1.81.0**；GitHub 约有 **2.93 万星标**，2026 年 10 月 npm 下载量约 **820 万次**（[mastra-ai/mastra](https://github.com/mastra-ai/mastra)）。
 
 **许可证**：Mastra 于 2025 年 7 月 9 日从 Elastic License v2 改用 **Apache 2.0**。`ee/` 目录之外的内容均采用 Apache 2.0；`ee/` 目录中的代码则使用源码可见的 Mastra Enterprise Edition License。将 Mastra 嵌入商业产品前，应检查导入了哪些包。
 
@@ -223,13 +223,13 @@ flowchart TD
 
 ## 生产参考
 
-以下是截至 2026 年 10 月初的采用信号及公开案例：
+以下是截至 2026 年 11 月上旬的采用信号及公开案例：
 
 - **Pydantic AI**
-  - 截至 2026 年 10 月 1 日的一个月内，PyPI 下载量约 530 万次，与 DSPy 大致相当，约为 CrewAI 的两倍（CI 与间接安装会抬高下载量，应将其视为相对信号）。
+  - 截至 2026 年 11 月 1 日的 30 天内，PyPI 下载量约 540 万次，与 DSPy 大致相当，约为 CrewAI 的两倍（CI 与间接安装会抬高下载量，应将其视为相对信号）。
   - 常见采用路径是 FastAPI 团队，因为同一个 Pydantic 模型可以同时服务于 HTTP 边界和 LLM 输出类型。
 - **Mastra**
-  - 2026 年 8 月 31 日至 9 月 29 日，`@mastra/core` 的 npm 下载量约 690 万次，接近 `@openai/agents` 的 730 万次，远低于 Mastra 所依赖的 Vercel AI SDK 本身（`ai`，1.046 亿次）。
+  - 2026 年 10 月，`@mastra/core` 的 npm 下载量约 820 万次，现已超过 `@openai/agents`（750 万次），仍远低于 Mastra 所依赖的 Vercel AI SDK 本身（`ai`，1.154 亿次）。
 - **LangGraph**（供参考）
   - [LinkedIn 的 SQL Bot](https://www.linkedin.com/blog/engineering/ai/practical-text-to-sql-for-data-analytics)、[Uber 的编码助手](https://www.uber.com/en-IN/blog/genie-uber-genai-on-call-copilot/)、[Klarna](https://www.klarna.com/)、[Elastic](https://www.elastic.co/) AI Assistant、[Replit](https://replit.com/)，以及 [LangChain customer page](https://www.langchain.com/built-with-langgraph) 上的更多案例。
 

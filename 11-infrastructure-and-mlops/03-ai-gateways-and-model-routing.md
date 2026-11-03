@@ -56,7 +56,7 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 | 级联 | 先用便宜模型，置信度低时升级 | 大规模成本-质量平衡 | 串行 | 升级请求产生双重支出；置信度噪声 |
 | KV cache 感知（自托管） | 选择已在 KV cache 中持有提示词前缀的副本 | 共享前缀和多轮 agent 的自托管集群 | 低 | 热门前缀导致热点；缓存索引过期 |
 
-实践中有两点很重要。**语义路由**是通过嵌入相似度来选路由，不调用 LLM；生产里常见的模式是一个两阶段混合方案：用语义方式处理有把握的大多数，把模糊尾部交给 LLM-as-router。**级联**是最有杠杆效应的降本手段：RouteLLM（UC Berkeley / LMSYS，ICLR 2025）报告称，它只把一小部分调用路由到前沿模型，却能达到其约 ~95% 的质量，成本降低处在 45-85% 的范围。这个范围应当理解为特定基准下的上限，而不是保证；升级比例才是实时成本变量，而如果一个级联把大多数流量都升级了，那就省不了多少。
+实践中有三点很重要。**语义路由**是通过嵌入相似度来选路由，不调用 LLM；生产里常见的模式是一个两阶段混合方案：用语义方式处理有把握的大多数，把模糊尾部交给 LLM-as-router（vLLM Semantic Router 自 2026 年 9 月 27 日起为 v0.4.0，是一个开源实现）。新出现的中间层是**决策模型**：它们返回带概率的类型化答案（谓词、选项或分数），而不是文本；既有托管方案（OpenAI Decisions API，仅按输入计费），也可通过 vLLM 和 SGLang 使用开放模型。详情见 [Research Radar 主题 16](../RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)。应基于自己的流量校准阈值，因为早期论文报告称模型给出的概率可能偏低；即使正确读取状态，也可能选错动作。**级联**是最有杠杆效应的降本手段：RouteLLM（UC Berkeley / LMSYS，ICLR 2025）报告称，它只把一小部分调用路由到前沿模型，却能达到其约 95% 的质量，成本降低处在 45-85% 的范围。这个范围应当理解为特定基准下的上限，而不是保证；升级比例才是实时成本变量，而如果一个级联把大多数流量都升级了，那就省不了多少。模型档位差距很大，而升级请求会为经过的每一次调用付费。OpenAI 自 GPT-6.1 Terra（10 月 26 日，$1/$5）起重新提供三级阶梯：从 Luna（$0.10/$0.50）到 Terra 相差 10 倍，到 Sol（$2/$10）相差 20 倍；因此从 Luna 升级到 Sol 的成本约为只用 Luna 的 21 倍，而中间的 Terra 档可用半价拦截中等难度请求。级联也已成为实际发布的产品模式：GitHub Copilot Fusion（2026 年 10 月 28 日 GA）支持 Standard、High、Max 三档 effort，并通过 Single、Cascade 和 Critique 工作流在模型间路由。
 
 路由和回退是可以组合的：在正常路径上按成本 / 质量 / 延迟做路由，在异常路径上跨提供商回退以获得可靠性。级联本质上就是把质量驱动路由和内建可靠性回退结合在一起。
 
@@ -69,6 +69,8 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 **回退链**会在主提供商返回*可重试*失败时，把请求重试到下一个提供商 / 模型（429 限流、5xx、超时、找不到模型）。只应重试 429 和 5xx 类错误；绝不要重试 400 类客户端错误，那只会白白浪费配额。
 
 **正确的重试**遵循三条规则：指数退避（每次失败都等得更久）、抖动（随机化等待时间，避免客户端同步重试形成加剧故障的惊群效应），以及遵守 `Retry-After`（OpenAI 和 Anthropic 都会在 429 上返回它；应使用 `max(retry_after, computed_backoff)`）。忽略 `Retry-After` 是最常见的退避 bug。
+
+**按错误码而不只是状态码分支。** 并非每个 429 都意味着很快可以重试。自 2026 年 9 月 2 日起，OpenAI 对流量增长过快返回带 `slow_down` 的 429（应逐步升速并遵守 `Retry-After`），临时模型过载返回 503。Anthropic 月度支出上限返回带 `error_code: enforced_spend_limit_reached` 且无 `retry-after` 的 429：下月 1 日前重试均不会成功，应切换提供商并通知负责人。Claude Fable 5.1、Fable 5、Opus 5.5、Opus 5 和 Sonnet 5.5 的安全分类器拒绝则以 HTTP 200 返回，包含 `stop_reason: "refusal"` 和 `stop_details` 类别，应视为路由信号而非成功；Anthropic 测试版服务端 `fallbacks: "default"` 会重试该类别推荐的模型（Fable 5.1 允许回退至 Claude Opus 4.8 和 Opus 5）。
 
 **熔断器**会全局跟踪端点健康状况，并在失败率超过阈值时打开，这样你就不会在每个请求上都去猛击一个已经死掉或被限流的提供商。再配合冷却机制，把失败的部署在自动恢复前先停放一个固定窗口。
 
@@ -103,7 +105,7 @@ flowchart TD
 
 上游更新至 `2026` 年 `10` 月：OpenRouter 已覆盖 `400+` 个模型，Stripe 于 `8` 月 `19` 日宣布收购，并在企业计划中增加美国区域路由；其 Batch API 的 `70+` 个模型通常优惠 `50%`，自动路由依据最近 `7` 天的市场支出，其 Batch API 于 `9` 月 `22` 日上线。Envoy AI Gateway 于 `6` 月 `23` 日发布 v`1.0.0`、`8` 月 `21` 日发布 v`1.1.0`，加入 token 计数、逐请求凭据覆盖、首 token 到达前的流空闲回退、默认拒绝的 MCP 路由和 OpenTelemetry GenAI 语义约定，并于 `9` 月加入 Agentic AI Foundation。Anthropic 在 `8` 月 `16` 日至 `9` 月 `29` 日记录了至少 `12` 起重大或严重事故；OpenAI 于 `9` 月 `29` 日发生约 `5` 小时 `20` 分钟的全平台降级。跨云生命周期也不同：Claude Opus `4.1` 于 `8` 月 `5` 日退出 Claude API，但 Bedrock 支持到 `2027` 年 `1` 月 `8` 日，延长访问价格自 `10` 月 `8` 日上调；Grok `4` 于 `5` 月 `15` 日退出 xAI API，`grok-4` 别名现解析为 `grok-4.3`，Azure Foundry 仍列为 GA。固定模型 ID 也可能改变行为：OpenAI 于 `9` 月 `25` 日修复 `gpt-6-sol` 和 `gpt-6-luna` 的图像编码问题。GitHub 于 `9` 月 `30` 日预览 HydraFusion 级联路由。Envoy AI Gateway `1.1` 的 `streamIdleTimeout` 只在首 token 前可将请求切到下一后端；已有 token 输出后只能从头重放或返回错误。路由注册表应以“模型 + 平台”为键，并记录每次响应实际返回的模型 ID，定期对固定 ID 重跑评测。
 
-还有三项会直接影响策略的边界：vLLM Semantic Router v`0.4.0` 于 `9` 月 `27` 日加入语义路由实现；Anthropic Fable `5.1`、Opus `4.8`／`5.5` 和 Sonnet `5.5` 的 thinking block 绑定模型与会话，切换提供商时可能被静默丢弃；新账户在 `8` 月 `31` 日后若修改 thinking block 前缀，会收到 `400`。`9` 月 `2` 日起，OpenAI 对突增流量以 `429 slow_down` 限流、临时模型过载返回 `503`；Anthropic 月度支出上限也会返回 `429`，错误码为 `enforced_spend_limit_reached` 且不附 `Retry-After`，此时必须切换提供商并告警，而非重试。级联价格差也很大：GPT-`6` Luna 每 `1M` token 为 `$0.10/$0.50`，Sol 为 `$2/$10`；回退会导致强模型缓存冷启动，升级请求应按完整未缓存上下文计费。
+还有几项会直接影响策略的边界：vLLM Semantic Router v`0.4.0` 于 `9` 月 `27` 日加入语义路由实现；Anthropic Fable `5.1`、Opus `5.5`、Sonnet `5.5` 和 Haiku `5.5` 的 thinking block 绑定模型与会话，切换提供商时可能被静默丢弃；Sonnet `5.5` 和 Haiku `5.5` 的 block 也绑定生成它的账户；新账户在 `8` 月 `31` 日后若修改 thinking block 前缀，会收到 `400`。`9` 月 `2` 日起，OpenAI 对突增流量以 `429 slow_down` 限流、临时模型过载返回 `503`；Anthropic 月度支出上限也会返回 `429`，错误码为 `enforced_spend_limit_reached` 且不附 `Retry-After`，此时必须切换提供商并告警，而非重试。Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型的任何 `temperature`、`top_p` 和 `top_k` 均返回 `400`，包括默认值；Anthropic Python SDK 2.0.0、TypeScript SDK 1.0.0 和 Go SDK 2.0.0 默认发送该版本。Google 自 10 月 8 日起将 `gemini-3.7-flash` 请求重路由到 `gemini-3.8-flash`，固定 ID 并不代表模型不变。级联价格差也很大：GPT-`6` Luna 每 `1M` token 为 `$0.10/$0.50`，Sol 为 `$2/$10`；回退会导致强模型缓存冷启动，升级请求应按完整未缓存上下文计费。
 
 **自托管 vs 托管**的核心取舍：自托管（LiteLLM、Kong、Envoy）把数据留在你的边界内，给予你完整控制，并且在严格合规场景下是必须的，但*你*必须让代理高可用，否则它就会变成单点故障。托管（OpenRouter、Portkey、Cloudflare）几乎零运维、上手很快，但数据会经过第三方，并且你要把它们的可用性当成硬依赖来接受。
 
@@ -121,20 +123,26 @@ flowchart TD
 
 ## 保护网关
 
-网关把每个供应商密钥、提示词和响应集中到同一进程，因此成为 AI 技术栈中价值最高的攻击目标。LiteLLM 2026 年的安全通告展示了这种模式：
+网关把每个供应商密钥、提示词和响应集中到同一进程，因此成为 AI 技术栈中价值最高的攻击目标。LiteLLM 2026 年的安全通告和安全事件展示了这种模式：
 
 | 安全通告 | 经过 | 修复版本 |
 |----------|---------------|----------|
 | CVE-2026-37004（严重，CVSS 9.8） | `/prompts/test` 端点未经身份认证的模板注入可执行操作系统命令 | 1.83.7 |
 | CVE-2026-49468（严重） | Host-header 身份认证绕过 | 1.84.0 |
 | CVE-2026-84377（中等，CVSS 6.5） | 任意经过认证的代理用户都可把 `api_base`、`base_url`、`model_list` 或回退目标指向自己的主机，使代理向那里发送运营者保存的供应商密钥（也构成 SSRF） | 各版本分支的补丁为 1.88.6 至 1.96.2；临时措施为 `general_settings.allow_client_side_credentials=false` |
-| GHSA-92x9-889m-jgmw | PyPI 上 litellm 1.82.7 和 1.82.8 版本遭入侵 | 不要安装这些版本；按哈希固定依赖 |
+| GHSA-92x9-889m-jgmw | PyPI 上 litellm 1.82.7、1.82.8 和 1.107.0 版本遭入侵（1.107.0 是下文 10 月 21 日构建，10 月 29 日加入此公告） | 不要安装这些版本；按哈希固定依赖 |
+| CVE-2026-114612（严重，CVSS 9.9） | 同一密钥既用于加密静态密钥，也用于签发会话令牌，因此内部用户可获得代理加密的伪造管理员凭据，并将其作为 bearer token 重放；从 1.91.0 起的默认配置均可利用 | 1.100.4、1.101.3、1.102.2、1.103.1 |
+| GHSA-w4c7-34wj-hqm8（严重，CVSS 10.0，仅限 Enterprise 许可证代理） | 未认证请求可令代理读取本地文件（例如保存 master key 的进程环境），并将其发送至攻击者指定的 URL | 1.103.10、1.104.8、1.105.6、1.106.5；出口流量允许列表可阻断外传 |
+| 10 月 21 日供应链入侵 | 5 月 27 日提交到公开仓库且从未撤销的内部管理员密钥，于 10 月 10 日导致 GitHub 组织所有者令牌和 CI 密钥被盗；10 月 21 日，仿冒 fork 在约两小时内发布七个恶意 PyPI wheel（litellm 1.107.0）以及 Docker Hub、GHCR 镜像，窃取云凭据、供应商密钥、master/virtual key 和环境变量 | 任何拉取过这些构建的主机都应轮换所有密钥；按哈希固定包，按 digest 固定镜像 |
+
+综合来看，每个代理都应使用其分支上的 1.100.4、1.101.3、1.102.2、1.103.1 或更高版本；Enterprise 许可证代理应使用 1.103.10、1.104.8、1.105.6 或 1.106.5。这里的“更高”绝不包括 1.107.0，因为这是被植入恶意代码的构建。
 
 由此得出的设计规则：
 
 - **绝不让调用方决定凭据发往哪里。** 以允许列表限定上游主机，并在入口剥离客户端提供的路由参数（`api_base`、fallbacks）。这与[访问控制](../12-security-and-access/02-access-control.md#智能体与工具授权)中 MCP OAuth 混淆修复所要求的签发方绑定是同一原则。
 - **尽可能不在代理中保存长期密钥。** 从保险库按请求注入凭据（Envoy 的 `credentialOverride`）；在可用时使用工作负载身份而非静态供应商密钥（OpenAI 于 2026 年 8 月 29 日正式提供 mTLS 和 X.509 工作负载身份联合）；其余密钥设置短有效期（OpenAI 于 9 月 10 日增加密钥到期功能）。
-- **把网关当作供应链环节。** 固定版本与哈希、从镜像索引安装、订阅安全通告，并且不要将管理或测试端点暴露到互联网。
+- **把网关当作供应链环节。** 固定版本与哈希、按 digest 固定容器镜像、从镜像索引安装并在接纳新版本前设置短暂隔离期、订阅安全通告，并且不要将管理或测试端点暴露到互联网。10 月的入侵始于一把泄漏后超过四个月未撤销的密钥，因此供应商自身的密钥卫生也属于你的威胁模型。
+- **限制出口流量。** 网关只能连接一组已知供应商主机。启用出口允许列表后，类似 GHSA-w4c7-34wj-hqm8 的文件读取漏洞就无法外传 master key，木马构建也无法回连攻击者。
 - **假设网关会被攻破并限制影响范围：**按信任区分别部署网关，为每个部署分配独立且受限的供应商密钥，并按密钥设置支出上限，让失窃凭据造成的损失有上限。
 
 ---
@@ -166,12 +174,12 @@ flowchart TD
 ### Q: 你的网关保存着所有供应商密钥。如何保护它？
 
 **强回答：**
-我会把它视作皇冠上的明珠，因为一个漏洞就可能一次性暴露所有密钥。LiteLLM 曾出现未认证远程代码执行漏洞（CVE-2026-37004，CVSS 9.8），也出现过允许任意已认证用户将请求连同运营者保存的密钥重定向到其自有主机的漏洞（CVE-2026-84377）。首先，调用方不能选择目的地：我会把上游主机加入允许列表，并在边缘层剥离 `api_base` 一类参数。其次，尽量减少长期有效的密钥：支持时使用工作负载身份或 mTLS；其他情况由保险库按请求注入凭据、缩短密钥有效期；并为每个网关部署使用独立密钥和支出上限，限制泄漏造成的损失。第三，管好供应链：从镜像索引安装固定版本和哈希（PyPI 上曾有两个 LiteLLM 版本遭恶意篡改），跟踪安全通告并设定修补时限，管理端点只放在私有网络。最后，记录每个上游目的地，并对允许列表外的主机告警，以便及时发现重定向攻击。
+我会把它视作皇冠上的明珠，因为一个漏洞就可能一次性暴露所有密钥。LiteLLM 曾出现未认证远程代码执行漏洞（CVE-2026-37004，CVSS 9.8）、允许任意已认证用户将请求连同运营者保存的密钥重定向到其自有主机的漏洞（CVE-2026-84377），以及 10 月发生的 Enterprise 代理 master key 泄漏事件（CVSS 10.0）。首先，调用方不能选择目的地：我会把上游主机加入允许列表、在边缘层剥离 `api_base` 一类参数，并启用出口允许列表，确保文件读取漏洞也无法外传密钥。其次，尽量减少长期有效的密钥：支持时使用工作负载身份或 mTLS；其他情况由保险库按请求注入凭据、缩短密钥有效期；并为每个网关部署使用独立密钥和支出上限，限制泄漏造成的损失。第三，管好供应链：按哈希固定软件包、按 digest 固定镜像，并从镜像仓库安装（LiteLLM 在 2026 年有两次 PyPI 构建遭木马化，第二次还包括容器镜像，源于 CI 密钥被盗）；跟踪安全通告并设定修补时限，管理端点只放在私有网络。最后，记录每个上游目的地，并对允许列表外的主机告警，以便及时发现重定向攻击。
 
 ### Q: 如何把一个长时间运行的 agent 对话故障转移到另一家供应商？
 
 **强回答：**
-要谨慎处理，因为 agent 状态不像单次请求那样可移植。我会在轮次边界故障转移，而不是在生成过程中切换：首个 token 到达前发生流空闲超时，可以干净地转到下一个后端；开始输出 token 后失败，则从头重放，或向用户显示错误。最新 Claude 模型中的推理状态与模型绑定：其他模型无法读取的 thinking block 会被丢弃，前缀变化在新账户上也可能触发 400。因此回退模型拿到的是可见对话记录和工具结果，不包括隐藏推理；对话记录保持只追加。请求格式也有差异（最新 Claude 模型会拒绝强制 `tool_choice`），所以网关要按目标模型转换请求，不能原样透传参数。我会把回退路径作为独立配置评测，跨供应商配置以避免单次故障同时影响两条路径，并让模型注册表按模型和平台建立索引，确保故障转移不会落到已退役或已改价的部署上。
+要谨慎处理，因为 agent 状态不像单次请求那样可移植。我会在轮次边界故障转移，而不是在生成过程中切换：首个 token 到达前发生流空闲超时，可以干净地转到下一个后端；开始输出 token 后失败，则从头重放，或向用户显示错误。Claude Fable 5.1、Opus 5.5、Sonnet 5.5 和 Haiku 5.5 的 thinking block 与模型及会话绑定：其他模型无法读取的 block 会被丢弃，且新账户在 2026 年 8 月 31 日后修改 block 前缀可能触发 400。因此回退模型拿到的是可见对话记录和工具结果，不包括隐藏推理；对话记录保持只追加。请求格式也有差异：Fable 5.1、Opus 5.5 和 Sonnet 5.5 会拒绝强制 `tool_choice`（Haiku 5.5 接受但会跳过思考），而 Anthropic API 版本 `2026-10-21` 起所有 Claude 模型对任何 `temperature`、`top_p`、`top_k` 都返回 400（新 SDK 主版本默认使用该版本）。网关必须按目标模型剔除不兼容参数，不能原样透传。我会把回退路径作为独立配置评测，跨供应商配置以避免单次故障同时影响两条路径，并让模型注册表按模型和平台建立索引，确保故障转移不会落到已退役或已改价的部署上。
 
 ---
 
@@ -184,7 +192,8 @@ flowchart TD
 - [Kong AI Gateway 文档](https://developer.konghq.com/ai-gateway/)
 - [OpenRouter BYOK 文档](https://openrouter.ai/docs/guides/overview/auth/byok)
 - [OpenRouter 加入 Stripe](https://openrouter.ai/blog/announcements/openrouter-is-joining-stripe/)
-- LiteLLM 安全通告 [GHSA-6wvf-77m9-58rm](https://github.com/advisories/GHSA-6wvf-77m9-58rm)（CVE-2026-37004）和 [GHSA-3cv6-jpf6-8222](https://github.com/advisories/GHSA-3cv6-jpf6-8222)（CVE-2026-84377）
+- LiteLLM 安全通告 [GHSA-6wvf-77m9-58rm](https://github.com/advisories/GHSA-6wvf-77m9-58rm)（CVE-2026-37004）、[GHSA-3cv6-jpf6-8222](https://github.com/advisories/GHSA-3cv6-jpf6-8222)（CVE-2026-84377）、[GHSA-7hp6-4w63-5g45](https://github.com/BerriAI/litellm/security/advisories/GHSA-7hp6-4w63-5g45)（CVE-2026-114612）及 [GHSA-w4c7-34wj-hqm8](https://github.com/BerriAI/litellm/security/advisories/GHSA-w4c7-34wj-hqm8)；[2026 年 10 月 21 日事件报告](https://docs.litellm.ai/blog/security-incident-oct-21-2026)
+- OpenAI，[Decisions API 指南](https://developers.openai.com/api/docs/guides/decisions)
 - [Gateway API Inference Extension v1.6.0](https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/tag/v1.6.0)
 - Anthropic：[拒绝与回退](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) 和[速率限制](https://platform.claude.com/docs/en/api/rate-limits)
 - OpenAI：[API 更新日志](https://developers.openai.com/api/docs/changelog)

@@ -35,7 +35,7 @@ Python 是 AI 工作的默认语言。TypeScript 是最常见的第二语言，�
 
 ### AI 工程是个好职业吗？
 
-对有经验的工程师来说，是的：需求旺盛，薪酬与高级软件工程相当，在前沿实验室往往高得多（levels.fyi 自报的 2026 年 10 月中位数：Anthropic 软件工程师为 $883K，OpenAI 为 $710K，而美国 AI 工程师整体为 $160K）。但入门门槛更窄。在 AI 暴露程度最高的职业中，初级岗位在招聘信息中的占比从 2021 年的 29% 降至 2026 年的 10%（Indeed Hiring Lab）；尽管应届毕业生失业率尚未激增，但自 2022 年末以来，受影响最大的专业（以计算机科学为首）的毕业生起薪相对受影响最小的专业下降了约 13%（美国人口普查局工作论文，2026 年 9 月）。因此，最佳路径是保留资历的横向转岗。另一个风险是快速迭代：去年重要的框架今天可能已进入维护模式。跨版本持续增值的能力是评估、系统设计和基于证据的调试。参见 [Job Market Trends](06-job-market-trends-2026.md)。
+对有经验的工程师来说，是的：需求旺盛，薪酬与高级软件工程相当，在前沿实验室往往高得多（levels.fyi 自报的 2026 年 11 月 1 日中位数：Anthropic 软件工程师为 $882,500，OpenAI 为 $640,000，而美国 AI 工程师整体为 $156,000）。2026 年 10 月美国招聘信息中 AI 相关职位达到创纪录的 7.3%（Indeed Hiring Lab，按关键词统计），尽管整体软件开发招聘仍远低于 2020 年水平。但入门门槛更窄。在 AI 暴露程度最高的职业中，初级岗位占比从 2021 年的 29% 降至 2026 年的 10%；尽管应届毕业生失业率尚未激增，但自 2022 年末以来，受影响最大的专业（以计算机科学为首）的毕业生起薪相对受影响最小的专业下降约 13%（美国人口普查局工作论文，2026 年 9 月）。因此，最佳路径是保留资历的横向转岗。另一个风险是快速迭代：去年重要的框架今天可能已进入维护模式。跨版本持续增值的能力是评估、系统设计和基于证据的调试。参见 [Job Market Trends](06-job-market-trends-2026.md)。
 
 ### 我在哪里能获得模拟 AI 系统设计面试或导师指导？
 
@@ -55,7 +55,7 @@ Python 是 AI 工作的默认语言。TypeScript 是最常见的第二语言，�
 
 ### 长上下文窗口会让 RAG 过时吗？
 
-不会。顶级模型如今普遍拥有约 100 万 token 的上下文窗口（Claude Opus 5.5、Sonnet 5.5 和 Fable 5.1；GPT-6 Astra 和 GPT-6 Sol 为 105 万；Gemini 3.8 Flash），但 RAG 在成本、延迟、新鲜度和语料规模上仍然占优。长提示词被视为惩罚项而非便利：输入超过 272K token 后，OpenAI 会按长上下文费率对整个请求计费（GPT-6 Sol 从每 1M $2/$10 变为 $4/$15）；xAI 则在 200K 及以上将每个 token 的价格翻倍。相比之下，Anthropic 对 Claude 4.6 及更高版本在 100 万 token 内采用统一定价。企业数据集（SharePoint、日志归档、代码 monorepo）会超出任何上下文窗口。RAG 的作用像过滤器，找到值得放进那个高价值窗口的 0.01% 数据。参见 [RAG vs Long Context](../06-retrieval-systems/14-production-rag-at-scale.md)。
+不会。约 1M token 的上下文窗口如今已普及到顶级层之外（Claude Fable 5.1、Opus 5.5、Sonnet 5.5、Haiku 5.5；GPT-6 Astra、GPT-6 Sol、GPT-6.1 Terra 为 1.05M；Gemini 4 Argon 和 Gemini 3.8 Flash），但 RAG 在成本、延迟、新鲜度和语料规模上仍占优。长提示词被视为惩罚项：OpenAI 输入超过 272K token 后按长上下文费率对整个请求计费（GPT-6 Sol 每 1M 从 $2/$10 变为 $4/$15）；xAI 在 200K 及以上将每个 token 价格翻倍；Claude Haiku 5.5 的提示词超过 100K token（含缓存读写）后，整个请求按 5 倍计费。其他 Claude 4.6 及更高版本，包括 Opus 5.5 和 Sonnet 5.5，仍在 1M 内统一定价。企业数据集（SharePoint、日志归档、代码 monorepo）会超出任何上下文窗口。RAG 像过滤器，找到值得放进高价值窗口的 0.01% 数据。参见 [RAG vs Long Context](../06-retrieval-systems/14-production-rag-at-scale.md)。
 
 ### RAG 和 fine-tuning 有什么区别？
 
@@ -63,7 +63,7 @@ RAG 在查询时通过上下文注入知识。Fine-tuning（微调）则把行�
 
 ### 最好的向量数据库是哪一个？
 
-没有单一最佳。Pinecone 在托管规模和 SLA 上更强。Qdrant 在开源性能上领先（在 1,000 万向量规模下 p99 大约 12ms）。Weaviate 的原生混合检索（BM25 + dense + metadata）最完整。到了需要超过 5,000 万向量的分布式规模时，Milvus 是合适选择；如果你已经在用 Postgres，且索引少于 1,000 万向量，pgvector 就是正确答案（请使用修复了 IVFFlat 溢出 CVE 的 0.8.7 或更高版本）。参见 [Vector Databases](../06-retrieval-systems/04-vector-databases.md)。
+没有单一最佳。Pinecone 在托管规模和 SLA 上更强。Qdrant 在开源性能上领先（10M 向量规模下 p99 约 12ms）。Weaviate 的原生混合检索（BM25 + dense + metadata）最完整。需要超过 50M 向量的分布式规模时，Milvus 是合适选择（使用 3.0.3 或更高版本，修复了畸形稀疏向量导致的堆越界写入和 DescribeCollection 元数据泄漏）；如果已用 Postgres 且索引少于 10M 向量，选择 pgvector（使用修复 IVFFlat 溢出 CVE 的 0.8.7 或更高版本）。参见 [Vector Databases](../06-retrieval-systems/04-vector-databases.md)。
 
 ### 什么是 contextual retrieval？
 
@@ -95,7 +95,7 @@ AI 智能体是一个系统：LLM 决定下一步做什么，执行一个工具�
 
 ### 什么是 MCP（Model Context Protocol）？
 
-MCP 是一个开放协议，让 LLM 应用通过标准接口连接工具和数据源。Anthropic 于 2024 年 11 月发布了它。治理权于 2025 年 12 月转移到 Linux Foundation 的 Agentic AI Foundation（AAIF），AAIF 现在还托管 A2A、goose 和 AGENTS.md。采用已经非常普遍：Anthropic、OpenAI、Google、Microsoft、AWS 都支持它，截至 2026 年 5 月已有超过 2,300 个公开 MCP 服务器。当前规范版本 **2026-07-28** 将协议核心改为无状态（没有 `initialize` 握手，也没有会话头）；`pip install mcp` 现在会安装 2.x Python SDK，其中 FastMCP 更名为 `MCPServer`。应像维护任何面向互联网的依赖一样及时修补 MCP 服务器和 SDK：2026 年 8 月 15 日至 10 月 1 日间发布了 73 条标题含 MCP 的安全公告，其中 9 条为严重级别。参见 [Tool Use and MCP](../07-agentic-systems/03-tool-use-and-mcp.md)。
+MCP 是让 LLM 应用通过标准接口连接工具和数据源的开放协议，Anthropic 于 2024 年 11 月发布。治理权于 2025 年 12 月转移到 Linux Foundation 的 Agentic AI Foundation（AAIF），现托管 10 个项目，包括 A2A、goose、AGENTS.md 以及自 2026 年 10 月 22 日加入的 Agent Skills。Anthropic、OpenAI、Google、Microsoft、AWS 都支持它，截至 2026 年 5 月已有超过 2,300 个公开 MCP 服务器。当前规范 **2026-07-28** 将核心改为无状态（无 `initialize` 握手和会话头）；`pip install mcp` 安装 2.x Python SDK，FastMCP 更名为 `MCPServer`。下一版从 2026 年 12 月调整为计划于 2027 年 3 月 30 日发布；扩展分为 Experimental、Beta、Stable 三个成熟度阶段：MCP Apps 和企业授权为 Stable，Tasks、Skills、Server Cards 为 Beta，仍可能发生破坏性变更。应像面向互联网的依赖一样修补服务器和 SDK：2026 年 8 月 15 日至 10 月 1 日有 73 条标题含 MCP 的安全公告，其中 9 条为严重级别，部分修复需要改代码。10 月 TypeScript SDK 公告 CVE-2026-111770 涉及共享服务器或传输层使客户端响应泄露；`@modelcontextprotocol/server` 2.3.0 的修复还要求为每个请求或会话创建独立服务器和传输层。参见 [Tool Use and MCP](../07-agentic-systems/03-tool-use-and-mcp.md)。
 
 ### 最好的智能体框架是哪一个？
 
@@ -107,7 +107,7 @@ Agentic RAG 用一个循环替代线性的“先检索再生成”流程：智�
 
 ### computer-use 智能体是如何工作的？
 
-computer-use 智能体会截取桌面或浏览器截图，决定鼠标和键盘动作，执行后再截一张图。产品已分化为三种形态：你自行托管的 API 工具（Anthropic 的 `computer_toolset_20260801`，自 2026 年 8 月 19 日起在 Claude API 上 GA；Gemini computer use 在 `gemini-3.8-flash` 上预览，并内置 `require_confirmation` 检查）；由供应商托管的运行时（OpenAI Agents API 自 2026 年 9 月 10 日起公测，9 月 29 日新增在 OpenAI 托管浏览器中使用计算机的能力）；以及拥有自身云端计算机和身份的持久智能体（Microsoft Copilot Autopilot，私有预览）。应谨慎解读基准数字。OSWorld-Verified 已趋于饱和；在更难的 OSWorld 2.x 排行榜（XLANG，2026 年 9 月 17 日）上，Claude Opus 5 在最高 effort 下仅完整完成 44.33% 的任务，但部分得分为 77.67%。Anthropic 报告的 Opus 5.5 的 81.8% 同样是部分得分。应按二元完成率规划容量。参见 [Computer-Use Agents](../17-tool-use-and-computer-agents/04-computer-use-agents.md)。
+computer-use 智能体截取桌面或浏览器截图，决定并执行鼠标键盘动作，再次截图。产品分为三种形态：自行托管的 API 工具（Anthropic `computer_toolset_20260801` 自 2026 年 8 月 19 日在 Claude API 正式发布；Gemini computer use 自 2026 年 10 月 30 日正式发布并内置 `require_confirmation`）；供应商托管的运行时（OpenAI Agents API 自 2026 年 9 月 10 日公测，9 月 29 日新增托管浏览器）；以及拥有自身云端计算机和身份的持久智能体（Microsoft Copilot Autopilot，私有预览）。OSWorld-Verified 已饱和；较难的 OSWorld 2.x 排行榜（XLANG，2026 年 10 月 15 日更新）中，Claude Opus 5 最高 effort 仍领先端到端模型，在 v2.1 任务上二元完成率 44.33%、部分得分 77.67%；榜单尚无 Claude 5.5 一代、GPT-6 或 Gemini 4。Anthropic 自报的 Opus 5.5 81.8% 和 Haiku 5.5 在离线子集的 72.4% 都是部分得分。应按二元完成率规划容量，并把 GUI 视为最易注入的界面：Haiku 5.5 系统卡报告提示注入在 15 次尝试内总体成功率 7.1%，GUI 计算机操作为 24.4%。参见 [Computer-Use Agents](../17-tool-use-and-computer-agents/04-computer-use-agents.md)。
 
 ### 什么是 context engineering？
 
@@ -115,7 +115,7 @@ Context engineering（上下文工程）是为智能体每次推理回合整理�
 
 ### 什么是 Agent Skills？
 
-Agent Skills 是智能体按需加载的一组指令、脚本和资源文件夹，用于让智能体在某项任务上专门化。每个 skill 都是一个 `SKILL.md` 文件，包含 YAML 元数据和可选的随附文件。它们采用 **progressive disclosure（渐进式展开）**：名称和描述放在系统提示里，完整的 `SKILL.md` 只在智能体判断相关时加载，引用的文件也按需加载，以保持上下文尽量小。Skills 与 MCP 互补：MCP 把智能体连到工具和数据，Skills 教它如何使用这些工具。Skills 于 2026 年 8 月 19 日结束 Claude API Beta；MCP 服务器现可通过官方 `io.modelcontextprotocol/skills` 扩展提供它们（2026 年 9 月 13 日 Final；截至 9 月下旬，官方 SDK 支持仍处于开放 PR），该扩展将审批绑定到技能文件的 SHA-256 清单：任何文件被修改、新增或删除都会撤销审批。应将技能视为依赖：在智能体加载前固定版本并审查更新。参见 [Building Tool-Use Agents](../17-tool-use-and-computer-agents/05-building-tool-agents.md)。
+Agent Skills 是智能体按需加载的指令、脚本和资源文件夹，让智能体专门处理某项任务。每个 skill 包含带 YAML 元数据的 `SKILL.md` 及可选随附文件。它们使用**渐进式展开**：系统提示中保留名称和描述，智能体判断相关时才加载正文，引用文件也按需加载，以保持上下文精简。Skills 与 MCP 互补：MCP 连接工具和数据，Skills 教工作流。Skills 于 2026 年 8 月 19 日结束 Claude API Beta；MCP 服务器可通过官方 `io.modelcontextprotocol/skills` 扩展提供它们（2026 年 9 月 13 日 Final；扩展成熟度为 Beta，仍可能发生破坏性变更；TypeScript SDK 2.4.0 于 10 月 23 日提供支持）。审批绑定到技能文件的 SHA-256 清单，任何文件被修改、新增或删除都会撤销审批。应将技能视为依赖：加载前固定版本并审查更新。参见 [Building Tool-Use Agents](../17-tool-use-and-computer-agents/05-building-tool-agents.md)。
 
 ---
 
@@ -123,23 +123,23 @@ Agent Skills 是智能体按需加载的一组指令、脚本和资源文件夹�
 
 ### 现在最好的 LLM 是什么？
 
-截至 2026 年 10 月 1 日，没有单一最佳模型；应按任务和价格层级选择（价格均为每 1M 输入/输出 token）。**Claude Opus 5.5**（9 月 22 日，$4/$20）是 Anthropic 推荐的起点，并以 58 分位居 Artificial Analysis Intelligence Index v4.3.2 榜首。**Claude Sonnet 5.5**（9 月 28 日，$2/$10）在同一指数得分 56，价格减半；**Claude Fable 5.1**（$10/$50）则适用于 Opus 5.5 提高 effort 后仍无法胜任的工作。（AA 将 Claude 分数标为“with fallback”：安全机制介入时，部分任务会由旧模型执行。）OpenAI 产品线包括 **GPT-6 Astra**（$10/$50，能力上限模型，指数 53）、**GPT-6 Sol** 和 **GPT-6.1 Sol**（$2/$10；6.1 增加 0.05x 缓存读取），以及面向大规模工作负载的 **GPT-6 Luna**（$0.10/$0.50）。**Gemini 3.8 Flash** 是低成本多模态主力，介绍价为 $0.75/$3.75，2027 年 1 月 1 日将翻倍至 $1.50/$7.50。Google 于 9 月 30 日发布 **Gemini 4 Argon**，但截至 10 月 1 日它仅向网络防御者逐步推出，尚未进入 Gemini API。指数分数不能跨指数版本或测试框架比较，切换前请自行运行评估。参见 [Model Taxonomy](../02-model-landscape/01-model-taxonomy.md)。
+没有单一最佳模型，应按任务和价格层级选择（每 1M 输入/输出 token；指数分数除特别说明外均为 Artificial Analysis Intelligence Index v5.0、max effort）。**Claude Opus 5.5**（9 月 22 日，$4/$20）是 Anthropic 推荐起点，以 58 分位居公开可用模型之首（Google Gemini 4 Carbon 得 59，但仅向部分网络防御人员开放）。**Claude Sonnet 5.5**（9 月 28 日，$2/$10）得 54、价格减半；**Claude Haiku 5.5**（10 月 7 日，不超过 100K token 提示词时 $0.10/$0.50）是得分 36 的快速层；**Claude Fable 5.1**（$10/$50）用于 Opus 5.5 提高 effort 后仍不足的工作。（AA 将 Opus 标为“with fallback”：安全机制介入时部分任务由旧模型执行。）OpenAI 包括能力上限模型 **GPT-6 Astra**（$10/$50，57）、**GPT-6.1 Sol**（$2/$10，55，缓存读取 0.05x）、中间层 **GPT-6.1 Terra**（10 月 26 日，$1/$5，51）和面向吞吐的 **GPT-6 Luna**（$0.10/$0.50）。Google 的 **Gemini 4 Argon** 于 10 月 13 日以 `gemini-4-argon` 正式发布（high effort 得 50），11 月 30 日前为 $2/$10，12 月 1 日起为 $4/$20，应按较高价格预算；**Gemini 3.8 Flash** 的介绍价 $0.75/$3.75 于 2027 年 1 月 1 日翻倍至 $1.50/$7.50。AA v5.0（10 月下旬）以四个等权类别和大多私有或留出测试集重建指数，v4.x 分数不可直接迁移；分数也不能跨测试框架迁移，切换前应自行评估。参见 [Model Taxonomy](../02-model-landscape/01-model-taxonomy.md)。
 
 ### Claude / GPT / Gemini / DeepSeek 的费用是多少？
 
-价格每月都会变化，因此应为每个数字注明日期。截至 2026 年 10 月 1 日（Standard 层级、每 1M 输入/输出 token）：能力上限层为 $10/$50（Claude Fable 5.1、GPT-6 Astra）；Claude Opus 5.5 为 $4/$20；中端层已趋同为 $2/$10（Claude Sonnet 5.5、GPT-6 Sol、GPT-6.1 Sol）；高吞吐层从 $0.10/$0.50（GPT-6 Luna）到 $0.75/$3.75（Gemini 3.8 Flash，优惠价至 2026 年 12 月 31 日，之后为 $1.50/$7.50）。**DeepSeek 现在按时段定价**：V4.1-Flash 高峰期为 $0.30/$1.20，非高峰期减半；V4-Pro 高峰期为 $1.32/$3.96；高峰期仅覆盖工作日的两个 UTC 时间窗口，因此旧的固定 $0.14/$0.28 与 $0.435/$0.87 已过时。三个修正因素与标价同样重要：缓存读取（多数模型为输入价的 0.1x，Opus 5.5 和 GPT-6.1 Sol 为 0.05x，Fable 5.1 为 0.025x）、长上下文附加费（OpenAI 在输入超过 272K 后、xAI 在 200K 及以上后收取）以及促销（GPT-5.6 Sol 的 $4/$20 促销仅保证至 2026 年 11 月 21 日，预算应按其 $5/$30 标价计算）。请始终交叉核对提供商的定价页面。参见 [Pricing and Costs](../02-model-landscape/03-pricing-and-costs.md)。
+价格每月变化，数字须注明日期。截至 2026 年 11 月 2 日（Standard，每 1M 输入/输出 token）：能力上限层 $10/$50（Claude Fable 5.1、GPT-6 Astra）；Claude Opus 5.5 $4/$20；中端 $2/$10（Claude Sonnet 5.5、GPT-6 Sol、GPT-6.1 Sol，以及 12 月 1 日涨至 $4/$20 前的 Gemini 4 Argon）；GPT-6.1 Terra 于 10 月 26 日开辟 $1/$5 层；高吞吐层从 $0.10/$0.50（GPT-6 Luna 和提示词不超过 100K token 的 Claude Haiku 5.5）到 $0.75/$3.75（Gemini 3.8 Flash，介绍价至 2026 年 12 月 31 日，之后为 $1.50/$7.50）。**DeepSeek 按时段定价**：V4.1-Flash 高峰 $0.30/$1.20，非高峰减半；V4-Pro 高峰 $1.32/$3.96；高峰仅覆盖工作日两个 UTC 时段，旧固定价 $0.14/$0.28 和 $0.435/$0.87 已过时。三个修正因素同样重要：缓存读取（多数模型为输入价 0.1x，Opus 5.5、Sonnet 5.5、GPT-6.1 Sol 和 Terra 为 0.05x，Fable 5.1 为 0.025x）；长上下文附加费（Haiku 5.5 提示词超过 100K 后整个请求按 5 倍计费，OpenAI 输入超过 272K 后整次重新定价，xAI 在 200K 及以上翻倍）；促销（GPT-5.6 Sol 的 $4/$20 仅保证至 2026 年 11 月 21 日，预算按 $5/$30 标价）。请交叉核对提供商定价页面。参见 [Pricing and Costs](../02-model-landscape/03-pricing-and-costs.md)。
 
 ### Claude Opus 和 Claude Sonnet 有什么区别？
 
-Opus 是 Anthropic 的旗舰层级：Opus 5.5（每 1M token 为 $4/$20）是 Anthropic 建议你优先尝试的模型。Sonnet 是生产主力：Sonnet 5.5（$2/$10）成本减半，在 Anthropic 自报的大多数智能体评测中与 Opus 5.5 仅相差几个百分点（FrontierCode 1.1 约落后 8 个百分点，但在 Terminal-Bench 4.0 上以 xhigh effort 达到 70.6%，高于 Opus 5.5 的 66.4%）。Haiku 是快速层：便宜、低延迟，适合路由和分类。Haiku 4.5 仍是唯一的 Haiku：Opus 5.5 发布时，Anthropic 曾称 Haiku 5.5 会在“未来几周”推出，但截至 10 月 1 日尚未发布，因此暂不应据此规划。三者之上是 Claude Fable 5.1（$10/$50），用于要求极高的推理和长周期工作，即使提高 Opus 5.5 的 effort 仍无法满足时才使用。路由模式仍然成立（简单查询用 Haiku，大多数流量用 Sonnet，复杂任务用 Opus，只有受能力上限约束的工作用 Fable），但层级间的质量差距如今小于价格差距，因此应由你的评测决定边界。迁移陷阱：5.5 代模型拒绝强制工具调用（`tool_choice` 为 `any` 或 `tool` 会返回 400），不允许关闭 thinking，且 Opus 5.5 默认 effort 为 `medium`，而 Opus 5 默认为 `high`。参见 [Model Selection](../02-model-landscape/04-model-selection-guide.md)。
+Opus 是 Anthropic 旗舰层：Opus 5.5（每 1M $4/$20）是推荐起点。Sonnet 是生产主力：Sonnet 5.5（$2/$10）成本减半，在 Anthropic 自报的大多数智能体评测中与 Opus 5.5 相差几个百分点（FrontierCode 1.1 约落后 8 分；Terminal-Bench 4.0 的 xhigh 自测为 70.6% 对 Opus 5.5 的 66.4%，公开 tbench.ai 榜单的 max 排名则相反，为 64.85% 对 61.82%）。自 10 月 7 日起两者缓存读取均为输入的 0.05x（每 1M 分别 $0.10 和 $0.20）。Haiku 是路由、分类、提取和子代理的快速层。Haiku 5.5（10 月 7 日）标价 $0.10/$0.50，比 Haiku 4.5 低约 90%，但仅适用于不超过 100K token 的提示词；超过后整个请求为 $0.50/$2.50，缓存读写计入阈值，因此尽管窗口为 1M，按价格看它是短提示模型。它也不能直接替换 Haiku 4.5：`budget_tokens`、`temperature`、`top_p`、`top_k` 和 assistant prefill 返回 400，新的 tokenizer 对相同文本计数约多 30%。三者之上是 Claude Fable 5.1（$10/$50），用于提高 Opus effort 仍不足的困难推理和长周期工作。路由模式仍是 Haiku 处理简单查询、Sonnet 处理多数流量、Opus 处理困难任务、Fable 处理能力上限任务，但应由自己的评估决定边界。迁移陷阱：Opus 5.5 和 Sonnet 5.5 拒绝强制工具调用（`tool_choice` 为 `any` 或 `tool` 返回 400；Haiku 5.5 接受但跳过思考），且不能关闭思考；Opus 5.5 默认 effort 为 `medium`，Opus 5 为 `high`。参见 [Model Selection](../02-model-landscape/04-model-selection-guide.md)。
 
 ### 我应该使用开源模型吗？
 
-如果你关注高并发下的单次查询成本、数据驻留，或者需要微调，那么答案是肯定的。最好的开放权重模型在 Artificial Analysis Intelligence Index v4.3.2 上约落后闭源前沿 12 分（Xiaomi MiMo-V2.6-Pro 为 46、Z.ai GLM-5.3 为 45、Moonshot Kimi K3 为 44，而 Claude Opus 5.5 为 58），且领先者来自中国：得分最高的美国开放权重模型 Inkling-Small 为 26。不要只看排行榜，要阅读许可证。“开放”如今涵盖：纯 MIT（MiMo-V2.6、DeepSeek V4.1-Flash）；对收入超过 US$10B 的模型即服务运营商要求安全审查的 MIT（GLM-5.3）；以及要求部分模型即服务企业另行达成协议的自定义许可证（Kimi K3、Qwen Community License）。代价在于运维：你要自己负责推理栈、GPU 账单和安全补丁。参见 [Model Landscape](../02-model-landscape/01-model-taxonomy.md)。
+若关注高吞吐下的单次查询成本、数据驻留或微调，答案是肯定的。Artificial Analysis Intelligence Index v5.0 上最好的开放权重模型约 32 分，Claude Opus 5.5 为 58，差约 26 分。旧 v4.x 指数的差距约 12 分，但量表不可比较；AA 现将仅提供 API 的 Kimi K3.1 Pro 归为专有模型，因此应注明指数和分类。10 月中国以外新增 Meta Muse Spark Open（总参数 816B、活跃 42B）与 Mistral Large 4（总参数约 1T、活跃 49B，Mistral API 为 $0.70/$2.10）。不要只看排行榜，应阅读许可：“开放”涵盖纯 MIT（MiMo-V2.6、DeepSeek V4.1-Flash）；对收入超过 US$10B 的模型即服务运营商要求安全审查的 MIT（GLM-5.3）；收入超过 US$20M 需另签协议（Kimi K3、Meta Muse Model License）；任何 MaaS 业务均需单独商业许可、无收入门槛（Mistral Ecosystem Open-Weight License）；Qwen Community License 对部分 MaaS 业务也要求另行协议。代价是自行负责推理栈、GPU 账单和安全补丁。参见 [Model Landscape](../02-model-landscape/01-model-taxonomy.md)。
 
 ### 什么是 prompt caching？
 
-Prompt caching（提示缓存）会在推理服务器上把固定 prompt 前缀的 KV cache（键值缓存）保持为热状态，因此后续使用相同前缀的调用只需支付该前缀输入价格的一小部分。所有主要提供商都支持它。多数当前模型的缓存读取价格为输入价的 0.1x；Claude Opus 5.5 和 GPT-6.1 Sol 为 0.05x；Claude Fable 5.1 为 0.025x。写入有溢价：Anthropic 的 5 分钟缓存，以及 OpenAI GPT-5.6 及之后模型的固定 30 分钟 TTL，均为 1.25x；Anthropic 的 1 小时缓存为 2x；Gemini 则对显式缓存按小时收取存储费。按这些价格，1.25x 写入只需一次缓存命中即可回本，2x 写入需要两次，因此关键问题是命中率：保持前缀字节稳定（顶部不要放时间戳或重排工具），并进行测量，因为 OpenAI 和 Anthropic 现在都暴露了缓存诊断信息。参见 [KV Cache and Context Caching](../04-inference-optimization/02-kv-cache-and-context-caching.md)。
+Prompt caching（提示缓存）让推理服务器保持固定提示前缀的 KV 缓存为热状态，后续相同前缀只支付输入价的一部分。多数当前模型（包括 Claude Haiku 5.5）缓存读取为输入价 0.1x；Claude Opus 5.5、Sonnet 5.5、GPT-6.1 Sol 和 Terra 为 0.05x；Claude Fable 5.1 为 0.025x。写入溢价：Anthropic 5 分钟缓存和 OpenAI 30 分钟缓存（GPT-5.6 及之后）为 1.25x，Anthropic 1 小时为 2x，OpenAI 于 2026 年 10 月 20 日新增的 12 小时缓存为 2.5x。Gemini 对显式缓存按小时收费，而 Gemini 4 Argon 仅支持隐式缓存，因此针对显式缓存的控制代码对它无效。1.25x 写入一次命中即可回本，2x 或 2.5x 需要两次，应按请求间隔选 TTL 并监控命中率：保持前缀字节稳定（不要在顶部放时间戳或重排工具）并测量；OpenAI 和 Anthropic 均提供缓存诊断。参见 [KV Cache and Context Caching](../04-inference-optimization/02-kv-cache-and-context-caching.md)。
 
 ---
 
@@ -155,7 +155,7 @@ LLM-as-judge 是用一个 LLM 按照评分标准（正确性、帮助性、安�
 
 ### 最好的 LLM 可观测性工具是哪一个？
 
-领先的平台有 **Langfuse**（最佳自托管开源方案，自 2026 年 1 月起属于 ClickHouse）、**Braintrust**（最适合基于评测的 CI/CD 和质量门控）、**LangWatch**（最适合智能体仿真）、**LangSmith**（LangChain 原生；自 2026 年 9 月 14 日起，SaaS trace 的延长保留期上限为 180 天）以及 **Arize Phoenix**（OTel 原生，采用 Elastic-2.0 许可证；Dynatrace 于 2026 年 8 月同意以 $915M 收购 Arize）。应根据部署方式（SaaS vs self-hosted）、是否需要 CI/CD 门控，以及你对某个特定框架的使用程度来选择。所有权变动如今也是选择标准：OpenAI 托管的 Evals 将于 10 月 31 日进入只读，并于 2026 年 11 月 30 日关闭；迁移指向 OpenAI 所拥有且仍采用 MIT 许可证的 Promptfoo。参见 [Observability](../14-evaluation-and-observability/02-observability.md)。
+领先的平台有 **Langfuse**（最佳自托管开源方案，自 2026 年 1 月属于 ClickHouse）、**Braintrust**（基于评测的 CI/CD 和质量门控）、**LangWatch**（智能体仿真）、**LangSmith**（LangChain 原生；自 2026 年 9 月 14 日起 SaaS trace 延长保留上限 180 天）以及 **Arize Phoenix**（OTel 原生、Elastic-2.0 许可；Dynatrace 于 2026 年 10 月 1 日完成以 $915M 收购 Arize）。LangSmith 也于 2026 年 10 月 1 日改为按 LangChain Standard Units 用量计费（1 LSU = $1），取代按运行次数和运行时间计费，续约前应重算成本。选择应考虑部署方式、是否需要 CI/CD 门控及框架使用程度。所有权也是选型因素：OpenAI 托管 Evals 于 2026 年 11 月 30 日关闭，迁移指向现属 OpenAI、仍采用 MIT 许可的 Promptfoo。参见 [Observability](../14-evaluation-and-observability/02-observability.md)。
 
 ### 什么是 RAGAS？
 
@@ -163,7 +163,7 @@ RAGAS（Retrieval Augmented Generation Assessment）是用于 RAG 评估的 Pyth
 
 ### 你如何在生产环境中检测和处理模型漂移（model drift）？
 
-模型漂移（model drift）来自两个方面：**provider** 悄悄更新了模型（或你迁移了版本），以及你的**流量（traffic）**偏离了你对提示词（prompt）和评估集（eval）进行调优时的分布。检测方式是：明确固定模型版本（pin model versions），每天对固定版本与最新版本运行 canary eval 套件，对输出分布统计（如长度、拒答率、格式有效性）以及抽样在线切片（sampled live slice）上的 judge-scored quality 进行跟踪，并对偏差触发告警。应对方式是：一套冻结的黄金样本集（frozen golden set）可帮助你判断是模型发生变化还是流量变化；在采用新版本前重新运行提示词评估（prompt evals），并保留旧版本热备以实现即时回退（rollback）。静默变更很常见：Azure Foundry 会在 2026 年 12 月 9 日将 Standard 部署中的 gpt-4o 2024-05-13 自动升级为 GPT-5.6 Sol；Claude Opus 5.5 的默认 effort 为 `medium`，而 Opus 5 为 `high`，所以如果不固定设置，即使同家族升级也会在不改代码的情况下改变延迟、成本和质量。将无故质量下降视为事故（incident），按值班响应流程处理，而不是当作偶发现象。
+模型漂移来自**提供商**静默更新模型（或版本迁移）及**流量**偏离提示词与评估集调优时的分布。检测：明确固定模型版本，每天对固定版与最新版运行 canary 评估，跟踪输出分布（长度、拒答率、格式有效性）与在线抽样的裁判评分质量，对偏差告警。应对：用冻结黄金集区分模型变化和流量变化；采用新版前重跑提示评估，并保留旧版热备。静默变化很常见：2026 年 10 月 8 日 Google 开始将 `gemini-3.7-flash` 请求路由至 `gemini-3.8-flash`，模型字符串仍可用，但背后模型已变；Claude Opus 5.5 默认 effort 为 `medium`，Opus 5 为 `high`，若不固定设置，同家族升级也会在不改代码时改变延迟、成本和质量。应将无故质量下降视为事故并按值班流程处理。
 
 ---
 
@@ -171,11 +171,11 @@ RAGAS（Retrieval Augmented Generation Assessment）是用于 RAG 评估的 Pyth
 
 ### 什么是 vLLM？
 
-vLLM 是一个开源的 LLM 推理引擎（inference engine），首创了 PagedAttention（类似虚拟内存分配 KV cache 的方式）。当工作负载是“Llama、Mistral、Qwen 或 DeepSeek 在 continuous batching 下运行”时，它是默认的开源推理引擎，也是主要引擎中最易运维的方案。按上游当前安全建议，应运行 v`0.30.0` 或更高版本，并按计划及时修补；多模态部署还须确认所用版本已包含对应 CVE 修复。见 [Serving Infrastructure](../04-inference-optimization/06-serving-infrastructure.md)。
+vLLM 是开源 LLM 推理引擎，首创 PagedAttention（类似虚拟内存分配 KV 缓存）。对 continuous batching 下的 Llama、Mistral、Qwen 或 DeepSeek，它是默认开源引擎，也是主要引擎中最易运维的方案。应像面向互联网的服务一样定期修补：运行 v0.32.0（2026 年 10 月 18 日）或更高版本。它修复 CVE-2026-115915（CVSS 8.1，影响 0.32.0 前所有版本，已在 0.30.0 复现）和 CVE-2026-115912，此外 0.30.0 已修复 20 多项公告，包括模型加载远程代码执行、单请求引擎崩溃及前缀缓存时序预言机。升级需测试：0.32.0 将默认 CORS 从 `*` 改为无、最低 Python 版本设为 3.11，并将 `max_tokens` 作为上限。见 [Serving Infrastructure](../04-inference-optimization/06-serving-infrastructure.md)。
 
 ### vLLM 和 SGLang 的区别是什么？
 
-两者都是开源推理引擎（inference engine）。vLLM 的模型覆盖面更广，且运维成熟度更高。SGLang 在结构化输出（structured-output）和函数调用（function-calling）任务上，由于异步约束解码（async constrained decoding）可实现约 29% 的吞吐量提升，并且通过 RadixAttention 具备行业领先的前缀缓存复用（prefix-cache reuse）。安全提醒：三项严重 SGLang CVE（CVE-2026-7301、-7302 和 -7304）列出的受影响版本截至 0.5.12，尚未记录已修复版本；因此应固定使用 0.5.13 或更高版本（当前为 v0.5.20），在构建中验证修复，将 SGLang 的 ZMQ socket 保持在 pod 内部，并且不要接受来自不可信调用方的自定义 logit processor。
+两者都是开源推理引擎。vLLM 模型覆盖更广，运维更成熟。SGLang 借助异步约束解码，在结构化输出和函数调用任务上吞吐量约高 29%，并通过 RadixAttention 提供领先的前缀缓存复用。安全提醒：升级不能消除 SGLang 当前严重暴露。CVE-2026-111391（CVSS v4 9.2，eval 注入，描述覆盖 0.5.10 至 0.5.22）和 CVE-2026-93034（CVSS 9.8，ZMQ 解码器）均未列出修复版本；v0.5.22（2026 年 10 月 19 日）为最新版本。使用当前版本获得较早修复，将 ZMQ、dumper、debug 和 distributed-init 端点隔离在网络之外（保持 pod 内部，绝不放在可路由接口），且不要接受不可信调用方的自定义 logit processor。
 
 ### 什么是 TensorRT-LLM？
 
@@ -237,7 +237,7 @@ OWASP LLM Applications Top 10（2025 版）是 LLM 安全风险的权威清单�
 
 ## 相关阅读
 
-- [问题库（147 道高级面试题）](01-question-bank.md)
+- [问题库（155 道高级面试题）](01-question-bank.md)
 - [回答框架](02-answer-frameworks.md)
 - [常见陷阱](03-common-pitfalls.md)
 - [白板练习](04-whiteboard-exercises.md)

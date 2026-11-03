@@ -191,9 +191,9 @@ class SelfConsistencyDecoder:
 
 经典方法通过调整 temperature 获得多样性。前沿 API 正逐渐移除这一旋钮：
 
-| 平台 | 状态（2026 年 10 月） |
+| 平台 | 状态（2026 年 11 月） |
 |----------|-----------------------|
-| Claude API | Opus 4.7 及更新版本、Sonnet 5 及更新版本收到非默认采样值时返回 400；Anthropic Python SDK 1.0（2026 年 8 月 20 日）从 Messages 方法中移除了 `temperature`、`top_p`、`top_k`，传入这些参数会抛出 `TypeError` |
+| Claude API | Anthropic API 版本 `2026-10-21` 起，所有模型在任何值下传入 `temperature`、`top_p`、`top_k` 都返回 400，包括默认值；新的 SDK 主版本（Python 2.0.0、TypeScript 1.0.0）默认发送该版本。更早版本已对 Claude 4.7 及更新模型的非默认值返回 400；Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法中移除了这些参数，传入会抛出 `TypeError` |
 | Gemini API | `temperature`、`top_p`、`top_k` 于 2026 年 7 月 21 日被标记弃用；Gemini 3.8 Flash 用 `thinking_level` 而非 `thinking_budget` 控制推理 |
 | OpenAI GPT-6 Astra | 不支持自定义 `temperature`、`top_p` 或 `logprobs` |
 
@@ -401,7 +401,7 @@ Synthesize the best answer, combining the strongest elements from each response.
 
 ### 级联与跨模型家族审查
 
-开发者工具中开始出现两种成本更低的模式。GitHub 的 HydraFusion 于 2026 年 9 月 30 日起在 VS Code 和 Copilot 应用中提供研究预览，按以下三种模式之一编排多个模型：
+开发者工具中已经出现两种成本更低的模式。GitHub Copilot Fusion 于 2026 年 10 月 28 日正式发布，此前它于 9 月以 HydraFusion 名称提供研究预览。它以 Standard、High 或 Max effort 在模型间路由，并运行以下三种工作流之一：
 
 - **单模型：** 作为基线，仅运行一个模型。
 - **级联：** 高效模型先起草，质量闸门作出判断，仅当未通过时才升级到更强模型。成本取决于升级率，而非强模型的单价。
@@ -490,7 +490,7 @@ Is there a single "correct" answer format?
 - 分类：对标签投票
 - 简短问答：对答案投票
 
-关键在于你可以比较答案是否相等。API 仍暴露 temperature 时，0.5–0.8 能在保持连贯性的同时提供多样性；对固定采样的模型（较新的 Claude 模型、GPT-6 Astra）或采样参数已被弃用的模型（2026 年 7 月后的 Gemini），我会依赖默认采样，并在样本过早趋同时改变提示词或模型。对大多数任务我会使用 k=5–10。
+关键在于你可以比较答案是否相等。API 仍暴露 temperature 时，0.5–0.8 能在保持连贯性的同时提供多样性；对固定采样的模型（API 版本 `2026-10-21` 下的所有 Claude 模型、GPT-6 Astra）或采样参数已被弃用的模型（2026 年 7 月后的 Gemini），我会依赖默认采样，并在样本过早趋同时改变提示词或模型。对大多数任务我会使用 k=5–10。
 
 **Best-of-N** 适用于没有单一正确答案的开放式生成任务：
 - 创意写作
@@ -538,6 +538,8 @@ Is there a single "correct" answer format?
 ---
 
 ## References
+
+- GitHub 更新日志：Copilot Fusion 正式发布（2026 年 10 月 28 日）：https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion/
 
 - Verga et al. “Replacing Judges with Juries: Evaluating LLM Generations with a Panel of Diverse Models” (2024)
 - Wang 等，《Self-Consistency Improves Chain of Thought Reasoning in Language Models》（ICLR 2023）：https://arxiv.org/abs/2203.11171

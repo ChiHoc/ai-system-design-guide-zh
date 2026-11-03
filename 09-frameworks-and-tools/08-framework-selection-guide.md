@@ -42,9 +42,9 @@
 
 | 运行时 | 层级 | 主要价值 | 主要弱点 |
 |-----------|------|---------------|--------------|
-| **Claude Managed Agents** | L1（托管） | 沙箱、会话预算、服务端评估的权限策略、智能体即代码（`ant apply`） | 仅 Claude；第二种计费项（每运行会话小时 $0.08） |
-| **OpenAI Agents API** | L1（托管） | 托管 Codex harness：上下文压缩、恢复、子代理 | 公开 beta；仅美国数据驻留，不支持 ZDR |
-| **Bedrock Managed Agents** | L1（托管） | AWS 内置 Agents API，集成 IAM 和 CloudTrail | 预览版；仅三个美国区域 |
+| **Claude Managed Agents** | L1（托管） | 沙箱、会话预算、服务端评估的权限策略、智能体即代码（`ant apply`）；可通过 Claude API、AWS 上的 Claude Platform 和 Google Cloud 上的 Claude 使用 | Beta；仅 Claude；第二种计费项（每运行会话小时 $0.08） |
+| **OpenAI Agents API** | L1（托管） | 托管 Codex harness：上下文压缩、恢复、子代理；托管沙箱自 10 月 9 日起仅在活跃轮次计费 | 公开 beta；仅美国数据驻留，不支持 ZDR |
+| **Bedrock Managed Agents** | L1（托管） | AWS 内置 Agents API，集成 IAM 和 CloudTrail | 公开预览；仅三个美国区域 |
 
 ### 编码智能体
 
@@ -52,12 +52,13 @@
 |-----------|------|----------|----------|
 | **Claude Code** | L1（编码） | 自主式 CLI 编码智能体、插件、企业托管设置 | 需要 Claude 模型；闭源 |
 | **Codex CLI** | L1（编码） | 开源（Apache-2.0）CLI、云端环境、代码审查 | 默认值偏向 OpenAI |
-| **Cursor / Windsurf** | L2（IDE） | 紧密的 IDE + 智能体集成、云端智能体 | 闭源基础设施；Cursor 现属 SpaceX，Windsurf 现属 Cognition |
+| **Cursor / Devin Desktop** | L2（IDE） | 紧密的 IDE + 智能体集成、云端智能体 | 闭源基础设施；Cursor 现属 SpaceX，Devin Desktop（2026 年 6 月前名为 Windsurf）属 Cognition |
+| **GitHub Copilot** | L2（IDE + 平台） | GitHub 原生编程智能体和代码审查；Copilot Fusion（2026 年 10 月 28 日 GA）可在不同模型间路由，支持 Standard、High 和 Max 三档 effort | 在 GitHub 内体验最佳；计算机使用和动态工作流于 10 月 1 日以公开预览形式推出 |
 | **OpenCode / OpenHands** | L2（编码） | 开源、适配任意模型 | 自行负责托管、沙箱和升级 |
 
 Semantic Kernel 不再作为新项目选项列出：Microsoft Agent Framework 是其继任者，现有 SK 用户应规划迁移。
 
-采用数据也支持“叶子节点使用实验室 SDK、核心使用中立编排器”的建议。截至 2026 年 10 月 1 日的一个月内，PyPI 下载量为：`langchain` 1.694 亿、`langgraph` 4,370 万、`strands-agents` 3,650 万、`claude-agent-sdk` 2,890 万、`openai-agents` 1,210 万、`google-adk` 990 万、`llama-index-core` 660 万、`pydantic-ai` 530 万、`dspy` 520 万、`crewai` 240 万、`agno` 170 万、`agent-framework-core` 92 万、`haystack-ai` 54 万、`autogen-agentchat` 38 万、`semantic-kernel` 29 万。npm 下载量（8 月 31 日至 9 月 29 日）：`ai`（Vercel AI SDK）1.046 亿、`@anthropic-ai/claude-agent-sdk` 4,870 万、`@langchain/langgraph` 1,390 万、`@openai/agents` 730 万、`@mastra/core` 690 万。CI 安装和传递依赖都会抬高这些数字，因此应将其作为相对信号。
+采用数据也支持“叶子节点使用实验室 SDK、核心使用中立编排器”的建议。截至 2026 年 11 月 1 日的 30 天内，PyPI 下载量为：`langchain` 1.705 亿、`langgraph` 4,480 万、`strands-agents` 3,710 万、`claude-agent-sdk` 2,980 万、`openai-agents` 1,250 万、`google-adk` 1,010 万、`llama-index-core` 660 万、`pydantic-ai` 540 万、`dspy` 530 万、`crewai` 240 万、`agno` 180 万、`agent-framework-core` 100 万、`haystack-ai` 57 万、`autogen-agentchat` 38 万、`semantic-kernel` 30 万。10 月的 npm 下载量为：`ai`（Vercel AI SDK）1.154 亿、`@anthropic-ai/claude-agent-sdk` 4,640 万、`@langchain/langgraph` 1,400 万、`@mastra/core` 820 万、`@openai/agents` 750 万（Mastra 本月超过 OpenAI 的 TypeScript SDK）。头部排名数月来未变。CI 安装和传递依赖都会抬高这些数字，因此应将其作为相对信号。
 
 ---
 
@@ -83,7 +84,7 @@ Semantic Kernel 不再作为新项目选项列出：Microsoft Agent Framework �
 ### 编码智能体
 12. **你在做面向文件系统级别的自主编程任务吗？** → **Claude Code** 或 **Codex CLI**（终端），**Cline**（VS Code）。
 13. **需要适配任意 LLM 的开源编码智能体吗？** → **OpenCode**（MIT）或 **OpenHands**（Docker）。
-14. **希望获得最佳 IDE + AI 体验吗？** → **Cursor**（闭源）或 **Windsurf**（Cognition）。
+14. **希望获得最佳 IDE + AI 体验吗？** → **Cursor**（闭源、SpaceX）、**Devin Desktop**（Cognition，原 Windsurf），或深度使用 GitHub 时选 **GitHub Copilot**。
 
 ---
 
@@ -111,7 +112,7 @@ Semantic Kernel 不再作为新项目选项列出：Microsoft Agent Framework �
 1. **框架隧道化**：试图把复杂逻辑流程强行塞进不支持它的框架里（例如，用纯 RAG 库去做编码智能体）。
 2. **金锤子效应**：因为 LangChain 很流行就使用它，而一个 50 行的 Python 脚本会更快、更便宜。
 3. **忽视可观测性**：在没有 LLMOps 层（LangSmith、Langfuse、Phoenix）的情况下部署任何框架；最好选用能摄取 OpenTelemetry、便于导出追踪的方案。
-4. **信任默认值**：让框架选择模型。2026 年 8 月和 9 月，OpenAI Agents SDK（0.20.0）、Claude Code（2.1.280 与 2.1.284）、Codex CLI（rust-v0.159.1）和 Strands harness 包都改变了默认模型，让所有未显式设置模型的调用方在成本、延迟和行为上悄然变化。
+4. **信任默认值**：让框架选择模型或权限。2026 年 8 月和 9 月，OpenAI Agents SDK（0.20.0）、Claude Code（2.1.280 与 2.1.284）、Codex CLI（rust-v0.159.1）和 Strands harness 包都改变了默认模型，让所有未显式设置模型的调用方在成本、延迟和行为上悄然变化。10 月，Claude Code 2.1.302 让未指定权限模式的无头运行和 Agent SDK 会话在第三方提供方、遥测关闭或全新安装时默认进入 `default` 模式，因此同一个 CI 任务在不同环境中可能行为不同。
 
 ---
 
@@ -146,7 +147,7 @@ Semantic Kernel 不再作为新项目选项列出：Microsoft Agent Framework �
 ### 问：如果你必须构建一个能够同时在 OpenAI、Anthropic 和本地开放权重模型上运行的系统，你会如何设计架构？
 
 **强答案：**
-我会在提示层使用 **DSPy**，在编排层使用 **LangGraph**。DSPy 的 **Signatures** 让我可以将任务定义与模型的具体行为解耦。然后用**通用模型网关**（如 LiteLLM 或内部代理）处理不同的 API 格式。网关持有所有供应商密钥，因此是安全关键基础设施：2026 年 LiteLLM 自身就出现未经认证的 RCE（CVE-2026-37004，CVSS 9.8，修复于 1.83.7）和认证绕过（CVE-2026-49468，修复于 1.84.0），两个 PyPI 版本（1.82.7 和 1.82.8）遭到入侵。通过 `api_base` 窃取已存密钥的漏洞（CVE-2026-84377）仅在各小版本线的特定补丁版本中修复（例如 1.96.2），因此单一版本下限不足以保证安全。我会按公告中的修复版本清单固定精确版本，设置 `allow_client_side_credentials=false`，并避免将网关直接暴露在公网。网关还必须停止注入采样参数，因为 GPT-6 Astra 和近期 Claude 模型会拒绝自定义 `temperature`。工具接入使用 **MCP**：它与模型无关，同一 MCP 服务器可服务不同 LLM 后端。跨团队智能体协同则在边界层使用 **A2A**。这样从 GPT-6.1 Sol 切到 Claude Sonnet 5.5 时，不必重写 50 个提示词；只需重新编译、重跑评估套件并更新配置。
+我会在提示层使用 **DSPy**，在编排层使用 **LangGraph**。DSPy 的 **Signatures** 让我可以将任务定义与模型的具体行为解耦。然后用**通用模型网关**（如 LiteLLM 或内部代理）处理不同的 API 格式。网关持有所有供应商密钥，因此是安全关键基础设施：2026 年 LiteLLM 自身出现未经认证的 RCE（CVE-2026-37004，CVSS 9.8）、认证绕过（CVE-2026-49468）、默认配置下从内部用户升级为代理管理员的漏洞（CVE-2026-114612，CVSS 9.9），以及三次遭入侵的版本发布：1.82.7、1.82.8 和 10 月 21 日的 1.107.0（见[保护模型网关](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)）。CVE-2026-114612 的修复分散在各小版本线的补丁版本中（1.100.4、1.101.3、1.102.2、1.103.1），因此单一版本下限不足以保证安全。我会按公告中的修复版本清单固定精确版本、核验制品哈希而非仅信任标签，设置 `allow_client_side_credentials=false`，并避免将网关直接暴露在公网。网关还必须停止注入采样参数：GPT-6 Astra 拒绝自定义 `temperature`；Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型上的 `temperature`、`top_p` 和 `top_k` 即使使用默认值也会返回 400。工具接入使用 **MCP**：它与模型无关，同一 MCP 服务器可服务不同 LLM 后端。跨团队智能体协同则在边界层使用 **A2A**。这样从 GPT-6.1 Sol 切到 Claude Sonnet 5.5 时，不必重写 50 个提示词；只需重新编译、重跑评估套件并更新配置。
 
 ### 问：当每家 AI 实验室都在推出自己的 Agent SDK（Claude Agent SDK、OpenAI Agents SDK、Google ADK）时，你如何避免厂商锁定？
 
@@ -163,6 +164,7 @@ Semantic Kernel 不再作为新项目选项列出：Microsoft Agent Framework �
 - Google. “Agent Development Kit”：https://google.github.io/adk-docs
 - OpenAI. Agents SDK releases：https://github.com/openai/openai-agents-python/releases
 - OpenAI. “Agents API overview”（beta，2026 年 9 月）：https://developers.openai.com/api/docs/guides/agents-api/overview
+- GitHub. “Route and orchestrate models with GitHub Copilot Fusion”（2026 年 10 月 28 日）：https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion/
 - Vercel. “AI SDK 7”（2026 年 6 月）：https://vercel.com/blog/ai-sdk-7
 - deepset. Haystack 3.0 发布说明（2026 年 7 月）：https://github.com/deepset-ai/haystack/releases/tag/v3.0.0
 - Agno 3.0 发布说明（2026 年 8 月）：https://github.com/agno-agi/agno/releases/tag/v3.0.0

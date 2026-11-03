@@ -322,14 +322,16 @@ class Rate:
     input: float        # uncached input
     output: float       # output, including reasoning tokens
     cache_read: float   # input served from the prompt cache
-    cache_write: float  # input written to the cache (Anthropic 5-minute tier; OpenAI bills 1.25x input)
+    cache_write: float  # input written to the cache (Anthropic 5-minute tier; OpenAI 1.25x on the 30-minute cache, 2.5x on the 12-hour option)
 
 class CostTracker:
-    # Standard-tier list prices, October 2026. Load these from config in production:
+    # Standard-tier list prices, November 2026. Load these from config in production:
     # promotions, long-context tiers, speed tiers, and residency premiums change monthly.
+    # claude-haiku-5-5 ($0.10/$0.50, cache read $0.01) holds only up to a 100K-token prompt;
+    # above that the whole request bills $0.50/$2.50, so it needs a tiered rate, not one Rate.
     PRICING = {
         "claude-opus-5-5":   Rate(input=4.00, output=20.00, cache_read=0.20, cache_write=5.00),
-        "claude-sonnet-5-5": Rate(input=2.00, output=10.00, cache_read=0.20, cache_write=2.50),
+        "claude-sonnet-5-5": Rate(input=2.00, output=10.00, cache_read=0.10, cache_write=2.50),
         "gpt-6-sol":         Rate(input=2.00, output=10.00, cache_read=0.20, cache_write=2.50),
         "gpt-6-luna":        Rate(input=0.10, output=0.50,  cache_read=0.01, cache_write=0.125),
     }
@@ -365,10 +367,10 @@ class CostTracker:
 
 四条计费规则会让简单的按 token 计算失准：
 
-- **缓存读取主导代理账单。** Anthropic 于 `2026` 年 9 月 24 日发布的 Claude Code 汇总用量数据（供应商报告）显示，输入与输出 token 之比为 `324:1`，3 月时为 `189:1`。在这个比例下，缓存输入价格和命中率对成本的影响远大于输出价格。缓存读取折扣也因模型而异：大多数 Claude 模型按输入价的 `0.1` 倍计费，Opus `5.5` 为 `0.05` 倍，Fable `5.1` 为 `0.025` 倍。
-- **长上下文层级会重新定价整个请求。** OpenAI 在输入超过 `272K` token 后按长上下文费率计算整个请求（GPT-`6` Sol 从 `$2/$10` 变为 `$4/$15`）；xAI 对达到 `200K` token 的 Grok `4.7` 提示词按 `2` 倍计收每个 token。Anthropic 的 `4.6` 及之后模型直到 `1M` token 都采用统一价格。
-- **速度与数据驻留层级会成倍提高费率。** OpenAI Fast 层级为 `2` 倍（GPT-`6` Astra 的 Ultrafast 为 `6` 倍），数据驻留选项比标价约高 `10%`（Anthropic 的 `inference_geo: "us"` 为 `1.1` 倍）。
-- **促销会到期。** Gemini `3.8` Flash 的优惠价 `$0.75/$3.75` 持续到 `2026` 年 12 月 31 日，`2027` 年 1 月 1 日变为 `$1.50/$7.50`。预算应按标价制定。
+- **缓存读取主导代理账单。** Anthropic 于 `2026` 年 9 月 24 日发布的 Claude Code 汇总用量数据（供应商报告）显示，输入与输出 token 之比为 `324:1`，3 月时为 `189:1`。在这个比例下，缓存输入价格和命中率对成本的影响远大于输出价格。缓存读取折扣也因模型而异：大多数 Claude 模型按输入价的 `0.1` 倍计费，Opus `5.5` 和 Sonnet `5.5` 为 `0.05` 倍（Sonnet 于 2026 年 10 月 7 日从 0.1 倍降价），Fable `5.1` 为 `0.025` 倍。写入倍率也会变化：OpenAI 自 2026 年 10 月 20 日起提供按输入价 2.5 倍计费的 12 小时缓存。
+- **长上下文层级会重新定价整个请求。** OpenAI 在输入超过 `272K` token 后按长上下文费率计算整个请求（GPT-`6` Sol 从 `$2/$10` 变为 `$4/$15`）；xAI 对达到 `200K` token 的 Grok `4.7` 提示词按 `2` 倍计收每个 token。Anthropic 的 `4.6` 及之后模型在 1M 内统一定价，但有一个例外：Claude Haiku `5.5` 在提示词不超过 `100K` token 时为 `$0.10/$0.50`，超过后整个请求按 `$0.50/$2.50` 计费，提示词长度包含缓存读取和写入。应记录每次请求的提示词长度，否则流量不变时，便宜模型的账单可能突然涨到 `5` 倍。
+- **速度与数据驻留层级会成倍提高费率。** OpenAI Fast 层级为 `2` 倍（GPT-`6` Astra 的 Ultrafast 为 `6` 倍；GPT-6.1 Sol Ultrafast 自 2026 年 10 月 8 日起向所有 API 用户开放，价格为 `$12/$60`），数据驻留选项比标价约高 `10%`（Anthropic 的 `inference_geo: "us"` 为 `1.1` 倍）。
+- **促销会到期。** Gemini 4 Argon 的 `$2/$10` 优惠持续到 2026 年 11 月 30 日，12 月 1 日起变为 `$4/$20`；Gemini `3.8` Flash 的优惠价 `$0.75/$3.75` 持续到 `2026` 年 12 月 31 日，`2027` 年 1 月 1 日变为 `$1.50/$7.50`。预算应按标价制定。
 
 因此，应为每条成本记录标明层级、区域和缓存分桶，并在支出仪表盘上同时展示缓存命中率。
 
@@ -480,10 +482,10 @@ alerts:
 
 | 工具 | 重点 | 最适合 | 留意事项 |
 |------|------|----------|----------|
-| LangSmith | 追踪与评测；轨迹转微调自 `2026` 年 9 月 24 日起公开测试 | LangChain 和 LangGraph 应用 | 自 `2026` 年 9 月 14 日起，SaaS 轨迹的延长留存最多为 `180` 天；自托管和 BYOC 不变 |
+| LangSmith | 追踪与评测；轨迹转微调自 `2026` 年 9 月 24 日起公开测试 | LangChain 和 LangGraph 应用 | 自 `2026` 年 10 月 1 日起改用按 LangChain Standard Unit（LSU）计费（1 LSU = $1），取代按运行次数和 uptime 计费，因此应重新预测追踪量；自 `2026` 年 9 月 14 日起，SaaS 轨迹的延长留存最多为 `180` 天；自托管和 BYOC 不变 |
 | Langfuse | 基于 OpenTelemetry 的开源追踪与评测 | 自托管、隐私保护 | 自 `2026` 年 1 月起成为 ClickHouse 一部分；Python SDK v`4` 修改了 API，默认只导出 LLM 作用域的 span |
 | Weights & Biases | 实验跟踪；Weave 用于 LLM 追踪与评测 | 同时跟踪训练和微调运行的 ML 团队 | 自 `2025` 年起成为 CoreWeave 一部分 |
-| Arize Phoenix | LLM 追踪与评测 | 生产环境监控 | Elastic-`2.0` 许可证（源码可用，非 OSI 开源）；Dynatrace 于 `2026` 年 8 月同意以 `$915M` 收购 Arize，并表示 Phoenix 继续可用 |
+| Arize Phoenix | LLM 追踪与评测 | 生产环境监控 | Elastic-`2.0` 许可证（源码可用，非 OSI 开源）；Dynatrace 于 `2026` 年 10 月 1 日完成对 Arize 的 `$915M` 收购，并表示 Phoenix 继续可用 |
 | Helicone | API 代理日志 | 简单集成 | 被 Mintlify 收购（`2026` 年 3 月宣布）；采用前确认产品路线图 |
 
 **选择时考虑退出能力，不只看功能。** 这一层正在快速整合，因此供应商风险也是选择标准。应从自己的代码发出带 `gen_ai.*` 属性的 OpenTelemetry 数据，以便切换后端；需要审计或合规的轨迹应保留在自己控制的存储中（留存上限 `180` 天的 SaaS 追踪存储不是审计日志）；评测数据集与裁判提示词也应导出为自己掌控的格式。

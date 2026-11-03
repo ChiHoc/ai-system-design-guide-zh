@@ -50,7 +50,7 @@ AR 模型按从左到右分解序列：每个 token 只基于过去信息预测�
 |--------|------|------------------|
 | **Mercury 2.5**（Inception Labs） | 闭源、通用模型 | 最清晰的生产化方案之一：Inception、Baseten 和 OpenRouter 上提供兼容 OpenAI 的 API。Inception 报告称，它在常见的 NVIDIA GPU 上达到 1,107 token/s，支持 260K 上下文，每 1M token 的输入/输出标价为 $0.20/$0.75（上市推广价 $0.04/$0.15）。其被宣传为快速推理模型，但有分析人士质疑扩散模型的多步推理能力；应在自己的评测上验证。 |
 | **Mercury Voice**（Inception Labs） | 闭源、语音智能体 | 2026 年 9 月 29 日面向企业正式上线：用于语音智能体的扩散推理模型，报告的首个回答 token 中位延迟为 320 ms（p95 为 750 ms），提供三级推理强度、128K 上下文，每 1M token 标价 $0.40/$1.50（上市时优惠 50%）。 |
-| **Gemini Diffusion**（Google） | 闭源演示 | 演示速度令人瞩目；**无公开 API**（截至 2026 年 10 月 1 日不在 Gemini API 模型列表中）。不要围绕它做架构决策。 |
+| **Gemini Diffusion**（Google） | 闭源演示 | 演示速度令人瞩目；**无公开 API**（截至 2026 年 11 月 2 日不在 Gemini API 模型列表中）。不要围绕它做架构决策。 |
 | **DiffusionGemma**（Google） | 开源权重（open weights） | 一类开源 Gemma 系列扩散模型，据报在单台数据中心 GPU 上可达 1,000+ token/s。请勿与 Gemini Diffusion 混淆。 |
 | **LLaDA / LLaDA 2.x** | 开源权重 | 奠基性的开源模型及其后续 MoE（Mixture of Experts, 专家混合）版本；与同尺寸 AR 模型有竞争力，但非 frontier。LLaDA2.2-mini（蚂蚁集团，2026 年 9 月 5 日，Apache 2.0）是 16B/1.4B 激活参数的 MoE，支持 128K 上下文和编辑 token（DELETE、INSERT），既能填补掩码，也能修改文本；厂商报告的 BFCL v4 得分 47.68、tau2-Bench 得分 57.50 表明智能体型扩散模型已经存在，但工具使用仍落后于 AR 模型。 |
 | **Dream 7B** | 开源权重 | 报告显示可匹配或超越同尺寸 AR 模型，具备可调步数（steps）旋钮并在规划任务上表现强（如 Sudoku、Countdown）；已有完全开源的代码变体。 |

@@ -11,7 +11,7 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 - [Open Interpreter: Local Code Execution](#open-interpreter-local-code-execution)
 - [Claude Computer Use: Vision-Based Automation](#claude-computer-use-基于视觉的自动化)
 - [Claude Code: The Terminal Agent](#claude-code-终端代理)
-- [IDE Agents: Cursor, Windsurf, Cline](#ide-agents-cursor、windsurf、cline)
+- [IDE Agents: Cursor, Devin Desktop, Cline](#ide-agents-ide-代理-cursor、devin-desktop、cline)
 - [Comparison Matrix](#对比矩阵)
 - [Market Trends and Adoption (2026)](#市场趋势与采用情况-2026)
 - [System Design Interview Angle](#系统设计面试角度)
@@ -33,18 +33,18 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 |  |  LOCAL AGENTS     |  |  CLOUD AGENTS     |  |  IDE AGENTS       |  |
 |  |                   |  |                   |  |                   |  |
 |  |  OpenClaw         |  |  Claude Code      |  |  Cursor           |  |
-|  |  Open Interpreter |  |  OpenAI Codex     |  |  Windsurf         |  |
+|  |  Open Interpreter |  |  OpenAI Codex     |  |  Devin Desktop    |  |
 |  |  OpenHands (local)|  |  OpenHands Cloud  |  |  Cline            |  |
-|  |  OpenCode         |  |  Google Jules     |  |  GitHub Copilot   |  |
+|  |  OpenCode         |  |  Devin (cloud)    |  |  GitHub Copilot   |  |
 |  +-------------------+  +-------------------+  +-------------------+  |
 |                                                                       |
 |  +-------------------+  +-------------------+  +-------------------+  |
 |  |  COMPUTER-USE     |  |  MCP SERVERS      |  |  MESSAGING AGENTS |  |
 |  |                   |  |                   |  |                   |  |
 |  |  Claude computer  |  |  10,000+ servers  |  |  OpenClaw (multi) |  |
-|  |  and browser tools|  |  TS SDK v1: ~232M |  |  Custom bots      |  |
+|  |  and browser tools|  |  TS SDK v1: ~246M |  |  Custom bots      |  |
 |  |  Gemini 3.8 Flash |  |  npm downloads    |  |  via MCP bridges  |  |
-|  |  Copilot (preview)|  |  (Sep 2026)       |  |                   |  |
+|  |  Copilot (preview)|  |  (Oct 2026)       |  |                   |  |
 |  +-------------------+  +-------------------+  +-------------------+  |
 |                                                                       |
 |  +-------------------+  +------------------------------------------+  |
@@ -73,7 +73,7 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 - 用户拥有全部数据；无供应商锁定
 - 安全责任完全由操作者承担
 
-**Examples:** OpenClaw、Open Interpreter、本地 OpenHands 部署，以及 OpenCode 等开源终端运行框架（MIT 许可；截至 2026 年 10 月 1 日约 21.1 万 GitHub stars）
+**Examples:** OpenClaw、Open Interpreter、本地 OpenHands 部署，以及 OpenCode 等开源终端运行框架（MIT 许可；2026 年 11 月初约 22.4 万 GitHub stars）
 
 ### 2. Cloud Agents（供应商托管、API 驱动）
 
@@ -85,7 +85,7 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 - 供应商负责扩缩容、安全与基础设施
 - 按量计费或订阅定价
 
-**Examples:** Claude Code（云端模式）、OpenAI Codex（自 2026 年 9 月 29 日 DevDay 起支持可复用云端环境）、Google Jules、OpenHands Cloud
+**Examples:** Claude Code（云端模式）、OpenAI Codex（自 2026 年 9 月 29 日 DevDay 起支持可复用云端环境）、Devin、OpenHands Cloud。Google Jules 正逐步关闭（2026 年 11 月 11 日后只读，12 月 31 日关闭），这提醒我们应通过可重新指向的接口使用托管编码代理。
 
 沙箱如今不一定由供应商托管。Claude Code 自托管运行器（Team 与 Enterprise，v2.1.224，2026 年 8 月）、Cursor Self-hosted Machines（2026 年 9 月 2 日）和 OpenAI Agents API 的自托管环境都保留供应商控制平面，同时让工具执行、凭据和出站流量留在客户边界内。
 
@@ -99,9 +99,9 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 - 后台代理可在分支上异步工作
 - 为开发者工作流优化，而非通用自动化
 
-**Examples:** Cursor（Agent Mode、云端代理、Projects）、Windsurf（Cascade）、Cline、GitHub Copilot、Google Antigravity（包含 Antigravity 2.0 多代理应用、IDE、CLI 和 SDK 的产品系列；自 2026 年 8 月 20 日起纳入符合条件的 Gemini Enterprise 订阅）。Google 将 Antigravity CLI 定位为 Gemini CLI 的后继者，但 Gemini CLI 仍在维护（2026 年 9 月 29 日发布 v0.62.0）。
+**Examples:** Cursor（Agent Mode、云端代理、Projects）、Devin Desktop（原 Windsurf）、Cline、GitHub Copilot、Google Antigravity（包含 Antigravity 2.0 多代理应用、IDE、CLI 和 SDK 的产品系列；自 2026 年 8 月 20 日起纳入符合条件的 Gemini Enterprise 订阅）。Antigravity CLI 现为 Google 的通用终端代理；Gemini CLI（2026 年 10 月 27 日的 v0.66.0）面向 Gemini Code Assist Standard、Enterprise 和 Code Assist for GitHub，其 README 称它未针对 Gemini 4 模型优化。
 
-**固定托管代理版本。** Google 于 2026 年 9 月 17 日以 `antigravity-preview-09-2026` 替代 `antigravity-preview-05-2026`，距离旧版 10 月 5 日停用只有约三周。内置工具参数由 snake_case 改为 PascalCase，文件编辑改为按行范围替换，导致在本地执行内置工具或解析其调用的代码失效。应固定带日期的代理版本，并在 CI 中对工具 schema 做契约测试。
+**固定托管代理版本。** Google 于 2026 年 9 月 17 日以 `antigravity-preview-09-2026` 替代 `antigravity-preview-05-2026`，距离旧版原定 10 月 5 日停用只有约三周。内置工具参数由 snake_case 改为 PascalCase，文件编辑改为按行范围替换，导致在本地执行内置工具或解析其调用的代码失效。应固定带日期的代理版本，并在 CI 中对工具 schema 做契约测试。
 
 ### 4. Computer-Use Agents（基于视觉、GUI 驱动）
 
@@ -113,7 +113,7 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 - 延迟更高（截图—动作循环每次模型往返约需 1–3 秒；批量动作现在可在一次往返中完成多步）
 - 为安全起见需要沙箱化环境（VM + VNC）
 
-**Examples:** Claude 的计算机与浏览器工具集（2026 年 8 月 19 日正式发布）、Gemini computer use（文档现推荐 `gemini-3.8-flash`）、OpenAI Agents API 通过 OpenAI 托管浏览器提供的 computer use（2026 年 9 月 29 日）、GitHub Copilot computer use（2026 年 10 月 1 日公开预览），以及原版 Python Open Interpreter 的 Computer API。
+**Examples:** Claude 的计算机与浏览器工具集（2026 年 8 月 19 日正式发布）、Gemini computer use（2026 年 10 月 30 日正式发布；文档推荐 `gemini-3.8-flash`，能力最强的选项为 `gemini-4-argon`）、OpenAI Agents API 通过 OpenAI 托管浏览器提供的 computer use（2026 年 9 月 29 日起公开测试）及 Responses API 上的 GPT-6.1 Terra（2026 年 10 月 26 日，每 1M token $1/$5）、GitHub Copilot computer use（2026 年 10 月 1 日公开预览），以及原版 Python Open Interpreter 的 Computer API。
 
 浏览器变体越来越多地使用**无障碍树元素引用**而非原始像素作为操作目标；元素引用能适应布局变化，减少误点。桌面应用仍以像素作为后备方案。
 
@@ -129,11 +129,11 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 
 **示例：**
 
-| 产品 | 状态（2026 年 10 月 1 日） | 值得借鉴的设计 |
+| 产品 | 状态（2026 年 11 月） | 值得借鉴的设计 |
 |------|--------------------------|----------------|
-| Claude Managed Agents | 已可用；预算（8 月 7 日）、`ant apply`（9 月 3 日）和自动策略（9 月 10 日）是近期新增功能 | 达到会话费用上限时以 `budget_reached` 暂停；由服务器评估自动权限策略；通过 `ant apply` 和已提交的 `claude-lock.json` 将代理配置写成代码 |
-| OpenAI Agents API | 公开测试（9 月 10 日） | 托管 Codex 运行框架；按网站来源审批浏览器访问；凭据在带外输入，不进入模型输入；推出时仅支持美国数据驻留且不支持 ZDR |
-| Amazon Bedrock Managed Agents（由 OpenAI 提供支持） | 预览（9 月 29 日） | 每个代理独立 IAM 角色、CloudTrail 日志；运行时和推理留在 AWS 内 |
+| Claude Managed Agents | 测试版；预算（8 月 7 日）、`ant apply`（9 月 3 日）和自动策略（9 月 10 日）是近期新增功能，现也可在 Google Cloud 上的 Claude 运行 | 达到会话费用上限时以 `budget_reached` 暂停；由服务器评估自动权限策略；通过 `ant apply` 和已提交的 `claude-lock.json` 将代理配置写成代码 |
+| OpenAI Agents API | 公开测试（9 月 10 日）；自 10 月 9 日起托管沙箱仅在活动轮次计费 | 托管 Codex 运行框架；按网站来源审批浏览器访问；凭据在带外输入，不进入模型输入；推出时仅支持美国数据驻留且不支持 ZDR |
+| Amazon Bedrock Managed Agents（由 OpenAI 提供支持） | 公开预览（9 月 29 日） | 每个代理独立 IAM 角色、CloudTrail 日志；运行时和推理留在 AWS 内 |
 | OpenAI dots | 9 月 29 日宣布（Pro、Business Premium） | 每个代理一台云端计算机；空闲时只读研究；Custom Rules 可允许、阻断或要求审批；可使用保存的密码而不向模型暴露密码 |
 | Meta Muse | 9 月 8 日面向消费者推出 | 运行在专用云端 VM；Meta 表示预计从交易收取少量费用实现盈利 |
 | Microsoft Copilot Autopilot（原 Scout） | 9 月底私人预览 | 在客户租户中拥有独立身份、记忆和计算机 |
@@ -156,7 +156,7 @@ OpenClaw 是一个 self-hosted（自托管）的开源 personal AI assistant（�
 - 38 million monthly visitors to the project site
 - 24+ messaging platform integrations
 
-2026 年 10 月初，仓库约有 39.1 万 stars、8.2 万 forks。项目现由独立的 501(c)(3) 非营利组织 **OpenClaw Foundation** 管理，没有付费档、托管服务或代币；其 README 称 OpenAI“是捐助者，不是所有者”。发布分为两条线：按日历标版本的构建（9 月 30 日的 2026.9.7）和仅针对 Gateway 的扩展稳定构建，项目将后者作为 LTS 系列（10 月 2 日的 2026.8.35）。代码采用 MIT 许可。架构细节见 [OpenClaw 深入解析](03-openclaw-deep-dive.md)。
+2026 年 11 月初，仓库约有 39.4 万 stars、8.3 万 forks。项目现由独立的 501(c)(3) 非营利组织 **OpenClaw Foundation** 管理，没有付费档、托管服务或代币；其 README 称 OpenAI“是捐助者，不是所有者”。发布分为两条线：按日历标版本的构建（9 月 30 日的 2026.9.7）和仅针对 Gateway 的扩展稳定构建，项目将后者作为 LTS 系列（10 月 2 日的 2026.8.35）。代码采用 MIT 许可。架构细节见 [OpenClaw 深入解析](03-openclaw-deep-dive.md)。
 
 ### How It Works
 
@@ -345,7 +345,7 @@ Python 版适合希望以对话方式操作本地机器的数据分析、文件�
 
 ### 这是什么
 
-Claude Computer Use 是 Anthropic 的 API 功能，允许 Claude 通过截图、鼠标、键盘和应用交互控制桌面。它于 2024 年 10 月以测试版推出，并于 2026 年 8 月 19 日在 Claude API 正式发布（Google Cloud 为 8 月 20 日），作为 `computer_toolset_20260801` 客户端工具集提供；在 Bedrock、Claude Platform on AWS 和 Foundry 上仍为测试版。支持的模型包括 Fable 5/5.1、Mythos 5/5.1、Opus 5/5.5、Sonnet 5/5.5 和 Opus 4.8。
+Claude Computer Use 是 Anthropic 的 API 功能，允许 Claude 通过截图、鼠标、键盘和应用交互控制桌面。它于 2024 年 10 月以测试版推出，并于 2026 年 8 月 19 日在 Claude API 正式发布（Google Cloud 为 8 月 20 日），作为 `computer_toolset_20260801` 客户端工具集提供；在 Bedrock、Claude Platform on AWS 和 Foundry 上仍为测试版。支持的模型包括 Fable 5/5.1、Mythos 5/5.1、Opus 5/5.5、Sonnet 5/5.5、Haiku 5.5 和 Opus 4.8。
 
 ### 视觉-动作循环
 
@@ -388,7 +388,7 @@ Claude Computer Use 是 Anthropic 的 API 功能，允许 Claude 通过截图、
 - **批量动作**：Claude 可以在一轮中返回多个 `tool_use` 块。执行器按顺序运行，在首次失败时停止，并对后续块返回错误（`"Not executed: an earlier computer action in this turn failed"`）。这减少了模型往返，也意味着只在两轮模型调用之间做确认已经太晚：一轮就可能完成多步重要操作。Anthropic 文档要求在每个动作执行前检查：收到批次时查看整个批次，并在其中每个重要动作前暂停，包括位于批次中间的动作。
 - **Zoom Action**：点击前以高分辨率查看细小 UI 元素，减少密集界面的误点；正式版工具集默认开启。
 - **浏览器元素引用**：浏览器工具集定位无障碍树引用，能适应布局变化，但导航后引用会失效。Anthropic 会扫描返回的网页文本和截图，识别提示注入。
-- **破坏性变更**：在 Claude API 和 Google Cloud 上，Opus 5.5 和 Sonnet 5.5 对旧版 `computer_20251124` 工具返回 HTTP 400（Bedrock 仍接受）；基于测试版工具编写的代码需要迁移。
+- **破坏性变更**：在 Claude API 和 Google Cloud 上，5.5 模型（Opus、Sonnet 和 Haiku）对旧版 `computer_20251124` 工具返回 HTTP 400（Bedrock 仍接受）；基于测试版工具编写的代码需要迁移。
 - **截图预算**：Opus 4.7 及后续模型接受长边最高 2576 像素。Anthropic 估计每张截图约消耗 1,000–1,800 个输入 token，建议每次请求不超过 20 张图片，或将各边缩至不超过 2000 像素。
 - **消费端产品**：Cowork 正并入统一的 Claude 应用（2026 年 9 月 16 日起面向 Pro 和 Max 推出），Claude 默认在执行动作前请求批准。
 - **沙箱实践**：始终在沙箱化 VM 中运行（Docker + VNC 或 E2B 云环境），不要授予未隔离宿主机的计算机操作权限。浏览器还应使用无凭据的新配置文件，并在网络层设置域名允许列表，阻断回环、链路本地及私有地址段。
@@ -403,6 +403,7 @@ Claude Computer Use 是 Anthropic 的 API 功能，允许 Claude 通过截图、
 | 2026 年第一季度 | OSWorld-Verified | 72.5% | Sonnet 4.6、Zoom Action |
 | 2026 年 9 月 | OSWorld 2.0（v2.1 全量集，XLANG 排行榜） | 二元 44.33% / 部分完成 77.67% | Opus 5、最高推理强度、批量工具 |
 | 2026 年 9 月 | OSWorld 2.1（Anthropic 自报） | 部分完成 81.8% | Opus 5.5 |
+| 2026 年 10 月 | OSWorld 2.1 离线子集（Anthropic 自报） | 部分完成 72.4% | Haiku 5.5 |
 
 不要把这些行读成同一条趋势线。自报的 OSWorld-Verified 分数现已达到 80 多分的中段（约 85%），基准趋于饱和。**OSWorld 2.0**（2026 年 6 月）包含 108 个长流程任务，熟练人类完成每个任务的中位耗时约 1.6 小时，主要按 500 步预算内是否完全完成进行二元评分。二元与部分完成评分、推理强度及任务发布版本不同，引用的分数可能相差 30–40 个百分点，因此必须问清具体口径。面试要点是：短时、单会话的桌面任务已接近解决，但公开排行榜上按二元标准评估的小时级任务完成率仍低于 50%。
 
@@ -454,16 +455,16 @@ Built-in Tools: bash, read, write, edit, glob, grep, browser,
 - 长会话上下文压缩（1M+ token context）
 - 用于并行工作流的 subagent（子代理）生成
 - 用于并行分支执行的 worktree 隔离
-- 权限治理（工具 allow/deny 规则）。自 v2.1.284（2026 年 9 月 28 日）起，未配置权限模式的交互会话默认进入 **auto mode**，由服务端分类器决定各动作直接运行、拒绝或请求确认
+- 权限治理（工具 allow/deny 规则）。自 v2.1.284（2026 年 9 月 28 日）起，未配置权限模式的交互会话默认进入 **auto mode**，由服务端分类器决定各动作直接运行、拒绝或请求确认。无界面运行不同：自 v2.1.302（10 月 16 日）起，未设置模式的 `claude -p` 和 Agent SDK 会话在第三方供应商、关闭遥测或全新安装时以 `default` 模式启动，CI 调用方应显式设置权限模式
 - 带依赖图的任务系统
 - 用于自定义自动化的 hooks（pre/post commit、文件变更）；自 v2.1.287（2026 年 10 月 1 日）起还有 **mods**：插件内的 TypeScript 函数可改写提示、阻断或改写工具调用、批准或拒绝权限请求、遮蔽工具输出。Anthropic 提醒，这些函数不在沙箱内运行，拥有 Claude Code 自身的访问权限，因此插件审查也是代理信任边界的一部分
 - 自托管运行器（`claude self-hosted-runner`，Team 与 Enterprise），可在自有基础设施上运行会话
 
-**严肃的终端运行框架不止一种。** 截至 2026 年 10 月 1 日，主要替代方案有 OpenCode（MIT，约 21.1 万 stars）、Codex CLI（Apache-2.0，约 12.8 万 stars；默认模型于 9 月 29 日改为 GPT-6.1 Sol）和 Gemini CLI（Apache-2.0，约 10.7 万 stars，仍每周发布），而 anthropics/claude-code 仓库约 14.9 万 stars。Aider 已趋于沉寂（最后版本发布于 2 月 12 日，最后提交于 2026 年 5 月 22 日）。像 Codex 这样静默更换默认模型，也说明基于这些 CLI 构建自动化时应显式固定模型。
+**严肃的终端运行框架不止一种。** 2026 年 11 月初，主要替代方案有 OpenCode（MIT，约 22.4 万 stars）、Codex CLI（Apache-2.0，约 13.3 万 stars；默认模型于 9 月 29 日改为 GPT-6.1 Sol）和 Google Antigravity CLI，而 anthropics/claude-code 仓库约 15.4 万 stars。Gemini CLI（Apache-2.0，约 10.9 万 stars）仍在发布，但仅面向 Google 的企业 Code Assist 许可证。Aider 已趋于沉寂（最后版本发布于 2 月 12 日，最后提交于 2026 年 5 月 22 日）。像 Codex 这样静默更换默认模型，也说明基于这些 CLI 构建自动化时应显式固定模型。
 
 ---
 
-## IDE Agents：Cursor、Windsurf、Cline
+## IDE Agents（IDE 代理）：Cursor、Devin Desktop、Cline
 
 ### Cursor
 
@@ -480,26 +481,26 @@ Cursor 是一个深度集成 AI 的 VS Code 分支。到 2026 年初，它已提
 - **Projects**（测试版，9 月 10 日）：协调代理规划工作，按需要分派并行子代理，保留长达数月的上下文，再交付完成的工作供审查。Cursor 报告称新 Projects 用户合并的 PR 多了 30%（供应商自报的内部数据）。
 - **Rollouts 与 Security Review**（9 月 23 日，Teams 和 Enterprise）：在每个 PR 上挂载监控器，跟踪合并后各环境的变更健康状况，并扫描 PR 中可利用的漏洞。
 
-### Windsurf
+### Devin Desktop（原 Windsurf）
 
-Windsurf（最初名为 Codeium，2025 年 7 月被 Cognition 以 2.5 亿美元收购）具备：
-- **Cascade**：多步骤 AI agent，可分析项目结构、协调跨文件变更，并能自我恢复错误
+Windsurf（最初名为 Codeium，2025 年 7 月被 Cognition 以 2.5 亿美元收购）在 v3.0.12（2026 年 6 月 2 日）更名为 **Devin Desktop**，变化不只是名称：
+- **Devin Local**：自 v3.9.19（2026 年 9 月 8 日）起成为产品中唯一的 agent，取代 Windsurf 原有的多步骤代理 Cascade；Cognition 称其与终端代理使用相同运行框架
+- **Agent Command Center**：以看板视图展示本地和云端代理会话，可一键从本地会话委派给运行在独立 VM 上的云端 Devin
 - **专有模型**：SWE-1.5（据 Cognition 称比 Sonnet 4.5 快 13 倍）和 Fast Context，随后是 2026 年 9 月 10 日推出的旗舰模型 SWE-2
 - **Codemaps**：AI 驱动的可视化代码导航
-- **Cross-IDE plugins**：支持 40+ 个 IDE（JetBrains、Vim、NeoVim、XCode）
 
-Cognition（Windsurf 与 Devin）于 2026 年 9 月 8 日以 480 亿美元估值融资逾 20 亿美元，并报告年化收入运行率超过 10 亿美元（9 月 25 日供应商自报）。这是一家同时拥有 IDE 和自有模型的独立编程代理公司。
+Cognition（Devin Desktop 与云端 Devin）于 2026 年 9 月 8 日以 480 亿美元估值融资逾 20 亿美元，并报告年化收入运行率超过 10 亿美元（9 月 25 日供应商自报）。这是一家同时拥有 IDE 和自有模型的独立编程代理公司。更名带来的设计经验是：供应商替换标准化产品中的代理时，为旧代理调整的提示词、规则文件和审批习惯需要重新评估，应将其视为一次迁移。
 
 ### Cline
 
-Cline 是一个作为完整代理而非自动补全工具运行的 VS Code 扩展。它会连续执行步骤、评估结果、修复错误并继续。与 Cursor 或 Windsurf 相比，它更自主但打磨较少。它采用 Apache-2.0 许可，截至 2026 年 10 月 1 日为 v4.1.22，并提供 SDK。
+Cline 是一个作为完整代理而非自动补全工具运行的 VS Code 扩展。它会连续执行步骤、评估结果、修复错误并继续。与 Cursor 或 Devin Desktop 相比，它更自主但打磨较少。它采用 Apache-2.0 许可并提供 SDK；v4.1.26 发布于 2026 年 10 月 26 日。
 
 ### GitHub Copilot
 
 Copilot 现在提供了一年前还只停留在论文中的编排模式：
 - **Computer use**（2026 年 10 月 1 日公开预览，适用于 Copilot CLI 以及 macOS、Windows 上的 Copilot 应用）：经每个应用单独批准后操作桌面应用；永久授权可审查，组织级开关可关闭功能。
 - **Dynamic workflows**（10 月 1 日公开预览）：由代码定义的程序，将自动化步骤与代理混合为顺序或并行阶段，并设置人工审查检查点。GitHub 将其与由模型自行委派工作的 `/fleet` 区分开来。
-- **HydraFusion**（9 月 30 日研究预览，VS Code 1.140+）：**cascade** 模式用高效模型起草，通过质量门槛后必要时升级至更强模型；**critique** 模式让另一个模型家族对草稿审查一次。
+- **Copilot Fusion**（2026 年 10 月 28 日正式发布，适用于所有 Copilot 套餐；由 HydraFusion 研究预览发展而来）：用户选择 Standard、High 或 Max effort，Fusion 按任务选择工作流。**Single** 将任务交给一个模型；**cascade** 用高效模型起草，经质量门槛判断后升级至更强模型；**critique** 让第二个模型审查草稿，再由第一个模型修改。每个模型按自身费率计费，因此任务成本取决于 Fusion 选择的路由。
 
 ### IDE Agent 架构对比
 
@@ -513,10 +514,10 @@ Copilot 现在提供了一年前还只停留在论文中的编排模式：
 |                    |                                              |
 |                    +--> [Cloud Agent] --> [Cloud/own VM] --> [PR] |
 |                                                                   |
-|  Windsurf:                                                        |
-|  [Editor] --> [Cascade Agent] --> [RAG Codebase] --> [Apply Edits]|
+|  Devin Desktop:                                                   |
+|  [Editor] --> [Devin Local] --> [Repo Context] --> [Apply Edits]  |
 |                    |                                              |
-|                    +--> [SWE-1.5 Model] --> [Fast Context]        |
+|                    +--> [Cloud Devin, own VM] --> [PR]            |
 |                                                                   |
 |  Cline:                                                           |
 |  [Editor] --> [Agent Loop] --> [Evaluate] --> [Self-Fix] --> [Act]|
@@ -533,7 +534,7 @@ Copilot 现在提供了一年前还只停留在论文中的编排模式：
 |------|----------|-----------|-----------------|-------------------|-------------|--------|
 | **类型** | 本地 agent | 开发 agent | 本地代码执行 | 视觉自动化 | 终端 agent | IDE agent |
 | **许可证** | MIT | MIT | Apache-2.0（Rust 重写版）；AGPL-3.0（Python 分支） | Proprietary API | Proprietary | Proprietary |
-| **GitHub Stars（2026 年 10 月）** | 约 391K | 约 90K | 约 68K | N/A（API） | 约 149K（issues 与插件仓库） | N/A |
+| **GitHub Stars（2026 年 11 月）** | 约 394K | 约 92K | 约 69K | N/A（API） | 约 154K（issues 与插件仓库） | N/A |
 | **是否沙箱化** | 可选（主会话默认在宿主机） | 是（Docker） | Rust：原生 OS 沙箱；Python：无 | 需要 VM | 可配置 | 是（云端代理） |
 | **LLM 支持** | 任意（模型无关） | 任意 | 100+ 模型 | 仅 Claude | 仅 Claude | 多模型 |
 | **GUI 控制** | 浏览器工具 | 是（BrowserGym） | Python 分支：Computer API；Rust：浏览器和应用 QA 技能 | 是（原生） | 通过 computer-use | 云端代理工作机支持计算机操作 |
@@ -550,9 +551,9 @@ Copilot 现在提供了一年前还只停留在论文中的编排模式：
 
 ### 数据
 
-- **MCP 生态系统**：逾 10,000 个活跃服务器。2026 年 9 月，单是 v1 TypeScript SDK 的 npm 下载量就约 2.32 亿次；拆分后的 v2 包也在增长（`@modelcontextprotocol/core` 约 3,100 万次）。一线 SDK 现已覆盖 TypeScript、Python、C#、Go、Rust 与 Ruby。
+- **MCP 生态系统**：逾 10,000 个活跃服务器。2026 年 10 月，v1 TypeScript SDK 的 npm 下载量约 2.46 亿次；v2 的 `@modelcontextprotocol/core` 约 6,200 万次、`server` 约 4,900 万次、`client` 约 3,300 万次：v2 一个月内大致翻倍，但仍仅为 v1 下载量的 13% 至 25%。一线 SDK 现已覆盖 TypeScript、Python、C#、Go、Rust 与 Ruby。
 - **Gartner 预测**：到 2026 年底，40% 的企业应用将集成 AI agents（较 2025 年初不到 5% 的水平大幅提升）
-- **OpenClaw**：历史上最快达到 30 万 GitHub stars 的项目（不到 5 个月）；截至 2026 年 10 月 1 日约 39.1 万
+- **OpenClaw**：历史上最快达到 30 万 GitHub stars 的项目（不到 5 个月）；2026 年 11 月初约 39.4 万
 - **Claude Code**：截至 2026 年 2 月达到 25 亿美元 ARR，成为最快达到 10 亿美元规模的企业软件产品
 - **Cursor**：2026 年初年化收入 20 亿美元，Fortune 500 中约半数公司采用；自 2026 年 8 月起隶属 SpaceX，OpenAI 正逐步停止向 Cursor 供应模型（拟于 11 月 12 日终止）
 - **Cognition**：2026 年 9 月 8 日融资逾 20 亿美元后估值达 480 亿美元
@@ -561,15 +562,15 @@ Copilot 现在提供了一年前还只停留在论文中的编排模式：
 
 **1. Agent 类型趋同**：本地、云端与 IDE 代理之间的边界正在消融。Claude Code 在本地运行但使用云端模型；Cursor 的云端代理既可在 Cursor 的 VM 上运行，也可在自有机器上运行；OpenClaw 可连接任意 LLM。整体趋势是能够在不同环境中运行的通用代理架构。
 
-**2. MCP 作为统一工具层**：MCP 已成为工具集成标准，Anthropic、OpenAI、Google 和数百家工具提供商均已采用。现行规范版本为 2026-07-28，协议核心改为无状态。维护者于 2026 年 8 月 22 日发布的路线图优先考虑代理消息传递（Tasks、服务器发起事件）、以 Streamable HTTP 为唯一传输方式、代理身份（DPoP 和工作负载身份联合均仍是开放草案）、重新设计 `tools/call` 的结果形态，以及大型工具目录在服务端的渐进发现。下一次修订尚无日期。
+**2. MCP 作为统一工具层**：MCP 已成为工具集成标准，Anthropic、OpenAI、Google 和数百家工具提供商均已采用，归属 Linux Foundation 的 Agentic AI Foundation（截至 2026 年 10 月 22 日托管 10 个项目、拥有 305 个成员组织）。现行规范版本为 2026-07-28，协议核心改为无状态。维护者于 2026 年 8 月 22 日发布的路线图优先考虑代理消息传递（Tasks、服务器发起事件）、以 Streamable HTTP 为唯一传输方式、代理身份（DPoP 和工作负载身份联合均仍是开放草案）、重新设计 `tools/call` 的结果形态，以及大型工具目录在服务端的渐进发现。下一次修订计划于 2027 年 3 月 30 日发布（SEP-3398，10 月 14 日接受、10 月 27 日合并，仍待确认），此后通常在 3 月和 9 月的最后一个星期二发布。扩展现有成熟度阶段（SEP-3392）：MCP Apps 和企业授权为 Stable，而 Tasks、Skills 和 Server Cards 为 Beta，仍可能发生破坏性变更。
 
 **3. 沙箱化成为非谈判项**：OpenClaw 的安全危机（135,000 个暴露实例）推动行业转向默认沙箱化架构。新 agent 被预期要开箱即提供隔离能力。
 
-**4. 成本优化成为一级关注点**：在示例计算中，Plan-and-Execute 模式（强模型规划，低价模型执行）可节省约 85–90% 成本（见下一章）。对编程代理而言，输入 token 如今是更大的杠杆：Anthropic 2026 年 9 月 24 日公布的 Claude Code 遥测数据显示，输入与输出 token 之比从 189:1 增至 324:1，因此缓存读取价格与命中率主导账单。Opus 5.5 的缓存读取价格为每百万 token 0.20 美元，是其 4 美元输入价格的 0.05 倍。这相当于代理领域的云成本优化。
+**4. 成本优化成为一级关注点**：在示例计算中，Plan-and-Execute 模式（强模型规划，低价模型执行）可节省约 85–90% 成本（见下一章）。对编程代理而言，输入 token 如今是更大的杠杆：Anthropic 2026 年 9 月 24 日公布的 Claude Code 遥测数据显示，输入与输出 token 之比从 189:1 增至 324:1，因此缓存读取价格与命中率主导账单。Opus 5.5 和 Sonnet 5.5 的缓存读取均为输入价格的 0.05 倍（每百万 token 分别为 $0.20，以及自 10 月 7 日起的 $0.10）。这相当于代理领域的云成本优化。
 
 **5. 后台与异步代理**：Cursor 的云端代理和 Projects、Codex 云环境以及 Claude Code 的子代理派生，代表着从同步、交互式代理转向完成后再通知用户的自主异步工作者。OpenAI dots 与 Meta Muse 则把这一模式带到消费端：始终在线且有独立计算机的代理。
 
-**6. 运行框架成为产品**：Anthropic（Claude Managed Agents）、OpenAI（Agents API）和 AWS（基于 OpenAI 运行框架的 Bedrock Managed Agents）现将代理循环作为托管运行时出售。编程工具供应商也在向**控制与执行平面分离**收敛：控制平面由供应商托管，执行平面由客户托管。“自建还是租用”因此成为设计评审问题，同时要审视其缺口：OpenAI Agents API 推出时只支持美国数据驻留，不支持零数据保留。
+**6. 运行框架成为产品**：Anthropic（Claude Managed Agents）、OpenAI（Agents API）和 AWS（基于 OpenAI 运行框架的 Bedrock Managed Agents）现将代理循环作为托管运行时出售。编程工具供应商也在向**控制与执行平面分离**收敛：控制平面由供应商托管，执行平面由客户托管。“自建还是租用”因此成为设计评审问题，同时要审视其缺口：OpenAI Agents API 推出时只支持美国数据驻留，不支持零数据保留，且截至 2026 年 11 月三种托管运行时均处于测试或预览阶段。计费模式也在趋同：自 10 月 9 日起，OpenAI 托管沙箱计算仅在活动轮次计费，因此等待人工审批不再消耗沙箱时间。
 
 ---
 
@@ -634,7 +635,9 @@ Copilot 现在提供了一年前还只停留在论文中的编排模式：
 - Google. Gemini API computer use documentation and changelog (2026)
 - XLANG Lab. OSWorld 2.0 leaderboard (September 2026)
 - Gartner. "AI Agent Adoption Projections" (2025-2026)
-- Cursor、Windsurf、Cline 和 GitHub Copilot 官方文档及更新日志 (2025-2026)
+- Cursor、Devin Desktop（原 Windsurf）、Cline 和 GitHub Copilot 官方文档及更新日志 (2025-2026)
+- GitHub. "Route and orchestrate models with GitHub Copilot Fusion" (changelog, October 28, 2026)
+- Model Context Protocol. SEP-3398 "Release Cycle Updates" and SEP-3392 "Extension Lifecycle" (October 2026)
 
 ---
 

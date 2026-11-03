@@ -90,7 +90,7 @@ Good Tool Design:                    Bad Tool Design:
 
 MCP 服务器是独立进程，用于向任何兼容 MCP 的客户端（Claude、GPT、基于 Llama 的 agents）暴露工具、资源和提示。你只需编写一次服务器，任何 LLM 都可以使用它。
 
-当前规范修订版为 **`2026-07-28`**，将核心协议改为无状态：不再要求初始化握手，也没有协议层会话 ID，因此远程服务器可放在普通负载均衡器之后。采用较早 `2025-11-25` 有状态修订版的客户端仍很常见，应规划较长的双版本并存期（迁移细节见[工具使用与 MCP](../07-agentic-systems/03-tool-use-and-mcp.md)）。
+当前规范修订版为 **`2026-07-28`**，将核心协议改为无状态：不再要求初始化握手，也没有协议层会话 ID，因此远程服务器可放在普通负载均衡器之后。下一版计划于 2027 年 3 月 30 日发布（SEP-3398，仍待确认），此后按 3 月和 9 月的节奏发布。采用较早 `2025-11-25` 有状态修订版的客户端仍很常见，应规划较长的双版本并存期（迁移细节见[工具使用与 MCP](../07-agentic-systems/03-tool-use-and-mcp.md)）。
 
 ### MCP 架构
 
@@ -134,7 +134,7 @@ server.registerTool(
 await server.connect(new StdioServerTransport());
 ```
 
-TypeScript SDK v`2` 拆分为 `@modelcontextprotocol/server`、`@modelcontextprotocol/client` 和 `@modelcontextprotocol/core`。v`1` 包（`@modelcontextprotocol/sdk`）进入维护状态（只修安全和严重问题），但安装量仍占多数（`2026` 年 9 月约 2.32 亿次 npm 下载，v`2` `core` 约 3100 万次），因此两种写法都要能读懂。
+TypeScript SDK v`2` 拆分为 `@modelcontextprotocol/server`、`@modelcontextprotocol/client` 和 `@modelcontextprotocol/core`。v`1` 包（`@modelcontextprotocol/sdk`）进入维护状态（只修安全和严重问题），但安装量仍占多数（`2026` 年 10 月约 2.46 亿次 npm 下载，v`2` `core` 约 6200 万次、`server` 约 4900 万次、`client` 约 3300 万次），因此两种写法都要能读懂。
 
 ### Python MCP 服务器（SDK v`2`，MCPServer）
 
@@ -171,6 +171,8 @@ if __name__ == "__main__":
 
 官方 SDK 也是攻击面的一部分。`2026` 年 9 月底，两者都发布了 OAuth 混淆攻击公告（TypeScript 的 CVE-`2026-104850`，Python 的 GHSA-qx49-fqc8-xw99，CVSS `7.5`）：恶意 MCP 服务器可指定自己的授权服务器，接收客户端已存储的刷新 token 与客户端密钥。最低修复版本为 TypeScript `1.31.0` 或 `2.2.0`，以及 Python `1.30.0` 或 `2.2.0`；升级并非完整修复：机器到机器凭据提供方还须配置预期签发方，升级前保存的凭据在绑定签发方或清除之前仍有暴露风险。多服务器客户端的设计规则是：将每份凭据绑定到签发方，绝不让服务器决定密钥流向何处。
 
+10 月新增了两项 TypeScript 公告，同样不能仅靠升级解决。CVE-2026-111770（CVSS 7.7）中，跨客户端共享服务器或传输层会将一个客户端的响应泄露给另一个。它影响 `@modelcontextprotocol/server` 2.0.0 至 2.2.x，在 2.3.0 修复，但还需要修改代码：为每个请求或会话创建独立的服务器和传输层。模块级单例虽然方便，却存在漏洞（上例中的 stdio 服务器只服务一个客户端，因此不受影响）。CVE-2026-111771 涉及接受发给其他服务的 token，在 `sdk` 1.32.0 和 `server` 2.3.0 中修复，但受众检查需要主动启用（`expectedResource`），因此应进行配置。对任何 SDK 都应阅读安全公告，而不只是升级版本，因为安全行为往往需要显式开启。
+
 近期版本还收紧了服务器默认值，生产部署应保留：TypeScript `2.1.0` 及之后版本和当前 Python 版本将请求体限制为 `4 MiB`；Python `1.30.0` 和 `2.2.0` 在有状态会话空闲 `30` 分钟后将其关闭，每台服务器最多 `10,000` 个会话。
 
 ---
@@ -193,7 +195,7 @@ Anthropic 的 Tool Search（`2025`）解决了 schema 过载问题。与其把 `
 
 ### MCP 发现协议
 
-MCP 客户端通过标准 JSON-RPC 方法发现能力：`tools/list` 返回可用工具，`resources/list` 返回数据资源，`prompts/list` 返回提示模板；`2026-07-28` 修订版还增加所有服务器必须实现的 `server/discover`，用于声明支持的协议版本、能力和身份（客户端可先调用它来选择版本）。连接之前，客户端还可通过 Server Cards 查找服务器；这是一项实验性扩展 SEP-`2127`，卡片列在 `/.well-known/ai-catalog.json` 的 AI Catalog 条目中，也可通过仍处于预览阶段的 MCP Registry 查找。面向超大工具目录的服务器端渐进发现列在 `2026` 年 8 月 MCP 路线图上，尚未进入规范。
+MCP 客户端通过标准 JSON-RPC 方法发现能力：`tools/list` 返回可用工具，`resources/list` 返回数据资源，`prompts/list` 返回提示模板；`2026-07-28` 修订版还增加所有服务器必须实现的 `server/discover`，用于声明支持的协议版本、能力和身份（客户端可先调用它来选择版本）。连接之前，客户端还可通过 Server Cards 查找服务器；SEP-`2127` 自 2026 年 10 月 6 日起为 Final，扩展成熟度为 Beta，卡片列在 `/.well-known/ai-catalog.json` 的 AI Catalog 条目中，也可通过仍处于预览阶段的 MCP Registry 查找。面向超大工具目录的服务器端渐进发现列在 `2026` 年 8 月 MCP 路线图上，尚未进入规范。
 
 ---
 
@@ -339,7 +341,7 @@ my-skill/
 加载是渐进的：起初上下文中只有每项 skill 的名称与描述；当模型判定其相关时才加载 `SKILL.md` 正文，支持文件则按需读取。这让基础代理保持轻量，也让提示词前缀稳定，便于缓存；将所有 skill 一次性注入系统提示词会同时破坏这两点。
 
 **Skill 如今也是供应链。** `2026` 年 9 月的两项进展改变了交付方式：
-- **通过 MCP 发布 Skill：**官方 MCP 扩展 `io.modelcontextprotocol/skills`（SEP-`2640`，9 月 13 日定稿）允许服务器在相关工具旁发布 skill。每个 skill 都携带文件清单和逐文件 SHA-`256` 摘要；主机必须在使用前校验摘要，把任何批准绑定到完整清单（文件改变、增加或删除都使批准失效），将 skill 内容视为不可信，并在 skill 获得工具权限或运行主机侧代码前取得明确批准。截至 9 月底，官方 SDK 支持仍处于开放 PR 阶段。
+- **通过 MCP 发布 Skill：**官方 MCP 扩展 `io.modelcontextprotocol/skills`（SEP-`2640`，9 月 13 日定稿）允许服务器在相关工具旁发布 skill。每个 skill 都携带文件清单和逐文件 SHA-`256` 摘要；主机必须在使用前校验摘要，把任何批准绑定到完整清单（文件改变、增加或删除都使批准失效），将 skill 内容视为不可信，并在 skill 获得工具权限或运行主机侧代码前取得明确批准。TypeScript SDK 2.4.0（10 月 23 日）已支持 Skills over MCP。但 Final 的 SEP 并不意味着接口冻结：按照 10 月采纳的扩展生命周期（SEP-3392），Skills、Tasks 和 Server Cards 处于 Beta，仍可能发生破坏性变更，而 MCP Apps 和企业授权为 Stable，因此应固定所用 SDK 版本。
 - **扫描器还不够：**Pretext（arXiv `2609.39607`）构造的恶意 skill 绕过了 NVIDIA 的 SkillSpector（一种静态加 LLM 的 skill 扫描器），且最多在 `97%` 的尝试中成功投送载荷（对能从漏报中学习的扫描器版本仍达 `77%`）。手法是把载荷从代码移入自然语言，并将指令拆散到不同文件。应固定 skill 版本，像升级依赖一样审查更新，在运行时限制其能力，而不是只信安装前扫描。
 
 ---
@@ -466,7 +468,7 @@ eval_cases = [
 2. **破坏性变更**（重命名、移除参数、语义变更）：需创建一个新工具名称并使用新 schema。保留旧工具继续运行，并在其说明中添加“DEPRECATED: Use new_tool instead”。所有弃用调用（deprecated call）都应记录（log）以便监控。
 3. **不得移除工具**，直到确认没有活跃 agent 依赖它为止。
 
-**使用外部工具时也要遵守同样的纪律。** 供应商可能很快更改内置工具 schema。Google 的 `antigravity-preview-09-2026` 代理（`2026` 年 9 月 17 日）将内置工具参数从 snake_case 改为 PascalCase，以行范围编辑取代整文件重写，并新增 `find_by_name` 和 `grep_search`；它替代的 `05-2026` 版本将在 `2026` 年 10 月 5 日停用，仅相隔 `18` 天。本地执行这些工具或解析 `function_call` 步骤的代码必须跟着改变。应固定带日期的代理和工具版本，对收到的工具定义运行契约测试，并在取到的 MCP 工具列表与固定版本不同时告警（批准后偷偷改定义即“抽地毯”攻击）。
+**使用外部工具时也要遵守同样的纪律。** 供应商可能很快更改内置工具 schema。Google 的 `antigravity-preview-09-2026` 代理（`2026` 年 9 月 17 日）将内置工具参数从 snake_case 改为 PascalCase，以行范围编辑取代整文件重写，并新增 `find_by_name` 和 `grep_search`；它替代的 `05-2026` 版本原定于 `2026` 年 10 月 5 日停用，仅相隔 `18` 天。本地执行这些工具或解析 `function_call` 步骤的代码必须跟着改变。应固定带日期的代理和工具版本，对收到的工具定义运行契约测试，并在取到的 MCP 工具列表与固定版本不同时告警（批准后偷偷改定义即“抽地毯”攻击）。SDK 主版本也应纳入同样的契约测试：Anthropic 的 Python SDK 2.0.0 和 TypeScript SDK 1.0.0 默认发送 API 版本 `2026-10-21`，在该版本下，所有模型的 `temperature`、`top_p` 和 `top_k` 即使为默认值也返回 HTTP 400；新版主版本采用 Apache 2.0 而非 MIT 许可。
 
 ---
 
@@ -499,7 +501,7 @@ eval_cases = [
 ### 问：你的提取服务为取得 JSON 而强制工具调用。迁移到最新 Claude 模型后，每个请求都返回 HTTP `400`。发生了什么？如何在保留 schema 保证的前提下修复？
 
 **优秀回答：**
-Claude Fable `5.1`、Mythos `5.1`、Opus `5.5` 和 Sonnet `5.5` 拒绝类型为 `any` 或 `tool` 的 `tool_choice`；只支持 `auto` 和 `none`。强制工具调用原本就是取得结构化输出的变通办法，如今提供方在最新模型上移除了它。
+Claude Fable `5.1`、Mythos `5.1`、Opus `5.5` 和 Sonnet `5.5` 拒绝类型为 `any` 或 `tool` 的 `tool_choice`；只支持 `auto` 和 `none`。强制工具调用原本就是取得结构化输出的变通办法，如今提供方在最大模型上移除了它。Haiku 5.5 仍接受强制 `tool_choice`，但响应会直接以工具调用开始，没有思考块。
 
 修复取决于强制调用的用途。如果工具仅用于塑造输出，我会删除它并使用原生结构化输出（带 JSON Schema 的 `output_config.format`），直接约束响应。如果工具确实执行工作，我会改用 `auto`，在提示词中点名工具，设置 `strict: true` 保证任何实际调用的参数符合 schema，并在循环中检查模型未调用工具就直接回答的情形：重试一次，仍无调用则报错。
 
@@ -521,6 +523,8 @@ Claude Fable `5.1`、Mythos `5.1`、Opus `5.5` 和 Sonnet `5.5` 拒绝类型为 
 - Kaisar 与 Dhar，《Pretext》（arXiv `2609.39607`，`2026` 年 9 月）
 - GitHub 安全公告数据库：已审核 MCP 公告（github.com/advisories?query=type%3Areviewed+mcp）
 - MCP SDK 安全公告 GHSA-6qxp-vccf-f47h／CVE-`2026-104850`（TypeScript）与 GHSA-qx49-fqc8-xw99（Python），OAuth 授权服务器混淆攻击（`2026` 年 9 月）
+- MCP TypeScript SDK 安全公告 CVE-2026-111770（共享服务器或传输层）与 CVE-2026-111771（token 受众）（2026 年 10 月）
+- Model Context Protocol，SEP-3392《Extension Lifecycle》和 SEP-3398《Release Cycle Updates》（2026 年 10 月）
 
 ---
 

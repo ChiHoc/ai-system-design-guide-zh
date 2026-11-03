@@ -151,7 +151,7 @@ flowchart TD
     GS --> UI
 ```
 
-### 技术选型（2026 年 10 月）
+### 技术选型（2026 年 11 月）
 
 | 组件 | 选择 | 理由 |
 |-----------|--------|-----------|
@@ -159,11 +159,11 @@ flowchart TD
 | **复杂跨文档分析** | Claude Opus 5.5（$4/$20）或 GPT-6.1 Sol（$2/$10） | 对少数需要跨大量文档做多步推理的查询升级。GPT-6.1 Sol 的提示应低于 272K 输入 token，超过后 OpenAI 对整个请求按 $4/$15 计费 |
 | **摘要与批量层级** | Gemini 3.8 Flash（推广价 $0.75/$3.75；2027 年 1 月 1 日起为 $1.50/$7.50） | 低成本 1M token 上下文，用于文档摘要和摄取阶段的增强；预算应按 2027 年价格制定 |
 | **Embeddings** | text-embedding-3-large（每 100 万 token $0.13） | 质量成熟且未变化。若预计更换模型，Cohere Embed 5（Pro 与 Fast）和 Voyage 4 家族各自在不同尺寸间共享嵌入空间，可用大模型建索引、用低价模型查询，而无需重建索引 |
-| **Vector DB** | Qdrant 1.19（自托管） | 性能、payload 过滤及本地部署合规。`memory` 设置（pinned、cached、cold）取代 `on_disk` 和 `always_ram` 用于分层 |
-| **Reranker** | Qwen3-Reranker-8B（自托管，Apache 2.0）或 API 重排序器（Cohere Rerank 4、Voyage rerank-3） | API 重排序器每篇文档支持 32K token，消除了旧版对长分块的 512-token 截断 |
+| **Vector DB** | Qdrant 1.19 或更高版本（自托管） | 性能、payload 过滤及本地部署合规。`memory` 设置（pinned、cached、cold）取代 `on_disk` 和 `always_ram` 用于分层 |
+| **Reranker** | Qwen3-Reranker-8B（自托管，Apache 2.0）或 API 重排序器：Cohere Rerank 5（Pro 每百万 token $0.05，Fast $0.02）或 Voyage rerank-3 | 两者每篇文档均支持 32K token，消除了旧版对长分块的 512-token 截断；更换新版模型前先核对限制 |
 
 > [!NOTE]
-> **转变：有意识地为更大的检索单元定价。** 主流前沿模型的窗口达到 1M token 后，团队可在多文档问题中检索完整章节（10K 至 50K token），不必执着于完美的 512-token 分块。但账单也会随之增长：每月 150 万次查询，如果每次多输入 10K token，按 Sonnet 5.5 定价，每月会多付约 $30,000。应按查询类型路由：查找用小分块，综合分析问题才使用大章节。供应商的定价规则也不同：Claude 4.6 及以后在 1M 内按统一价格计费，而 OpenAI 对超过 272K 输入 token 的整个请求重新定价。
+> **转变：有意识地为更大的检索单元定价。** 主流前沿模型的窗口达到 1M token 后，团队可在多文档问题中检索完整章节（10K 至 50K token），不必执着于完美的 512-token 分块。但账单也会随之增长：每月 150 万次查询，如果每次多输入 10K token，按 Sonnet 5.5 定价，每月会多付约 $30,000。应按查询类型路由：查找用小分块，综合分析问题才使用大章节。定价规则因模型而异，不只是因供应商而异：Sonnet 5.5 和 Opus 5.5 在 1M 内按统一价格计费，Claude Haiku 5.5 的提示超过 100K token 后，整个请求按 5 倍计价；OpenAI 对超过 272K 输入 token 的整个请求重新定价。
 
 ---
 
@@ -426,8 +426,8 @@ class LongContextGenerator:
     """
     Claude Sonnet 5.5 over whole document sections. Documents sit in the
     system prompt, ahead of the conversation, so follow-up questions over the
-    same documents hit the prompt cache (reads bill at $0.20 per 1M on
-    Sonnet 5.5, 0.1x the input price).
+    same documents hit the prompt cache (reads bill at $0.10 per 1M on
+    Sonnet 5.5, 0.05x the input price).
     """
     def __init__(self):
         # Use AsyncAnthropicBedrockMantle, AsyncAnthropicVertex or AsyncAnthropicFoundry
@@ -451,8 +451,8 @@ class LongContextGenerator:
         ]
         doc_blocks[-1]["cache_control"] = {"type": "ephemeral"}  # cache through the last document
 
-        # No temperature: Sonnet 5.5 rejects non-default sampling values,
-        # and the Python SDK 1.x removed them from the method signature
+        # No temperature: API version 2026-10-21 (the default in Python
+        # SDK 2.x) rejects any sampling parameter, even at its default value
         response = await self.client.messages.create(
             model="claude-sonnet-5-5",
             max_tokens=4096,
@@ -475,7 +475,7 @@ class LongContextGenerator:
 > - **请求格式**：强制 `tool_choice`（`any` 或 `tool`）会返回 400，`thinking: {type: "disabled"}` 会返回 400（最低设置为 `between_tools`），非默认 `temperature` 也会返回 400（Sonnet 5 已如此）。
 > - **行为**：effort 等级重新校准，应重新扫描各档位，而非照搬旧设置。
 > - **期限**：仍固定 Sonnet 4.5 的系统无论如何都必须迁移；它将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役。
-> - **SDK**：Anthropic Python SDK 1.0（2026 年 8 月 20 日）改用 `httpx2`，基于 httpx 的追踪和测试 mock 可能悄然漏掉调用。升级后应核对 span 数量。
+> - **SDK**：Anthropic Python SDK 1.0（2026 年 8 月 20 日）改用 `httpx2`，基于 httpx 的追踪和测试 mock 可能悄然漏掉调用；Python SDK 2.0.0 随后把默认 API 版本切换为 `2026-10-21`，许可证改为 Apache 2.0。升级后应核对 span 数量和请求格式。
 
 ---
 
@@ -548,7 +548,7 @@ class QueryCache:
 
 ## 成本分析
 
-### 每月成本估算（500 用户，每用户每天 100 次查询，按 2026 年 10 月标价）
+### 每月成本估算（500 用户，每用户每天 100 次查询，按 2026 年 11 月标价）
 
 | 组件 | 计算方式 | 每月成本 |
 |-----------|-------------|--------------|
@@ -565,11 +565,11 @@ class QueryCache:
 ### 成本优化机会
 
 1. **响应缓存**：30% 命中率 → 节省约 $4,500 的 LLM 成本
-2. **提示缓存**：缓存静态系统提示和指令；缓存读取按输入价格的 0.1 倍计费
-3. **模型路由**：将简单查找路由到更便宜的层级（Claude Haiku 4.5 为 $1/$5，或 Gemini 3.8 Flash）→ LLM 成本最多节省 40%；Haiku 5.5 虽已预告但尚未发布，应规划迁移
+2. **提示缓存**：缓存静态系统提示和指令；Sonnet 5.5 自 2026 年 10 月 7 日起的缓存读取费率为输入价格的 0.05 倍
+3. **模型路由**：将简单查找路由到更便宜的层级（Claude Haiku 5.5 为 $0.10/$0.50，或 Gemini 3.8 Flash）→ LLM 成本最多节省 40%。Haiku 5.5 仅适合短上下文查找：提示超过 100K token 后，整个请求按 $0.50/$2.50 计费；它还拒绝 `temperature` 和 assistant prefill，因此迁移流量前应先运行评测集
 4. **仅在必要时使用数据驻留**：只为有要求的部门固定美国处理，其余使用全球端点 → 最多省回约 $1,350（10% 溢价）
 5. **批量重新嵌入**：通过 OpenAI Batch API 运行夜间重新嵌入 → 该行成本降低 50%（五折）
-6. **自托管重排序器**：用 Qwen3-Reranker 替代 API 重排序器 → 消除约 $1,500 的 API 支出，但按 Silicon Data 10 月 1 日每 GPU 小时 $2.77 的指数价，一张专用 H100 每月约需 $2,000；只有利用已有 GPU 容量才省钱。若合规禁止把候选段落发给重排序 API，这也是默认方案
+6. **自托管重排序器**：用 Qwen3-Reranker 替代 API 重排序器 → 消除约 $1,500 的 API 支出，但按 Silicon Data 11 月 1 日每 GPU 小时 $2.93 的指数价，一张专用 H100 每月约需 $2,100；只有利用已有 GPU 容量才省钱。若合规禁止把候选段落发给重排序 API，这也是默认方案
 
 ---
 

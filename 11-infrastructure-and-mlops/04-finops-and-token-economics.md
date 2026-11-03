@@ -54,12 +54,12 @@ cost_per_task = cost_per_request × expected_steps × (1 + retry_rate) + runtime
 
 | 系数 | 适用范围 | 影响 | 设计应对 |
 |------------|------------------|--------|-----------------|
-| 长上下文价格跳变 | OpenAI 输入超过 272K（整个请求）、xAI 提示达到 200K+（所有 token 价格翻倍）、Gemini 3.1 Pro Preview 超过 200K | GPT-6 Sol 每 100 万 token 的输入/输出价格从 $2/$10 变为 $4/$15；273K token 的提示输入成本约为 272K 的两倍 | 保持低于阈值或改用检索；Anthropic（Claude 4.6 及以后）在 1M 以内按统一价格计费 |
-| 服务层级 | 所有主要供应商 | Batch 和 Flex 为 0.5 倍；OpenAI Fast 为 2 倍（GPT-5.5 为 2.5 倍）、Ultrafast 为 6 倍；Gemini Priority 约 1.8 倍；Bedrock Priority 为 1.75 倍；Claude Opus 5.5 的 fast mode 为 $8/$40，而标准价为 $4/$20 | 按工作负载类别设置层级策略（见[批处理与异步经济学](#batch-和-async-经济学)） |
+| 长上下文价格跳变 | OpenAI 输入超过 272K（整个请求）；Claude Haiku 5.5 提示超过 100K token（整个请求，包含缓存读写）；xAI 提示达到 200K+（所有 token 价格翻倍）；Gemini 3.1 Pro Preview 超过 200K | GPT-6 Sol 每 100 万 token 的输入/输出价格从 $2/$10 变为 $4/$15，因此 273K 提示输入成本约为 272K 的两倍；Haiku 5.5 从 $0.10/$0.50 涨至 $0.50/$2.50，涨幅为 5 倍 | 保持低于阈值或改用检索；其他 Anthropic 模型（Claude 4.6 及以后）在 1M 以内按统一价格计费 |
+| 服务层级 | 所有主要供应商 | Batch 和 Flex 为 0.5 倍；OpenAI Fast 为 2 倍（GPT-5.5 为 2.5 倍）、Ultrafast 为 6 倍（GPT-6 Astra、GPT-6.1 Sol）；Gemini Priority 约 1.8 倍；Bedrock Priority 为 1.75 倍；Claude Opus 5.5 的 fast mode 为 $8/$40，而标准价为 $4/$20 | 按工作负载类别设置层级策略（见[批处理与异步经济学](#batch-和-async-经济学)） |
 | 数据驻留 | Anthropic `inference_geo: "us"`（Claude 4.6 及以后为 1.1 倍）、OpenAI 驻留端点、Bedrock 与 Google Cloud 区域端点、Mistral EU | 每个 token 约加价 10% | 只对有要求的租户固定地理位置 |
-| 推广期定价 | Gemini 3.8 Flash 的 $0.75/$3.75 维持至 2026 年 12 月 31 日，此后为 $1.50/$7.50；GPT-5.6 Sol 的 $4/$20 优惠仅承诺“至少持续到”11 月 21 日（标价 $5/$30） | 基于优惠价制定的预算可能低估最多 2 倍 | 按标价预测 |
+| 推广期定价 | Gemini 4 Argon 的 $2/$10 维持至 2026 年 11 月 30 日，此后为 $4/$20；Gemini 3.8 Flash 的 $0.75/$3.75 维持至 2026 年 12 月 31 日，此后为 $1.50/$7.50；GPT-5.6 Sol 的 $4/$20 优惠仅承诺“至少持续到”11 月 21 日（标价 $5/$30） | 基于优惠价制定的预算可能低估最多 2 倍 | 按标价预测 |
 | 收费的拒绝响应 | Anthropic：自 2026 年 9 月 24 日起，`bio`、`frontier_llm` 和 `reasoning_extraction` 类别在输出前的拒绝也收费 | 探测这些领域的红队与评估套件会产生成本 | 按 `stop_details.category` 拆分支出 |
-| 运行时计费项 | Claude Managed Agents：运行会话每小时 $0.08，另计 token，且无 Batch 折扣；OpenAI Agents API：托管沙箱容器费率；gpt-live-1：每会话分钟 $0.05，另计后端 token | token 之外的第二类计费 | 将空闲及运行时行为纳入每任务成本模型 |
+| 运行时计费项 | Claude Managed Agents：运行会话每小时 $0.08，另计 token，且无 Batch 折扣；OpenAI Agents API：托管沙箱计算资源，自 10 月 9 日起仅在活跃轮次计费；gpt-live-1：每会话分钟 $0.05，另计后端 token | token 之外的第二类计费 | 将空闲及运行时行为纳入每任务成本模型 |
 
 ---
 
@@ -71,16 +71,16 @@ cost_per_task = cost_per_request × expected_steps × (1 + retry_rate) + runtime
 
 | 供应商 | 缓存写入 | 缓存读取 | 有效期与机制 |
 |----------|-------------|------------|-------------------|
-| OpenAI（GPT-5.6 及以后） | 输入费率的 1.25 倍 | 0.1 倍（GPT-6.1 Sol 为 0.05 倍） | 超过 1,024 token 后自动缓存；有效期固定为 30 分钟 |
-| Anthropic | 1.25 倍（5 分钟）或 2 倍（1 小时） | 0.1 倍；Opus 5.5 为 0.05 倍；Fable 5.1 为 0.025 倍 | 显式 `cache_control` 断点 |
-| Google（Gemini 3.8 Flash） | 存储费每 100 万 token 每小时 $0.50（推广价；2027 年 1 月 1 日起为 $1.00） | $0.075，对应输入 $0.75（推广价截至 2026 年 12 月 31 日，为 0.1 倍；2027 年 1 月 1 日起分别为 $0.15 和 $1.50） | 缓存存续期间按存储计费 |
+| OpenAI（GPT-5.6 及以后） | 输入费率的 1.25 倍（30 分钟 TTL）或 2.5 倍（12 小时 TTL，自 10 月 20 日起） | 0.1 倍（GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05 倍） | 超过 1,024 token 后自动缓存 |
+| Anthropic | 1.25 倍（5 分钟）或 2 倍（1 小时） | 0.1 倍；Opus 5.5 和 Sonnet 5.5 为 0.05 倍；Fable 5.1 为 0.025 倍 | 显式 `cache_control` 断点；Haiku 5.5 的缓存 token 也计入 100K 价格门槛 |
+| Google（Gemini 3.8 Flash） | 存储费每 100 万 token 每小时 $0.50（推广价；2027 年 1 月 1 日起为 $1.00） | $0.075，对应输入 $0.75（推广价截至 2026 年 12 月 31 日，为 0.1 倍；2027 年 1 月 1 日起分别为 $0.15 和 $1.50） | 缓存存续期间按存储计费；Gemini 4 Argon 仅支持隐式缓存，因此显式缓存代码不适用于它 |
 
-由于读取折扣很大，1.25 倍写入在第一次缓存命中时就回本，2 倍的一小时写入则从第二次命中起划算（盈亏平衡点约为 1.1 次读取）。过去关于 OpenAI 缓存约五折且不收写入费的说法不适用于当前旗舰模型：GPT-5.6 及以后按 1.25 倍收取写入费；即使不收写入费的 GPT-5.5 和 GPT-5.4，读取价格也是 0.1 倍。教学时还应明确两个限制：标称节省仅作用于**缓存前缀**，而非整张账单；同一家厂商内部的读取费率如今可相差 4 倍，所以要按模型分别计算缓存后的每任务成本，而不能套用同一个系数。
+由于读取折扣很大，1.25 倍写入在第一次缓存命中时就回本，2 倍的一小时写入则从第二次命中起划算（盈亏平衡点约为 1.1 次读取）。OpenAI 2.5 倍的 12 小时写入也从第二次命中起更划算（读取价为 0.1 倍时，盈亏平衡点约 1.7 次读取）。过去关于 OpenAI 缓存约五折且不收写入费的说法不适用于当前旗舰模型：GPT-5.6 及以后按 1.25 倍收取写入费；即使不收写入费的 GPT-5.5 和 GPT-5.4，读取价格也是 0.1 倍。教学时还应明确两个限制：标称节省仅作用于**缓存前缀**，而非整张账单；同一家厂商内部的读取费率如今可相差 4 倍，所以要按模型分别计算缓存后的每任务成本，而不能套用同一个系数。
 
 真正捕获它的方法（纪律性）：
 - **让 prompt 按 static-to-dynamic（静态到动态）排序。** 将 system instructions（系统指令）、tool definitions（工具定义）和 few-shot examples（少样本示例）放前面（稳定前缀），把用户查询放最后。Exact-prefix matching（精确前缀匹配）意味着前部任何改动都会使整个下游缓存失效。
 - **稳定前缀。** 缓存区域里不要放 timestamps（时间戳）、request IDs（请求 ID）或每次调用都变的 nonce；固定 tool-definition 的顺序。必须在会话中途加入工具时，Anthropic 的 `inline-tools-2026-09-15` beta 可在对话中途的 system message 中加入工具，而不使已有缓存前缀失效。
-- **关注 TTL economics（TTL 经济性）。** OpenAI 的 TTL 固定为 30 分钟，前缀复用间隔更长就不会命中；Anthropic 可用 2 倍写入费购买 1 小时 TTL。突发但低复用的流量可能完全无法从缓存获益。
+- **关注 TTL economics（TTL 经济性）。** 前缀复用间隔超过其 TTL 就不会命中。两家厂商现在都提供更长 TTL，但写入价格更高：Anthropic 的 1 小时缓存为 2 倍，OpenAI 自 10 月 20 日起提供 12 小时缓存（2.5 倍），并保留 30 分钟选项。对于每 12 小时至少复用两次、但很少在 30 分钟内复用的前缀（例如每客户知识包），12 小时选项更划算。突发但低复用的流量可能完全无法从缓存获益。
 - **把每次调用的 cache-hit rate（缓存命中率）当作一等指标来监控。** Prompt 重写、模型版本升级和顺序调整都会悄悄拉低命中率。两家厂商如今都提供诊断能力：OpenAI 于 2026 年 8 月 20 日推出提示缓存仪表盘，并于 9 月 8 日正式发布 Responses API 中的 Prompt Cache Diagnostics；Anthropic 的缓存诊断于 9 月 23 日正式发布。
 
 与 prefix caching 不同，**exact-match（精确匹配）和 semantic caching（语义缓存）** 是针对重复 *query（查询）* 直接返回整条响应。Exact-match 以字面请求为键（便宜、零误报）；semantic caching 会对查询做 embedding（嵌入）并为相似命中返回缓存响应（对自然语言流量命中率更高，但存在需要防范的误命中风险）。可以分层使用：先 exact-match，再 semantic，再 prefix，并分别衡量各层命中率。从概念上说，这就是同一 KV 复用在计费层面的变现，见 [KV Cache and Context Caching](../04-inference-optimization/02-kv-cache-and-context-caching.md)。
@@ -93,7 +93,7 @@ OpenAI、Anthropic、Google 和 Bedrock 都为**异步工作提供大约 50% 的
 
 第三条通道是 **provisioned/reserved throughput（预留/保留吞吐）**（AWS Bedrock Provisioned Throughput 提供 1 或 6 个月承诺期；Bedrock Reserved 层级提供 1 或 3 个月容量预留；另有 Azure OpenAI PTU）：按小时计费的预留容量，不论是否使用。已有报告称，在持续型工作负载上可节省约 15-70%，只有在利用率高且稳定时才经济。Anthropic 不再出售 Priority Tier 容量承诺（既有合同持续至到期），因此要获得 Claude 保证容量，现在需要定制协议或云平台的预留及优先层级。心理模型类似云计算：对尖峰或不确定需求，按 token 付费（包括 batch）；一旦利用率高且稳定，就用预留容量。
 
-第四条通道是**为速度付费**：OpenAI Fast 层级（2 倍；2026 年 7 月 30 日由 Priority 更名）和 Ultrafast（6 倍；9 月 29 日起在 GPT-6 Astra 正式提供）、Gemini Priority（约 1.8 倍）、Bedrock Priority（1.75 倍），以及 Claude fast mode（研究预览，仅 Claude API）。同一模型仅因层级不同，就可能从 0.5 倍到 6 倍，价格相差 12 倍，因此成本模型需要按工作负载类别设置层级策略：
+第四条通道是**为速度付费**：OpenAI Fast 层级（2 倍；2026 年 7 月 30 日由 Priority 更名）和 Ultrafast（6 倍；9 月 29 日起在 GPT-6 Astra 正式提供，且自 10 月 8 日起 GPT-6.1 Sol 也向所有 API 用户开放）、Gemini Priority（约 1.8 倍）、Bedrock Priority（1.75 倍），以及 Claude fast mode（Opus 5.5 为 2 倍；自 10 月 15 日起退出研究预览，可用于 Claude API、Google Cloud 上由 Anthropic 管理的 Claude Models，以及 Foundry 的 Azure 托管部署）。同一模型仅因层级不同，就可能从 0.5 倍到 6 倍，价格相差 12 倍，因此成本模型需要按工作负载类别设置层级策略：
 
 | 工作负载 | 等待方 | 层级 |
 |----------|----------------|------|
@@ -122,9 +122,9 @@ FinOps Foundation 的框架：在许多部署中，**inference（推理）占整
 这些架构级选择带来的成本变化可达 2-50x，远超单次调用调优：
 
 - **Right-sizing（合适尺寸）、cascades（级联）和 routing（路由）。** 把请求路由到能满足质量门槛的最便宜模型，只在低置信度时升级。已有报告显示，在约 95% 的质量保留下可节省 45-85%（FrugalGPT 是经典参考），其中升级率是实时成本变量。见 [AI Gateways and Model Routing](03-ai-gateways-and-model-routing.md)。
-- **Self-host（自托管）与 API 的 break-even（盈亏平衡）。** 相对 frontier API 的已报告盈亏平衡点在每月数千万到数亿 token 的区间，但真正需要警惕的是隐藏成本：原始 GPU 租赁只是真实成本的 30-40%，因此要乘上约 2.5-3x 的系数，而且工程人力通常超过基础设施成本。2026 年进一步使盈亏平衡点偏向 API：GPU 租赁价格上涨（进入 9 月时，Silicon Data 的 B200 指数年内上涨 27.6%，10 月 1 日为每 GPU 小时 $5.86）；API 价格则下降（GPT-6 Luna 每 100 万输入/输出 token $0.10/$0.50，在路由和分类任务层级低于大多数自托管开放权重模型）。对大多数团队来说，计入完整栈后，托管 API 更便宜；只有在高、可预测、利用率高的体量，或者出于数据驻留原因时，自托管才更有优势。见 [LLM Infrastructure](01-llm-infrastructure.md)。
+- **Self-host（自托管）与 API 的 break-even（盈亏平衡）。** 相对 frontier API 的已报告盈亏平衡点在每月数千万到数亿 token 的区间，但真正需要警惕的是隐藏成本：原始 GPU 租赁只是真实成本的 30-40%，因此要乘上约 2.5-3x 的系数，而且工程人力通常超过基础设施成本。2026 年进一步使盈亏平衡点偏向 API：GPU 租赁价格上涨（进入 9 月时，Silicon Data 的 B200 指数年内上涨 27.6%，随后从 10 月初的每 GPU 小时 $5.86 升至 11 月 1 日的 $6.50）；API 价格则下降（GPT-6 Luna 和 Claude Haiku 5.5 每 100 万输入/输出 token 均为 $0.10/$0.50，在路由和分类任务层级低于大多数自托管开放权重模型）。对大多数团队来说，计入完整栈后，托管 API 更便宜；只有在高、可预测、利用率高的体量，或者出于数据驻留原因时，自托管才更有优势。见 [LLM Infrastructure](01-llm-infrastructure.md)。
 - **RAG vs long context（长上下文）。** 检索比塞进一个长上下文便宜得多，因为你只为少量相关 chunk 付费，而不是为一个巨大的 prompt 付费。Long context 适合小型、静态文档集；RAG 适合大型或频繁变化的语料，以及高查询量。见 [RAG Fundamentals](../06-retrieval-systems/01-rag-fundamentals.md)。
-- **Distillation（蒸馏）。** 在锁定的 eval（评测）上，把小模型微调到只比 frontier model 低几个准确率点，已被报告可使每 token 成本降低 5-40x，并且在高体量下可在数周到数月内回本；它适合窄而高频的任务，不适合开放式、长尾工作。要规划学生模型的长期运行位置：OpenAI 正逐步关闭其微调平台，现有客户自 2027 年 1 月 6 日起也无法创建新的微调任务，因此开放权重或其他平台是更稳妥的选择。见 [Knowledge Distillation](../03-training-and-adaptation/05-knowledge-distillation.md) 和 [distillation case study（蒸馏案例研究）](../16-case-studies/19-customer-distillation-pipeline.md)。
+- **Distillation（蒸馏）。** 在锁定的 eval（评测）上，把小模型微调到只比 frontier model 低几个准确率点，已被报告可使每 token 成本降低 5-40x，并且在高体量下可在数周到数月内回本；它适合窄而高频的任务，不适合开放式、长尾工作。要规划学生模型的长期运行位置：OpenAI 正逐步关闭其微调平台，现有客户自 2027 年 1 月 6 日起也无法创建新的微调任务；其 10 月 14 日通知还称，GPT-4o、GPT-4o mini、GPT-4.1、GPT-4.1 mini 快照及其微调版本将于 2027 年 1 月 14 日关闭，替代方案 GPT-6 Luna 不支持微调。因此开放权重或其他平台是更稳妥的选择。见 [Knowledge Distillation](../03-training-and-adaptation/05-knowledge-distillation.md) 和 [distillation case study（蒸馏案例研究）](../16-case-studies/19-customer-distillation-pipeline.md)。
 - **Output 和 prompt engineering（提示工程）。** 简洁的输出契约、`max_tokens` 上限、structured outputs（结构化输出），以及当模型已经可靠时裁剪 few-shot 示例，已有报告显示可在几乎不损失质量的情况下减少 20-40% 的 token。
 - **谁为推理付费。** 一种新选项正在出现：Sign in with ChatGPT（于 2026 年 9 月 29 日 OpenAI DevDay 公布，目前仅面向选定合作伙伴限量试点）可让符合条件的 Responses API 请求使用用户自己的 ChatGPT 套餐，而非开发者的 API 账户。如果扩大开放，它会将部分推理成本从产品损益表中移出，但代价是身份与 AI 计费绑定到一家供应商。
 
@@ -144,9 +144,9 @@ FinOps Foundation 的框架：在许多部署中，**inference（推理）占整
 | 长上下文塞满 | 默认把巨大的上下文当检索方式 | 对大型或变化中的语料使用 RAG |
 | 无归因 | 未打标签的共享支出 | Gateway token proxy 加标签 |
 | 离线工作走实时链路 | 用同步 API 做评测、补跑、标注 | Batch API 或 Flex 层级 |
-| 提示刚好超过长上下文阈值 | OpenAI 对超过 272K 输入 token 的整个请求按长上下文费率计费 | 缩短提示或使用检索以保持低于阈值，也可路由到统一价格模型 |
+| 提示刚好超过长上下文阈值 | OpenAI 对超过 272K 输入 token 的整个请求按长上下文费率计费；Claude Haiku 5.5 在 100K token 提示以上按 5 倍计价 | 缩短提示或使用检索以保持低于阈值，也可路由到统一价格模型 |
 | 对所有请求启用数据驻留 | 无此需求的租户每 token 多付约 1.1 倍 | 在网关按租户固定地理位置 |
-| 用推广价制定预算 | 入门费率结束（Gemini Flash 于 2027 年 1 月 1 日涨价一倍） | 按标价预测 |
+| 用推广价制定预算 | 入门费率结束（Gemini 4 Argon 于 12 月 1 日涨价一倍，Gemini 3.8 Flash 于 2027 年 1 月 1 日涨价一倍） | 按标价预测 |
 | 对支出上限的 429 重试 | 上限要到下个月 1 日才重置 | 根据错误代码分支处理；故障切换并告警 |
 
 已有真实事故把代理循环这一行说得很具体：失控的 agents 曾在一个周末内烧掉数万美元，直到有人发现。防线不是事后告警，而是在循环内部设置硬上限；托管运行时如今也原生提供这类上限（如 Claude Managed Agents 的会话预算）。
@@ -158,7 +158,7 @@ FinOps Foundation 的框架：在许多部署中，**inference（推理）占整
 ### Q: 你的 LLM 账单在流量持平的情况下环比翻倍。你怎么定位并修复？
 
 **强答案：**
-先做归因：如果每次调用没有通过 gateway 或 proxy 按 feature（功能）、team（团队）、model（模型）和 route（路由）打标签，那这是第一修复项，因为看不见就无法排查。有了归因之后，我会把支出拆成 token-spend layers（token 支出层），并查找常见元凶：某次 prompt 变更打破了 cache-hit rate（缓存命中率）（system prompt 约占输入 token 的 69%，所以缓存回退影响极大）、简单任务却开启了 extended thinking（按 output 费率计费且在响应中不可见）、agent loop（代理循环）的步数悄悄增加、输出或对话历史无限增长，或者重试风暴。还要检查那些在流量持平时隐藏的定价结构因素：提示增长后跨过长上下文阈值（OpenAI 对超过 272K 输入 token 的整个请求按更高费率计费）、流量转移到 Fast 或绑定数据驻留的层级、更换模型后缓存读取费率不同，或推广价已经结束。最高 ROI 的修复通常仍是先恢复提示缓存，然后选择合适规模的模型并限制输出。我还会把离线工作（评估、回填）迁移到 Batch API 或 Flex 层级，约可打五折，并设置按功能预算和突增告警，让下一次翻倍在第一天就触发通知。
+先做归因：如果每次调用没有通过 gateway 或 proxy 按 feature（功能）、team（团队）、model（模型）和 route（路由）打标签，那这是第一修复项，因为看不见就无法排查。有了归因之后，我会把支出拆成 token-spend layers（token 支出层），并查找常见元凶：某次 prompt 变更打破了 cache-hit rate（缓存命中率）（system prompt 约占输入 token 的 69%，所以缓存回退影响极大）、简单任务却开启了 extended thinking（按 output 费率计费且在响应中不可见）、agent loop（代理循环）的步数悄悄增加、输出或对话历史无限增长，或者重试风暴。还要检查那些在流量持平时隐藏的定价结构因素：提示增长后跨过长上下文阈值（OpenAI 对超过 272K 输入 token 的整个请求按更高费率计费；Claude Haiku 5.5 的提示达到 100K token 后整个请求涨至 5 倍）、流量转移到 Fast 或绑定数据驻留的层级、更换模型后缓存读取费率不同，或推广价已经结束。最高 ROI 的修复通常仍是先恢复提示缓存，然后选择合适规模的模型并限制输出。我还会把离线工作（评估、回填）迁移到 Batch API 或 Flex 层级，约可打五折，并设置按功能预算和突增告警，让下一次翻倍在第一天就触发通知。
 
 ### Q: 为什么 AI 产品的 gross margins（毛利率）比 SaaS 更差，工程师该怎么做？
 
@@ -170,7 +170,7 @@ FinOps Foundation 的框架：在许多部署中，**inference（推理）占整
 ### Q: 某团队想把 300K token 上下文的工作负载从 Claude Sonnet 5.5 迁到 GPT-6 Sol，因为两者标价均为 $2/$10。你会检查什么？
 
 **强答案：**
-标价相同是最没有信息量的一点。第一，长上下文价格跳变：输入超过 272K token 后，OpenAI 对整个 GPT-6 Sol 请求按 $4/$15 计费，而 Claude 在 1M 以内保持统一价格。未缓存时，一个输入 300K、输出 2K 的调用在 Sonnet 5.5 上约为 $0.62（输入 $0.60，加输出 $0.02），在 GPT-6 Sol 上约为 $1.23；除非把上下文裁减至 272K 以下或改用检索，否则所谓“同价”迁移会使单次调用成本大约翻倍。第二，缓存：标准上下文长度下，两者的缓存读取标价均为 $0.20，但 OpenAI 的 TTL 固定为 30 分钟，因此我会检查工作负载的复用间隔；两者写入均按 1.25 倍计费。第三，推理：Sonnet 5.5 默认高 effort，且无法完全关闭思考，因此应在自己的追踪中比较所有计费输出，而非只看可见输出。第四，数据驻留（固定区域时两边均约加价 10%）与服务层级。最后，运行评估套件检查质量，测试强制工具选择等请求格式差异。我会根据实测的每任务成本决定，而非只看费率表。
+标价相同是最没有信息量的一点。第一，长上下文价格跳变：输入超过 272K token 后，OpenAI 对整个 GPT-6 Sol 请求按 $4/$15 计费，而 Claude 在 1M 以内保持统一价格。未缓存时，一个输入 300K、输出 2K 的调用在 Sonnet 5.5 上约为 $0.62（输入 $0.60，加输出 $0.02），在 GPT-6 Sol 上约为 $1.23；除非把上下文裁减至 272K 以下或改用检索，否则所谓“同价”迁移会使单次调用成本大约翻倍。如果团队仍要用 OpenAI，GPT-6.1 Terra（$1/$5，超过 272K 后按 $2/$7.50 计价）处理同一请求约为 $0.62，之后应按自有评测的质量决定。第二，缓存：自 10 月 7 日起，Sonnet 5.5 的缓存读取降至 $0.10，是 GPT-6 Sol 的一半，因此缓存密集循环更偏向 Sonnet。TTL 也不同：Anthropic 的 5 分钟与 1 小时写入价为 1.25 倍和 2 倍；OpenAI 的 30 分钟与 12 小时写入价为 1.25 倍和 2.5 倍，应按工作负载复用间隔选择。第三，推理：Sonnet 5.5 默认高 effort，且无法完全关闭思考，因此应在自己的追踪中比较所有计费输出，而非只看可见输出。第四，数据驻留（固定区域时两边均约加价 10%）与服务层级。最后，运行评估套件检查质量，测试强制工具选择等请求格式差异。我会根据实测的每任务成本决定，而非只看费率表。
 
 ---
 

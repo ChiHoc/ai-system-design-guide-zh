@@ -117,10 +117,12 @@ Multi-modal RAG 扩展了 retrieval-augmented generation（检索增强生成）
 | Voyage Multimodal 3.5 | 混合文档；文本、图像和视频 | 256-2048（默认 1024） | 高 | 高 |
 | Cohere embed-v5.0-pro / -fast | 视觉信息丰富的企业文档；文本、图像或文本与图像融合输入 | 256-2048（Matryoshka） | 高：ViDoRe V3 85.8 / 84.5（供应商报告） | 未报告 |
 | Gemini Embedding 2 | 文本、图像、视频、音频和 PDF 共用一个空间 | 128-3072（推荐 768/1536/3072） | 高：ViDoRe V3 83.2（Cohere 的供应商评测表） | 未报告 |
+| EmbeddingGemma 2（开放权重，Apache 2.0） | 自托管的文本、代码、图像、视频和音频统一空间；740M 参数、8K 上下文 | 128-768（Matryoshka） | 未报告 ViDoRe | 未报告 |
 
-**2026 年的变化**：如今有两款托管多模态嵌入模型，不再需要单独的图像模型就能实现“统一空间”模式。
+**2026 年的变化**：如今有两款托管多模态嵌入模型，不再需要单独的图像模型就能实现“统一空间”模式，10 月又新增了一款开放权重模型。
 - **Gemini Embedding 2**（`gemini-embedding-2`，3 月 10 日发布，2026 年 4 月起稳定）：每次输入支持最多 8,192 个文本 token、6 张图像、120 秒视频、原生音频和最多 6 页 PDF，也支持交错输入。`gemini-embedding-001` 仅支持文本，将于 2028 年 5 月 14 日停止服务；Google 指定 Gemini Embedding 2 为其替代模型。
 - **Cohere Embed 5**（2026 年 9 月 30 日）：`embed-v5.0-pro` 每百万文本 token 收费 $0.12，`embed-v5.0-fast` 为 $0.08；图像每百万 token 收费 $0.40；上下文长度为 128K。Pro 与 Fast 共用嵌入空间，因此可用 Pro 建索引、用 Fast 查询，无需重新索引。
+- **EmbeddingGemma 2**（2026 年 10 月，Apache 2.0）：740M 参数由 270M 文本模型、170M 视觉编码器和 300M 音频编码器组成，将文本、图像、视频和音频映射到同一个 768 维空间。如果音频或视频不能离开你的网络，它是可自行托管的选择；但 Google 发布的是 MTEB 文本和代码分数（厂商报告），没有 ViDoRe 分数，因此用于文档前请先进行自己的页面级评测。
 
 Cohere 自己的 ViDoRe V3 评测表给 Embed 5 Pro、Fast、voyage-4-large、Gemini Embedding 2 和 OpenAI text-embedding-3-large 的分数分别为 85.8、84.5、83.7、83.2 和 75.5。前四名相差不到三分，且结果来自供应商评测，不能据此直接选型；应以自己的页面级评估集为准。
 
@@ -146,6 +148,7 @@ Is it a mix of text, images, and structured data?
 
 Does it include audio or video clips?
   YES --> Gemini Embedding 2 for retrieval (clips up to 120 s per input),
+          or EmbeddingGemma 2 if the media must stay self-hosted,
           plus transcripts in the text index for exact-term search
 ```
 
@@ -387,7 +390,7 @@ AGENTIC (opt-in):   video + question ──► model picks segments, speed, moda
 
 | 关注点 | 解决方案 |
 |---------|----------|
-| **索引大小** | ColPali 每页存储约 1024 个向量，1M 页约有 1B 个向量。可使用量化（binary、PQ）、用于候选生成的 MUVERA 式单向量编码（Milvus 3.0；Weaviate 1.31+，1.40 候选版本提供磁盘支持的 HFresh 路径），或减少每页向量数（参见 [后期交互与 ColBERT](11-late-interaction-colbert.md#压缩向量本身)）。 |
+| **索引大小** | ColPali 每页存储约 1024 个向量，1M 页约有 1B 个向量。可使用量化（binary、PQ）、用于候选生成的 MUVERA 式单向量编码（Milvus 3.0；Weaviate 1.31+，1.40 新增磁盘支持的 HFresh 路径），或减少每页向量数（参见 [后期交互与 ColBERT](11-late-interaction-colbert.md#压缩向量本身)）。 |
 | **摄入延迟** | 前沿 VLM 抽取较慢（约每页 2-5 秒）。专用解析器更快：在并发度 32、单张 A100 上，jina-ocr-v1 每秒处理 2.57 页；Cohere 报告 Parse 每张 GPU 每秒处理 4.5 页（均为供应商报告）。使用异步 worker。 |
 | **查询延迟** | 多索引 fan-out 会增加延迟。使用并行检索 + 激进的 top-k 剪枝。 |
 | **成本** | 摄入为一次性成本，可由查询量摊销。按 2026 年 10 月标价、每页约 1.7K 输入和 800 输出 token 估算：Gemini 3.8 Flash 推广价约 $0.004/页，Claude Sonnet 5.5 或 GPT-6 Sol 约 $0.011/页，均未计入推理 token；批处理 API 可将两者减半。Cohere Parse 标价为每 1,000 页 $1.50。 |

@@ -68,7 +68,7 @@ async def generate(prompt: str) -> str:
 - 提供商故障 = 整个系统故障。故障并不罕见：2026 年 8 月 16 日至 9 月 29 日，Anthropic 记录了至少 12 次重大或严重故障；OpenAI 9 月 29 日的一次故障同时影响 API、ChatGPT 和 Codex，持续约 5 小时 20 分钟
 - 速率限制会影响所有流量
 - 没有价格谈判筹码
-- 被锁定在单一模型家族及该厂商的退役日程中（OpenAI 将在 2026 年 12 月 11 日退役 `gpt-5-2025-08-07` 和 `o3-2025-04-16` 快照）
+- 被锁定在单一模型家族及该厂商的退役日程中（OpenAI 将在 2026 年 12 月 11 日退役 `gpt-5-2025-08-07` 和 `o3-2025-04-16` 快照；10 月 14 日通知称，`gpt-4o` 和 `gpt-4.1` 家族的五个快照及其微调版本将在约三个月后，即 2027 年 1 月 14 日关闭）
 
 **解决方案：**
 ```python
@@ -401,7 +401,7 @@ response = await llm.generate(
 )
 ```
 
-不要再用强制工具调用这一旧技巧来获取 JSON。在 Claude Fable 5.1、Opus 5.5 和 Sonnet 5.5 上，`tool_choice` 设为 `any` 或具名工具会返回 400；应使用结构化输出，或配合严格工具 schema 使用 `auto`。
+不要再用强制工具调用这一旧技巧来获取 JSON。在 Claude Fable/Mythos 5.1、Opus 5.5 和 Sonnet 5.5 上，`tool_choice` 设为 `any` 或具名工具会返回 400；Haiku 5.5 接受该设置，但会跳过思考。应使用结构化输出，或配合严格工具 schema 使用 `auto`。
 
 ---
 
@@ -576,9 +576,9 @@ response = await llm.generate(prompt, model=ALIAS)  # effort left at the default
 ```
 
 **为什么会失败：**
-- 默认值可能在你的代码不变时发生变化。2026 年 9 月，Codex CLI 将默认模型切换至 GPT-6.1 Sol（rust-v0.159.1）；Claude Code 将默认 Opus 切换至 Opus 5.5（2.1.280）、默认 Sonnet 切换至 Sonnet 5.5（2.1.284）；openai-agents SDK 此前已在 0.20.0 中将默认模型改为 `gpt-5.6-luna`
+- 默认值可能在你的代码不变时发生变化。2026 年 9 月，Codex CLI 将默认模型切换至 GPT-6.1 Sol（rust-v0.159.1）；Claude Code 将默认 Opus 切换至 Opus 5.5（2.1.280）、默认 Sonnet 切换至 Sonnet 5.5（2.1.284）；openai-agents SDK 此前已在 0.20.0 中将默认模型改为 `gpt-5.6-luna`。随后在 10 月 16 日，Claude Code 2.1.302 又更改了权限默认值：在第三方提供商上，`claude -p` 和 Agent SDK 会话未设置权限模式时，或在全新安装时，都会以 `default` 模式启动并关闭遥测。因此，依赖旧默认值的 CI 任务若不显式指定模式，就会在不同权限下运行
 - 同一模型系列的设置也会变化：Opus 5.5 将默认 effort 从 `high` 降为 `medium`
-- 即使模型 ID 固定也可能改变：OpenAI 于 2026 年 9 月 25 日在不更改 ID 的情况下修复了 GPT-6 Sol 和 Luna 的图像输入缺陷，因此必须重跑修复前的图像评估
+- 即使模型 ID 固定也可能改变：OpenAI 于 2026 年 9 月 25 日在不更改 ID 的情况下修复了 GPT-6 Sol 和 Luna 的图像输入缺陷，因此必须重跑修复前的图像评估；Google 自 10 月 8 日起将 `gemini-3.7-flash` 请求路由到 `gemini-3.8-flash`，因此旧字符串仍然有效，但背后的模型已变化
 
 **解决方案：**
 ```python

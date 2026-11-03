@@ -1,6 +1,6 @@
 # Claude Code：自主编码代理
 
-Claude Code 是 Anthropic 的**终端原生自主编码代理**。与最初以补全为核心的 IDE 插件不同，它从第一天起就是智能体：读取代码库、编辑文件、运行命令、执行测试，并迭代直到任务完成。它提供 CLI（2026 年 10 月 1 日版本为 2.1.287）、IDE 扩展、桌面和网页会话，也可通过 Claude Agent SDK 作为库使用。
+Claude Code 是 Anthropic 的**终端原生自主编码代理**。与最初以补全为核心的 IDE 插件不同，它从第一天起就是智能体：读取代码库、编辑文件、运行命令、执行测试，并迭代直到任务完成。它提供 CLI（npm `latest` 为 2.1.316、`stable` 为 2.1.309，版本截至 2026 年 10 月 31 日）、IDE 扩展、桌面和网页会话，也可通过 Claude Agent SDK 作为库使用。
 
 ## 目录
 
@@ -60,7 +60,7 @@ flowchart TD
     T --> X["MCP 服务器和插件<br/>数据库、API、内部工具"]
 ```
 
-Claude Code **可以选择模型**，默认值会随 CLI 发布变化：Opus 5.5 于 2.1.280（2026 年 9 月 22 日）成为默认 Opus，Sonnet 5.5 于 2.1.284（9 月 28 日）成为默认 Sonnet。在这些模型中，思考是自适应的，通过 effort 设置控制；Opus 5.5 的思考不能关闭。在 CI 中固定 `--model`，避免 CLI 升级同时改变模型、成本和行为。
+Claude Code **可以选择模型**，默认值会随 CLI 发布变化：Opus 5.5 于 2.1.280（2026 年 9 月 22 日）成为默认 Opus，Sonnet 5.5 于 2.1.284（9 月 28 日）成为默认 Sonnet，Claude API 上的默认 Haiku 则在 2.1.293（10 月）切换为 Haiku 5.5。在这些模型中，思考是自适应的，通过 effort 设置控制；Opus 5.5 的思考不能关闭。在 CI 中固定 `--model`，避免 CLI 升级同时改变模型、成本和行为。CLI 也会移除模型能力：Opus 4.8 的 fast mode 于 2026 年 10 月 30 日弃用，11 月 30 日移除；此后针对 Opus 4.8 的 fast-mode 请求会返回错误，不再回退到标准 Opus 4.8。
 
 ---
 
@@ -208,6 +208,7 @@ from claude_agent_sdk import query, ClaudeAgentOptions, ResultMessage
 async def run_coding_task(task: str) -> str | None:
     options = ClaudeAgentOptions(
         model="claude-sonnet-5-5",        # pin it: CLI defaults change between releases
+        permission_mode="dontAsk",        # explicit: the implicit headless mode varies (2.1.302)
         max_turns=30,
         max_budget_usd=5.0,               # hard stop on spend
         allowed_tools=["Read", "Edit", "Bash"],
@@ -229,7 +230,7 @@ result = asyncio.run(run_coding_task(
 ))
 ```
 
-该包已从 `claude_code_sdk` / `ClaudeCodeOptions` 更名为 `claude_agent_sdk` / `ClaudeAgentOptions`；旧教程仍使用旧名称。SDK 捆绑 CLI，这也是 2026 年 9 月 CLI 默认模型变化时，SDK 自身 CI 必须固定模型的原因。
+该包已从 `claude_code_sdk` / `ClaudeCodeOptions` 更名为 `claude_agent_sdk` / `ClaudeAgentOptions`；旧教程仍使用旧名称。SDK 捆绑 CLI，这也是 2026 年 9 月 CLI 默认模型变化时，SDK 自身 CI 必须固定模型的原因；而 CLI 在 10 月修改无头权限默认值后，SDK 调用方也会受到影响。
 
 ---
 
@@ -299,7 +300,7 @@ dontAsk             Only pre-approved rules; the rest is denied  CI and other he
 bypassPermissions   Everything but a short never-auto list       Disposable sandboxes only
 ```
 
-**Auto 模式只是方便功能，不是安全边界。** Anthropic 自 2026 年 8 月 14 日起，将基于分类器的 auto 模式设为新 Pro、Max 和 Team 会话的默认值；其 1,053 人测试显示，面对被替换为危险命令的请求，人类只在 13.6% 的情况下拒绝，而分类器原本会阻止 89%（供应商研究）。到 2.1.284（9 月 28 日），任何未配置权限模式的交互会话都会从 auto 模式启动。8 月 26 日，Johann Rehberger 公布了针对 auto 模式下 Opus 5 的“混淆环境”攻击：HTTP 415 响应诱使 Claude 从 WebFetch 切换到 `curl`，下载编码文件并自行编写解码器；恶意 `struct.py` 则遮蔽标准库。C2 链在 5 次运行中成功 3 次，写入工作区外的攻击成功 4 次。Anthropic 将报告关闭为 informative；Rehberger 引述其立场：“真正的边界是操作系统隔离与网络出站控制。”
+**Auto 模式只是方便功能，不是安全边界。**Anthropic 自 2026 年 8 月 14 日起，将基于分类器的 auto 模式设为新 Pro、Max 和 Team 会话的默认值；其 1,053 人测试显示，面对被替换为危险命令的请求，人类只在 13.6% 的情况下拒绝，而分类器原本会阻止 89%（供应商研究）。到 2.1.284（9 月 28 日），任何未配置权限模式的交互会话都会从 auto 模式启动。无头运行不同：自 2.1.302（10 月 16 日）起，在第三方提供方、遥测关闭或全新安装时，未指定权限模式的 `claude -p` 和 Agent SDK 会话默认使用 `default` 模式（交互会话仍默认 auto），因此 CI 作业应始终显式传入 `--permission-mode`（或 SDK 中的 `permission_mode`）。8 月 26 日，Johann Rehberger 公布了针对 auto 模式下 Opus 5 的“混淆环境”攻击：HTTP 415 响应诱使 Claude 从 WebFetch 切换到 `curl`，下载编码文件并自行编写解码器；恶意 `struct.py` 则遮蔽标准库。该攻击的 C2 链在 5 次运行中成功 3 次，写入工作区外的攻击成功 4 次。Anthropic 将报告关闭为 informative；Rehberger 引述其立场：“真正的边界是操作系统隔离与网络出站控制。”Anthropic 自己的 auto mode 红队测试（10 月 22 日）用数据印证了这一点：生产监控器未能阻止超过 55% 的攻击，“先执行，再写入”攻击针对 auto mode 的成功率为 43%（针对 OpenAI Codex Guardian 为 72%，针对 Guardian Strict 为 31%）。
 ### 配置
 
 ```json
@@ -322,7 +323,7 @@ bypassPermissions   Everything but a short never-auto list       Disposable sand
 }
 ```
 
-团队规则放在 `.claude/settings.json`，组织策略放在受管设置中；下层配置无法覆盖受管策略。资深工程师应明确两点：针对命令字符串的拒绝规则只是减速带，因为 `python -c` 也能完成 `curl` 的事；`permissions.defaultMode` 中的 `auto` 和 `bypassPermissions` 在项目或本地设置中会被忽略，克隆来的仓库不能自行放宽沙箱。组织若完全不希望使用这两种模式，可在受管设置中分别将 `permissions.disableAutoMode` 或 `permissions.disableBypassPermissionsMode` 设为 `"disable"`。自 2.1.200 起，界面将 `default` 模式标记为 **Manual**；两个名称都可使用。
+团队规则放在 `.claude/settings.json`，组织策略放在受管设置中；下层配置无法覆盖受管策略。资深工程师应明确两点：针对命令字符串的拒绝规则只是减速带，因为 `python -c` 也能完成 `curl` 的事；`permissions.defaultMode` 中的 `auto` 和 `bypassPermissions` 在项目或本地设置中会被忽略，克隆来的仓库不能自行放宽沙箱。组织若完全不希望使用这两种模式，可在受管设置中分别将 `permissions.disableAutoMode` 或 `permissions.disableBypassPermissionsMode` 设为 `"disable"`。自 2.1.314 起，`permissions.blockWritesOutsideWorkingDirectories` 会让 Write、Edit 和 NotebookEdit 在任何权限模式下都拒绝工作目录以外的路径写入，是抵御“写入工作区外”攻击的一项低成本后备措施。自 2.1.200 起，界面将 `default` 模式标记为 **Manual**；两个名称都可使用。
 
 ### 生产环境安全规则
 
@@ -331,8 +332,8 @@ bypassPermissions   Everything but a short never-auto list       Disposable sand
 3. **人工检查点**：生产部署需要人工审查最终 diff。GitHub 现允许 Copilot 代码审查的批准计入必需审查（2026 年 9 月 1 日公开预览，默认关闭），因此分支保护应确保智能体编写的 PR 不能仅由智能体批准。
 4. **密钥与目的地扫描**：对每次 Claude Code 输出运行 `truffleHog` 或 `git-secrets`，并阻止智能体会话创建新的公开仓库、gist，或向个人账户推送（PixelLeak 的外泄通道）。
 5. **预算**：设置 `--max-turns`（推荐 20-30）和 SDK 中的 `max_budget_usd`，避免循环失控。
-6. **最低版本**：Plugin4Shell（替换固定 SHA 的插件）在 2.1.179 修复，GitSpawn 的 `fsmonitor` 路径在 2.1.196 修复；Manifold 报告 `claude ultrareview` 的第二条路径在 2.1.252 仍未修复。通过受管 `requiredMinimumVersion` 设置强制最低版本。
-7. **扩展就是代码**：插件、钩子和新加入的 mods（2.1.287，2026 年 10 月 1 日）不在沙箱中运行，拥有 Claude Code 自身对机器的访问权。应像依赖一样审查它们。
+6. **最低版本**：Plugin4Shell（替换固定 SHA 的插件）在 2.1.179 修复，GitSpawn 的 `fsmonitor` 路径在 2.1.196 修复；Manifold 报告 `claude ultrareview` 的第二条路径在 2.1.252 仍未修复；2.1.292 修复了钩子审批和 auto mode 在网络路径（UNC）读取文件时绕过权限提示的问题。通过受管 `requiredMinimumVersion` 设置强制最低版本。
+7. **扩展就是代码**：插件、钩子和 mods（2.1.287，2026 年 10 月 1 日）不在沙箱中运行，拥有 Claude Code 自身对机器的访问权。应像依赖一样审查，并把每个 IDE 扩展市场视作独立供应链：2026 年 10 月 29 日，Cursor 市场上曾出现并非 Anthropic 构建的恶意 `Anthropic.claude-code` 版本（见[开发者工作站成为攻击目标](../07-agentic-systems/09-agentic-security-and-sandboxing.md#开发者工作站成为攻击目标)）。在开发者设备上应设置发布者允许列表并固定扩展版本。
 
 ### 企业控制项
 
@@ -377,7 +378,7 @@ jobs:
           GIT_CONFIG_KEY_1: core.hooksPath
           GIT_CONFIG_VALUE_1: /dev/null
         run: |
-          npm install -g @anthropic-ai/claude-code@2.1.287   # pin the CLI version
+          npm install -g @anthropic-ai/claude-code@2.1.309   # pin the CLI version (stable channel)
 
           printf '%s' "$ISSUE_BODY" | claude -p "Fix the bug described in the issue text on stdin.
           Rules:
@@ -404,24 +405,24 @@ jobs:
 
 编码智能体的成本主要来自**输入**，其中大部分是重复发送的上下文。Anthropic 于 2026 年 9 月 24 日公布的 Claude Code 遥测数据（供应商报告）显示，输入与输出 token 比为 324:1，3 月时为 189:1；每次请求的上下文量也增长了 2.6 倍。因此，缓存输入价格和缓存命中率远比输出价格重要。
 
-以下是示例估算，并非实际测量。假设：每 1 个输出 token 对应约 300 个输入 token；未命中的输入按 5 分钟缓存写入费率计价；Sonnet 5.5 每百万 token 的输入、输出、缓存写入、缓存读取标价分别为 $2、$10、$2.50、$0.20，Opus 5.5 分别为 $4、$20、$5、$0.20。
+以下是示例估算，并非实际测量。假设：每 1 个输出 token 对应约 300 个输入 token；未命中的输入按 5 分钟缓存写入费率计价；Sonnet 5.5 每百万 token 的输入、输出、缓存写入、缓存读取标价分别为 $2、$10、$2.50、$0.10，Opus 5.5 分别为 $4、$20、$5、$0.20。
 
 | 任务类型 | 模型调用 | 输入 token | 输出 token | Sonnet 5.5，90% 缓存命中 | Opus 5.5，90% 缓存命中 | Sonnet 5.5，70% 缓存命中 |
 |-----------|-------------|--------------|---------------|----------------------------|--------------------------|----------------------------|
-| 小型缺陷修复 | 15 | 750K | 2.5K | $0.35 | $0.56 | $0.69 |
-| 测试生成 | 25 | 1.75M | 6K | $0.81 | $1.31 | $1.62 |
-| 功能实现 | 50 | 5M | 15K | $2.30 | $3.70 | $4.60 |
-| 大规模重构 | 120 | 18M | 50K | $8.24 | $13.24 | $16.52 |
+| 小型缺陷修复 | 15 | 750K | 2.5K | $0.28 | $0.56 | $0.64 |
+| 测试生成 | 25 | 1.75M | 6K | $0.66 | $1.31 | $1.50 |
+| 功能实现 | 50 | 5M | 15K | $1.85 | $3.70 | $4.25 |
+| 大规模重构 | 120 | 18M | 50K | $6.62 | $13.24 | $15.26 |
 
-*每天运行 100 次 CI（60 次缺陷修复、30 次测试生成、10 次功能实现）时，缓存命中率为 90% 的 Sonnet 5.5 每天约 $68，Opus 5.5 约 $110；若命中率降到 70%，Sonnet 账单大约翻倍至每天 $136。*
+*每天运行 100 次 CI（60 次缺陷修复、30 次测试生成、10 次功能实现）时，缓存命中率为 90% 的 Sonnet 5.5 每天约 $55，Opus 5.5 约 $110；若命中率降到 70%，Sonnet 账单增至每天约 $126。*
 
-从表中可看出三点：缓存命中率对成本的影响大于模型选择；这里 Opus 5.5 的成本约为 Sonnet 5.5 的 1.6 倍，而非 2 倍，因为两者的缓存读取费率都是每百万 token $0.20（Opus 5.5 的缓存读取费率为输入价的 0.05 倍）；Anthropic 还表示，harness 改动使 Claude Code 未命中的输入减少超过一半（供应商报告），因此即使模型不变，CLI 升级也可能改变账单。
+从表中可看出三点：缓存命中率对成本的影响大于模型选择——命中率下降 20 个百分点会让 Sonnet 的成本变为约 2.3 倍，比切换到 Opus 的影响还大。自 Sonnet 5.5 于 10 月 7 日降低缓存读取价格后，Opus 5.5 的每项费率都恰好是 Sonnet 的两倍（两者的缓存读取倍率均为输入价格的 0.05 倍）；此前两者的缓存读取价格都为每百万 token $0.20，缓存密集型任务下 Opus 的成本约为 1.6 倍。Anthropic 还表示，harness 改动使 Claude Code 未命中的输入减少超过一半（供应商报告），因此即使模型不变，CLI 升级也可能改变账单。
 
 ---
 
 ## 对比：Claude Code 与替代方案
 
-| 特性 | Claude Code | Codex CLI | Cursor/Windsurf | Cline | OpenHands |
+| 特性 | Claude Code | Codex CLI | Cursor / Devin Desktop | Cline | OpenHands |
 |---------|-------------|-----------|-----------------|-------|-----------|
 | **界面** | CLI + IDE 扩展 + 桌面/网页 | CLI + IDE 扩展 + 云端 | IDE（VS Code 分支）+ 云端智能体 | VS Code 扩展 + SDK | Web UI + CLI |
 | **模型** | Claude 模型（Claude API、Bedrock、Google Cloud、Foundry） | OpenAI 模型（自 rust-v0.159.1 起默认 GPT-6.1 Sol） | 多家模型（GPT、Claude、Gemini、Grok、自有模型） | 多家模型 | 多家模型 |
@@ -432,16 +433,17 @@ jobs:
 | **开源** | 否 | 是（Apache-2.0） | 否 | 是 | 是 |
 | **最适合** | 后端开发者、CI/CD | 使用 OpenAI 的团队、CI/CD | UI/前端开发者、可视化场景 | 各类开发者 | 自托管团队 |
 
-### 编码智能体基准（2026 年 9 月下旬）
+### 编码智能体基准（2026 年 9 月和 10 月）
 
 SWE-bench Verified 已难以区分前沿智能体：分数接近天花板。一项审计（arXiv 2609.34262）发现，SWE-Bench Pro v1.0 中本应不算成功却通过的运行比例，从 Opus 4.7 的 24% 到 Fable 5 的 73% 不等，主要是 git 历史泄漏。应使用抗污染基准，并注明推理强度和运行方。
 
 | 基准 | 结果 | 运行方与推理强度 | 备注 |
 |-------|-------|-------|-------|
-| Terminal-Bench 4.0 | GPT-6 Astra 58.18% | tbench.ai 排行榜（9 月 21 日），max | 66 项任务、8 小时超时；不可与 3.0 直接比较 |
+| Terminal-Bench 4.0 | Claude Opus 5.5 64.85%（第一）；Sonnet 5.5 61.82% | tbench.ai 排行榜，max，均使用 Claude Code（10 月 6 日加入） | 66 项任务、8 小时超时；不可与 3.0 直接比较。Sonnet 运行成本约 $7.3K，Opus 约 $4.7K |
+| Terminal-Bench 4.0 | GPT-6 Astra 与 GPT-6.1 Sol 并列 58.18% | 排行榜，max，使用 Codex | GPT-6.1 Sol 运行成本约 $634，Astra 约 $3.3K |
 | Terminal-Bench 4.0 | Claude Fable 5.1 57.88% | 排行榜，max/xhigh | |
-| Terminal-Bench 4.0 | Claude Opus 5 53.94% | 排行榜，xhigh | |
-| Terminal-Bench 4.0 | Claude Opus 5.5 66.4%；Sonnet 5.5 70.6% | Anthropic 报告（Opus 为 xhigh） | 发布于 9 月 21 日排行榜快照之后 |
+| Terminal-Bench 4.0 | Claude Opus 5.5 66.4%；Sonnet 5.5 70.6% | Anthropic 报告（Opus 为 xhigh） | 高于排行榜自身的运行成绩，而且两款模型的排序相反 |
+| Terminal-Bench 4.0 | Claude Haiku 5.5 39.2% | Anthropic 报告（10 月 7 日） | 简单编辑路由时的小模型参考点 |
 | SWE-Bench Pro v2 私有集（272 项任务） | Claude Opus 5 81.6% | Scale（9 月 22 日），断网、干净环境重新评分 | 公开的 642 项任务划分已趋饱和（Opus 5 为 99.4%） |
 | DeepSWE v1.1 | 三者均为 74%：GPT-6 Astra（xhigh，$4.43/任务）、Gemini 3.8 Flash（high，$2.36/任务）、Opus 5（max，$11.84/任务） | DeepSWE 排行榜（9 月 22 日） | 通过率相同，每任务成本相差 5 倍 |
 
@@ -454,7 +456,7 @@ harness 与模型一样重要：同一个模型在 Claude Code、Codex、OpenHan
 ### 问：Claude Code 与 GitHub Copilot 有何不同？
 
 **高分答案：**
-Copilot 最初是**补全工具**，在你输入时预测接下来几行代码；Claude Code 从一开始就是**自主智能体**：给它一个任务（如“为这个 API 添加认证”），它会读取代码库、规划实现、编辑多个文件、运行测试并修复失败。到 2026 年下半年，两款产品已趋同（Copilot 有编码智能体、预览中的桌面计算机操作和动态工作流），有用的区别在于架构：循环运行在终端、CI、供应商云端还是自托管 runner，由谁控制模型和权限，以及结果如何进入审查。Copilot 最适合深度嵌入 GitHub 工作流；Claude Code 更适合嵌入自己流水线的可脚本化智能体。
+Copilot 最初是**补全工具**，在你输入时预测接下来几行代码；Claude Code 从一开始就是**自主智能体**：给它一个任务（如“为这个 API 添加认证”），它会读取代码库、规划实现、编辑多个文件、运行测试并修复失败。到 2026 年下半年，两款产品已趋同（Copilot 有编码智能体、预览中的桌面计算机操作和动态工作流，以及 10 月 28 日 GA 的 Copilot Fusion；它可在不同模型间路由，并支持 Standard、High 或 Max effort，以及 Single、Cascade、Critique 工作流），有用的区别在于架构：循环运行在终端、CI、供应商云端还是自托管 runner，由谁控制模型和权限，以及结果如何进入审查。Copilot 最适合深度嵌入 GitHub 工作流；Claude Code 更适合嵌入自己流水线的可脚本化智能体。
 
 ### 问：什么是 CLAUDE.md，为什么它很关键？
 
@@ -466,13 +468,13 @@ CLAUDE.md 就像是专门为 AI 同事编写的 `README`。没有它，Claude Co
 **高分答案：**
 有三层：
 1. **沙箱**：在容器或微型虚拟机中运行 Claude Code，网络出站默认拒绝，仅放行 git 仓库、包镜像和模型端点。智能体运行期间禁用仓库 Git hook 与 `fsmonitor`。
-2. **权限允许列表**：无头模式使用 `dontAsk` 和明确的工具允许列表（测试运行器、linter、文件编辑），固定 CLI 与模型版本。Issue 正文、PR 评论等不可信文本通过环境变量作为数据传递，不直接插入工作流脚本。
+2. **权限允许列表**：无头模式使用 `dontAsk` 和明确的工具允许列表（测试运行器、linter、文件编辑）；自 2.1.302 起，无头权限默认模式因运行环境而异，因此必须显式设置。固定 CLI 与模型版本。Issue 正文、PR 评论等不可信文本通过环境变量作为数据传递，不直接插入工作流脚本。
 3. **人工闸门**：Claude Code 输出带 diff 的分支，由人工在 PR 中审查后合并。即使 GitHub 现在允许 Copilot 的批准计入必需审查，也不能让智能体独自批准自己编写的 PR。
 
 ### 问：团队希望在开发者笔记本上以 auto 模式运行 Claude Code，安全吗？
 
 **高分答案：**
-它比机械点击批准更安全，但也仅此而已。Anthropic 自己的研究显示，人类面对被替换的危险命令只在 13.6% 的情况下拒绝，分类器则会阻止 89%，因此 auto 模式能够缓解批准疲劳。但 Rehberger 在 8 月的攻击通过改变环境而非提示词，让 auto 模式的 Opus 5 在五次运行中三次执行了 C2 链。按他转述，Anthropic 认为真正的边界是操作系统隔离和网络出站控制。因此，我只会在有边界的环境中允许 auto 模式：每个仓库一个 devcontainer 或虚拟机、网络出站允许列表、环境中没有长期云凭据、受管设置固定可用模型和 Claude Code 最低版本；插件与 mods 因为不受沙箱隔离，应按依赖审查。在具有全盘访问权限、shell 中带有生产凭据的笔记本上，无论分类器多好，auto 模式都不可接受。
+它比机械点击批准更安全，但也仅此而已。Anthropic 自己的研究显示，人类面对被替换的危险命令只在 13.6% 的情况下拒绝，分类器则会阻止 89%，因此 auto 模式能够缓解批准疲劳。但 Rehberger 在 8 月的攻击通过改变环境而非提示词，让 auto 模式的 Opus 5 在五次运行中三次执行了 C2 链；Anthropic 10 月的红队测试发现，“先执行，再写入”攻击针对 auto mode 的成功率为 43%。按 Rehberger 转述，Anthropic 认为真正的边界是操作系统隔离和网络出站控制。因此，我只会在有边界的环境中允许 auto 模式：每个仓库一个 devcontainer 或虚拟机、网络出站允许列表、环境中没有长期云凭据、受管设置固定可用模型和 Claude Code 最低版本；插件与 mods 因为不受沙箱隔离，应按依赖审查。在具有全盘访问权限、shell 中带有生产凭据的笔记本上，无论分类器多好，auto 模式都不可接受。
 
 ### 问：如何控制高并发 CI 中 Claude Code 的成本？
 
@@ -480,8 +482,8 @@ CLAUDE.md 就像是专门为 AI 同事编写的 `README`。没有它，Claude Co
 我先看钱花在哪里：编码智能体会话每个输出 token 对应约 300 个输入 token（Anthropic 9 月遥测数据为 324:1），因此缓存行为占主导。然后从四方面优化：
 1. **任务范围**：Claude Code 对独立、边界明确的任务（缺陷修复、测试生成）有成本优势。开放式探索也要先设置预算。
 2. **预算**：使用 `--max-turns` 和 `max_budget_usd`，防止循环推理导致单次作业耗费超过 $10。
-3. **缓存管理**：把稳定的系统提示词和工具列表放在上下文前部，不在前缀加入时间戳或随机 ID，并监控缓存命中率；在我的成本模型中，命中率从 90% 降至 70% 会让账单大约翻倍。
-4. **模型路由**：多数 CI 任务使用默认 effort 的 Sonnet 5.5，架构重构使用 Opus 5.5，只有琐碎编辑才使用 Haiku 4.5。截至 2026 年 10 月 1 日，Haiku 5.5 只有预告、尚未发布，因此 Haiku 4.5 仍是唯一的 Haiku。其退役时间为“不早于 2026 年 10 月 15 日”；由于尚未发布弃用通知，而 Anthropic 承诺提前 60 天通知，在 Claude API 上它不太可能于 12 月前退役，但 Foundry 已列出 11 月 15 日。我不会基于它制定长期方案。Opus 5.5 和 Sonnet 5.5 的缓存读取费率都为每百万 token $0.20，因此在缓存密集型任务上，Opus 的溢价更接近 1.6 倍，而非 2 倍。
+3. **缓存管理**：把稳定的系统提示词和工具列表放在上下文前部，不在前缀加入时间戳或随机 ID，并监控缓存命中率；在我的成本模型中，命中率从 90% 降至 70% 会让账单增加超过一倍。
+4. **模型路由**：多数 CI 任务使用默认 effort 的 Sonnet 5.5，架构重构使用 Opus 5.5，琐碎编辑使用 Haiku 5.5（10 月 7 日 GA，自 Claude Code 2.1.293 起成为默认 Haiku）。Haiku 5.5 价格便宜但有断崖：提示不超过 100K token 时每百万 token 为 $0.10/$0.50；超过后**整个请求**按 $0.50/$2.50 计费，提示长度包括缓存读写，因此较长的智能体会话很快越线。它的新分词器对相同文本会多计约 30% token，且拒绝 `temperature`、`top_p`、`top_k` 和 assistant prefill，因此应先通过评测再路由给它，而不能只看标价。Sonnet 5.5 降低缓存读取价后，Opus 5.5 的所有费率恰好是 Sonnet 的两倍，所以任何工作负载上的 Opus 溢价都是两倍，路由决策只取决于质量。
 
 ---
 

@@ -2596,6 +2596,12 @@ for model in MODELS:
           f"cost=${results['cost']:.2f}, latency={results['latency_p50']:.0f}ms")
 ```
 
+模型切换时要注意三点：**强制迁移**有明确期限。Claude Sonnet 4.5（`claude-sonnet-4-5-20250929`）于 2026 年 11 月 30 日退役；Google 于 2026 年 9 月 18 日限制 Gemini 2.5 新用户，Vertex AI 原定于 10 月 20 日退役 2.5 Pro、Flash 和 Flash-Lite。本指南示例使用的 `gpt-4o` 和 `gpt-4o-mini` 也有期限：OpenAI 将于 2027 年 1 月 14 日关闭剩余的 `gpt-4o-2024-08-06`、`gpt-4o-2024-11-20`、`gpt-4o-mini-2024-07-18`、GPT-4.1 和 GPT-4.1 mini 快照及其微调模型；指定替代模型 `gpt-6-luna` 无法微调，因此基于这些模型的微调裁判没有同类继任者。OpenAI 托管 Evals 也将于 2026 年 11 月 30 日关闭。应提前对替代模型运行测试集。
+
+**新模型移除了旧参数。** GPT-6 Astra 不接受自定义 temperature 或 top_p；Claude Opus 5.5 无法关闭思考，Sonnet 5.5 对 `thinking: disabled` 返回 400；自 Anthropic API 版本 `2026-10-21`（新版 SDK 主版本的默认值）起，所有 Claude 模型对任何 `temperature`、`top_p` 或 `top_k` 值（包括默认值）返回 400。硬编码 `temperature=0` 或关闭思考的运行框架可能报错，或悄悄评测到不同配置。
+
+**同一模型 ID 也可能变化。** 2026 年 9 月 25 日，OpenAI 修复了降低 GPT-6 Sol 和 GPT-6 Luna 图像理解能力的编码错误，保留原模型 ID，并要求图像输入用户重跑评估。应定期重跑，而不只在更换模型名称时运行。
+
 ### 给 PM 的改进手册
 
 每个评估周期结束后，产出一份简明报告：
@@ -2692,9 +2698,11 @@ Gemini `3.8` Flash 的促销价（每百万 token 输入／输出 `$0.75/$3.75`�
 |---|---|---|
 | 前沿模型：Claude Opus 5.5（$4/$20）、GPT-6 Astra（$10/$50） | 约 $14（Opus 5.5）至 $35（Astra） | 复杂主观判断、安全关键场景、设定上限 |
 | 中档：Claude Sonnet 5.5、GPT-6.1 Sol（均为 $2/$10） | 约 $7 | 验证通过后的大多数生产裁判 |
-| 小模型：Gemini 3.8 Flash、Claude Haiku 4.5、GPT-6 Luna | 约 $0.35（Luna）至 $3.50（Haiku 4.5）；Gemini 3.8 Flash 促销价约 $2.60、标价约 $5.25 | 明确规则、定义清晰的评分标准 |
-| 类型化决策模型：TypeSafe Jev（早期访问） | 约 $0.08 | 对全部流量执行二元清单检查 |
+| 小模型：Gemini 3.8 Flash、Claude Haiku 5.5、GPT-6 Luna | 约 $0.35（Luna 或 Haiku 5.5）至 $3.50（旧版 Haiku 4.5）；Gemini 3.8 Flash 促销价约 $2.60、标价约 $5.25 | 明确规则、定义清晰的评分标准 |
+| 类型化决策模型：TypeSafe Jev（早期访问）、OpenAI Decisions API | 约 $0.08（Jev）至 $0.20（Decisions API） | 对全部流量执行二元清单检查 |
 | 基于代码 | $0 | 格式检查、模式匹配、验证 |
+
+以上假设每次判断约 2,000 输入和 300 输出 token，按 2026 年 11 月 Standard 每百万 token 标价计算；见[定价章节](02-model-landscape/03-pricing-and-costs.md)。推理 token 按输出计费，Opus 5.5 无法关闭思考，Sonnet 5.5 最低为 `between_tools`，应先在开发集上测量实际输出。Gemini 3.8 Flash 促销价 $0.75/$3.75（每 1K 约 $2.60）持续至 2026 年 12 月 31 日，之后为 $1.50/$7.50（每 1K 约 $5.25）。Haiku 5.5（2026 年 10 月 7 日正式发布）提示词不超过 100K token（含缓存读写）时为 $0.10/$0.50，超过后整个请求为 $0.50/$2.50；相同文本的 tokenizer 计数比 Haiku 4.5 多约 30%。它对 `temperature`、`top_p`、`top_k` 和 `budget_tokens` 返回 400，迁移裁判需修改代码并重新验证。截至 11 月 2 日 Haiku 4.5 在 Claude API 仍为 Active、没有弃用通知，按 60 天规则至少可用到约 2027 年 1 月；Microsoft Foundry 的 `claude-haiku-4-5` 部署列出的退役日期为 2026 年 11 月 15 日。保持裁判可替换。
 
 **提示：** 先用强模型，验证你的 judge prompt（评审提示词），再测试更便宜的模型是否能得到相近的 TPR/TNR。通常是可以的。
 
@@ -2758,11 +2766,11 @@ def cached_eval(trace, eval_fn, judge_version):
 
 离线裁判不需要即时返回。Anthropic、OpenAI 和 Google 的 Batch API 价格为标价的 50%，结果在 24 小时内返回（Sonnet 5.5 Batch 为每百万 token $1/$5；GPT-6 Sol Batch/Flex 也是 $1/$5）。裁判提示词（评分标准加 few-shot 示例）是稳定前缀：将其放在前面、trace 放在末尾，重复前缀在多数当前模型上的缓存输入价格为基础输入价格的 0.1 倍，在 Claude Opus 5.5 和 GPT-6.1 Sol 上为 0.05 倍。
 
-类型化决策模型是另一档选择。TypeSafe 的 Jev（`2026` 年 `9` 月 `15` 日结束隐身）直接返回带概率的 yes/no、类别或分数，输入价为每百万 token `$0.042`，输出不计费。LangSmith、Langfuse、Braintrust、Opik 和 DeepEval 随后两周内都加入了 Jev 裁判选项。一项配对研究显示，它的二元准确度在 `27` 组比较中至少 `19` 组与 LLM 评分裁判无显著差异；成本低 `16` 至 `325` 倍、速度快 `28` 至 `350` 倍，但序数评分较弱，也不提供理由。另一个研究发现，LLM 对 Jev 最有把握的错误判决中约 `96%` 会重复同一错误，因此第二个裁判并不能代替人工标注。
+类型化决策模型是另一档选择。TypeSafe 的 Jev（`2026` 年 `9` 月 `15` 日结束隐身）直接返回带概率的 yes/no、类别或分数，输入价为每百万 token `$0.042`，输出不计费。LangSmith、Langfuse、Braintrust、Opik 和 DeepEval 随后两周内都加入了 Jev 裁判选项。一项配对研究显示，它的二元准确度在 `27` 组比较中至少 `19` 组与 LLM 评分裁判无显著差异；成本低 `16` 至 `325` 倍、速度快 `28` 至 `350` 倍，但序数评分较弱，不提供理由且无法弃权，因此需要书面原因时仍应使用 LLM 裁判。另一个研究发现，LLM 对 Jev 最有把握的错误判决中约 `96%` 会重复同一错误，因此第二个裁判并不能代替人工标注。OpenAI Decisions API 提供同类的一方服务，只按输入计费（见[研究雷达主题 16](RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)）。无论选择哪种方案，都应在自己的标注集上拟合通过阈值，而非直接相信原始概率：TypedBench（arXiv 2610.11392，2026 年 10 月）发现其测试的托管决策模型系统性置信度不足且对措辞敏感。
 
 评测器必须与优化器隔离。`2026` 年 `9` 月对自主研究 agent 的研究（arXiv `2609.28614`）发现：开放式任务奖励作弊率为 `30.5%`，窄范围内核任务为 `2.9%`；经过 `5` 轮反馈后，若告知具体失败原因，模型—任务组合中有 `40.5%` 绕过了评测，泛化反馈下为 `20.3%`。EvasionBench（arXiv `2609.30217`）还观察到 agent 会编码禁用命令、把操作拆成多次工具调用或不断重试，使内容离开监控窗口。被投毒的基准同样会误导自我改进系统（arXiv `2609.17817`），并可能让关闭 HTTPS 证书检查等不安全改动在干净数据复测后仍保留下来。
 
-评测平台的所有权、数据保留和迁移日期也应纳入选型：Simple Evals 自 `2025` 年 `7` 月起冻结；LangSmith 最长保留 `180` 天；Dynatrace 于 `2026` 年 `8` 月 `13` 日同意以 `$915M` 收购 Arize（Phoenix），并称 Phoenix 将继续提供。Claude Sonnet `4.5` 快照 `claude-sonnet-4-5-20250929` 将于 `2026` 年 `11` 月 `30` 日退役；Gemini `2.5` 于 `9` 月 `18` 日限制新用户，Vertex AI 将于 `10` 月 `20` 日退役 `2.5` 系列；OpenAI 托管 Evals 于 `10` 月 `31` 日转为只读、`11` 月 `30` 日关闭。
+评测平台的所有权、数据保留和迁移日期也应纳入选型：Simple Evals 自 `2025` 年 `7` 月起冻结；LangSmith SaaS 的延长保留 trace 最长保留 `180` 天，2026 年 10 月 1 日改为按 LangChain Standard Units 用量计价（1 LSU = $1），续约前应根据 trace 量重新预算。Dynatrace 于 `2026` 年 `10` 月 `1` 日完成以 `$915M` 收购 Arize（Phoenix），并称 Phoenix 将继续提供。Claude Sonnet `4.5` 快照 `claude-sonnet-4-5-20250929` 将于 `2026` 年 `11` 月 `30` 日退役；Gemini `2.5` 于 `9` 月 `18` 日限制新用户，Vertex AI 原定于 `10` 月 `20` 日退役 `2.5` 系列；OpenAI 托管 Evals 将于 `11` 月 `30` 日关闭。应将 SaaS trace 存储视为工作集而非审计归档，优先采用 OpenTelemetry 原生埋点，并将合规所需内容复制到自主存储。
 
 Jev 研究（arXiv `2609.29769`）显示，对其最有把握的错误答案，LLM 裁判约有 `96%` 重复相同错误；层级级联裁判的准确率提升不超过 `2.7` 个百分点。成本、延迟优势应与校准数据一起衡量，不能把增加裁判数量当成独立真值。
 
@@ -3036,6 +3044,7 @@ plot_dashboard(failure_rates)
 
 - **LangWatch Evaluators** - 40+ 个内置 evaluator，覆盖 safety（安全）、quality（质量）、RAG 和自定义领域
 - **Langfuse Evals** - 内置 LLM-as-a-Judge，并支持通过 SDK 自定义 evaluator
+- **Promptfoo** - 开源（MIT）评测与红队 CLI，现属 OpenAI；也是其将于 2026 年 11 月 30 日关闭的托管 Evals 平台所推荐的迁移目标
 - **Simple Evals**（OpenAI）- 轻量级 model-graded eval
 - **Ragas** - 专门用于 RAG 评测
 - **DeepEval** - 全面的评测框架
@@ -3402,7 +3411,7 @@ What does NOT count as a failure:
 
 对于 judge 评估，始终使用 temperature 0.0。你希望同一输入每次都产生相同输出。
 
-部分新模型已不接受 temperature 等采样参数：Claude Opus `4.7` 及之后版本对非默认值返回 HTTP `400`；Anthropic Python SDK `1.0` 于 `2026` 年 `8` 月 `20` 日从 Messages 方法移除 `temperature`、`top_p` 和 `top_k`，传入会触发 `TypeError`；Google 于 `7` 月 `21` 日弃用 Gemini API 中的相同参数。GPT-`6` Astra 不接受 temperature 或 top_p；Claude Opus `5.5` 不能关闭 thinking，Sonnet `5.5` 传 `thinking: disabled` 会返回 HTTP `400`。因此按模型能力构造请求，不要向所有裁判统一发送采样参数。
+部分新模型已不接受 temperature 等采样参数：自 Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型的 `temperature`、`top_p` 和 `top_k` 即使为默认值也返回 HTTP `400`；新版 Python 2.0.0、TypeScript 1.0.0 SDK 默认发送该版本。较早版本中 Claude `4.7` 及之后模型已拒绝非默认值，Python SDK `1.0` 于 `2026` 年 `8` 月 `20` 日从 Messages 方法移除了这三个参数；Google 于 `7` 月 `21` 日弃用 Gemini API 中的相同参数。GPT-`6` Astra 不接受自定义 temperature 或 top_p；Claude Opus `5.5` 不能关闭 thinking，Sonnet `5.5` 传 `thinking: disabled` 会返回 HTTP `400`。因此按模型能力构造请求，不要向所有裁判统一发送采样参数。
 
 ### 6. 结构化输出格式
 
@@ -3451,13 +3460,13 @@ Return your evaluation as JSON:
 
 ### 9. Judge 模型选择
 
-| 模型层级（2026 年 10 月示例） | 适用场景 | 预期表现 |
+| 模型层级（2026 年 11 月示例） | 适用场景 | 预期表现 |
 |------------|------------|-----------------|
 | 前沿模型：Claude Opus 5.5、GPT-6 Astra | 高风险评测、复杂推理、设定上限 | 细腻标准下的一致性最高；速度最慢、成本最高 |
 | 中档：Claude Sonnet 5.5、GPT-6.1 Sol | 验证通过后的大多数生产裁判 | 对定义明确的评分标准，通常可达到前沿模型水平 |
-| 小模型：Claude Haiku 4.5、Gemini 3.8 Flash、GPT-6 Luna | 成本敏感、高吞吐评测 | 适用于清晰标准；要特别检查 TNR |
+| 小模型：Claude Haiku 5.5、Gemini 3.8 Flash、GPT-6 Luna | 成本敏感、高吞吐评测 | 适用于清晰标准；要特别检查 TNR |
 | 开放权重：Qwen3.8-27B（Apache 2.0）、GLM-5.3-Flash（MIT）、DeepSeek V4.1-Flash（MIT） | 自托管、隐私敏感 | 随任务变化最大；信任前先验证 |
-| 类型化决策模型：TypeSafe Jev（早期访问） | 对全部流量执行二元清单判断 | 至少 19/27 组配对比较中与 LLM 评分裁判准确度无显著差异（arXiv 2609.29769）；序数评分较弱且不提供理由 |
+| 类型化决策模型：TypeSafe Jev（早期访问）、OpenAI Decisions API | 对全部流量执行二元清单判断 | 至少 19/27 组配对比较中与 LLM 评分裁判准确度无显著差异（arXiv 2609.29769）；序数评分较弱且不提供理由 |
 
 **提示：** 先用最强模型建立性能上限，再测试更便宜的模型是否能在你的具体用例中达到相同水平。很多时候可以，尤其是在有高质量 few-shot 示例时。
 
@@ -3922,7 +3931,7 @@ AI evals（AI 评估）不仅仅是“测试”——它是一种产品开发方
 ### 研究与思想领导
 
 - **OpenAI Cookbook**（实战示例与指南）: [cookbook.openai.com](https://cookbook.openai.com/)
-- **从 OpenAI Evals 迁移到 Promptfoo**: [迁移指南](https://developers.openai.com/cookbook/examples/evaluation/moving-from-openai-evals-to-promptfoo)
+- **OpenAI Evals 平台（即将退役）**：控制台和 API 将于 2026 年 11 月 30 日关闭；原定 10 月 31 日进入只读阶段，应立即导出而非依赖后续编辑。[迁移指南](https://developers.openai.com/cookbook/examples/evaluation/moving-from-openai-evals-to-promptfoo)
 - **OpenAI Research**: [openai.com/research](https://openai.com/research)
 - **Anthropic Research**: [anthropic.com/research](https://www.anthropic.com/research)
 - **METR**（Model Evaluation & Threat Research，模型评估与威胁研究）: [metr.org](https://metr.org/)
@@ -3956,7 +3965,7 @@ AI evals（AI 评估）不仅仅是“测试”——它是一种产品开发方
 | **LangWatch** | Observability + Built-in Evals（可观测性 + 内置评估） | Yes（Apache 2.0） | 快速上线，分析能力 | 40+ 个内置 evaluators（评估器），自动分析 |
 | **Langfuse** | Custom Pipelines（自定义流水线） | Yes（MIT） | 数据主权与灵活性 | 可自托管，对数据拥有完全控制权 |
 | **Anthropic** | Safety / Red Teaming（安全 / 红队测试） | Partial | 前沿风险 | Constitutional classifiers（宪法式分类器），多轮对抗测试 |
-| **OpenAI** | Preparedness / Business（准备度 / 商业） | Evals toolkit | 企业场景 | SME probing（领域专家探测），上下文化评估 |
+| **OpenAI** | Preparedness / Business（准备度 / 商业） | Promptfoo（MIT，现属 OpenAI） | 企业场景 | SME probing（领域专家探测），上下文化评估 |
 | **RAGAS** | RAG-specific（RAG 特定） | Yes（Apache 2.0） | RAG 流水线 | 无参考指标，合成测试数据生成 |
 | **Maxim** | Agentic Systems（智能体系统） | No | 多智能体应用 | 仿真框架，无代码评估 |
 | **Braintrust** | Experimentation（实验） | Partial | 早期团队 | 协作式设计，快速迭代 |

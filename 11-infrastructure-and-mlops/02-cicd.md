@@ -42,9 +42,9 @@
 
 2026 年使最后四行变得不可省略。智能体与 VCS 配置在[第 5 阶段](#第-5-阶段-供应链与智能体配置门禁)设置独立门禁；另外三项如下：
 
-- **采样参数正在退出。** Claude API 对 Opus 4.7 及以后模型的非默认采样值已返回 400；Anthropic Python SDK 1.0（2026 年 8 月 20 日）从 Messages 方法中移除了 `temperature`、`top_p` 和 `top_k`（传入即抛出 `TypeError`）。Google 于 7 月 21 日在 Gemini API 中将它们标为弃用，GPT-6 Astra 则拒绝自定义 temperature、`top_p` 和 logprobs。“把 temperature 设为 0 以保证 CI 可复现”已不再适用；推理 effort 成为主要控制项，其默认值也会随版本改变（Claude Opus 5.5 默认 `medium`，Opus 5 默认 `high`）。应断言结构化字段并做语义检查，而非比较完全相同的字符串。
-- **固定 ID 下的模型也可能变化。** OpenAI 于 2026 年 9 月 25 日修复 `gpt-6-sol` 和 `gpt-6-luna` 的图像编码缺陷，但未更改 ID，因此该日期之前的图像评估不再代表这些端点的当前行为。编码智能体 CLI 也会在小版本中更换默认模型（Codex CLI 在 rust-v0.159.1 改用 GPT-6.1 Sol；Claude Code 在 2.1.280 改用 Opus 5.5）。应定期针对生产环境使用的精确 ID 运行评估套件，而不只在自己的提交后运行。
-- **SDK 主版本可能悄然破坏测试工具。** Anthropic SDK 1.0 和 OpenAI SDK 3.0（8 月 12 日）转向 `httpx2`。根据 Anthropic 的迁移指南，除非调用 `httpx2.alias_httpx()`，OpenTelemetry 埋点、`respx` 和 `vcrpy` 可能漏掉调用，使录制响应测试触及真实 API，或在完全没有追踪的情况下依旧通过。
+- **Claude 的采样参数已不可用。** Anthropic API 版本 `2026-10-21`（2026 年 10 月 21 日）起，所有 Claude 模型在任何值下传入 `temperature`、`top_p` 或 `top_k` 都会返回 400，包括默认值；此前只有 Claude 4.7 及以后模型的非默认值会返回 400，Python SDK 1.0（2026 年 8 月 20 日）已先从 Messages 方法中移除了这些参数。Google 于 7 月 21 日在 Gemini API 中将它们标为弃用，GPT-6 Astra 则拒绝自定义 temperature、`top_p` 和 logprobs。“把 temperature 设为 0 以保证 CI 可复现”已不再适用；推理 effort 成为主要控制项，其默认值也会随版本改变（Claude Opus 5.5 默认 `medium`，Opus 5 默认 `high`）。应断言结构化字段并做语义检查，而非比较完全相同的字符串。
+- **固定 ID 下的模型也可能变化。** OpenAI 于 2026 年 9 月 25 日修复 `gpt-6-sol` 和 `gpt-6-luna` 的图像编码缺陷，但未更改 ID，因此该日期之前的图像评估不再代表这些端点的当前行为。编码智能体 CLI 也会在小版本中更换默认模型（Codex CLI 在 rust-v0.159.1 改用 GPT-6.1 Sol；Claude Code 在 2.1.280 改用 Opus 5.5）；流水线依赖的其他默认值也会变化：Claude Code 自 2.1.302（10 月 16 日）起，在第三方提供商上使用 `claude -p` 或 Agent SDK 且未设置权限模式时，会以 `default` 模式启动，新安装时也如此，同时关闭遥测，因此 CI 任务应显式设置模式。应定期针对生产环境使用的精确 ID 运行评估套件，而不只在自己的提交后运行。
+- **SDK 主版本可能悄然破坏测试工具。** Anthropic SDK 1.0 和 OpenAI SDK 3.0（8 月 12 日）转向 `httpx2`。根据 Anthropic 的迁移指南，除非调用 `httpx2.alias_httpx()`，OpenTelemetry 埋点、`respx` 和 `vcrpy` 可能漏掉调用，使录制响应测试触及真实 API，或在完全没有追踪的情况下依旧通过。Anthropic 下一批主版本（Python 2.0.0、TypeScript 1.0.0、Go 2.0.0 等，10 月 21 日发布）默认发送 API 版本 `2026-10-21`，因此仅升级依赖就会使遗留的采样参数返回 400；这些版本的许可证也从 MIT 改为 Apache 2.0，许可证扫描器应将其标记为待审，而非直接阻止。
 
 ---
 
@@ -247,7 +247,7 @@ class LLMEvaluationStage:
 
 ---
 
-保持评估工具的可迁移性。托管评估产品同样会更迭：OpenAI Evals 将于 2026 年 10 月 31 日变为只读，11 月 30 日关闭；OpenAI 推荐 Promptfoo（MIT 许可，OpenAI 于 3 月同意收购）。应在仓库中以工具无关的格式保存数据集、评分器和阈值，使门禁在更换供应商后仍然可用。完整门禁示例见[评估门禁 CI/CD 案例研究](../16-case-studies/18-eval-gated-cicd.md)。
+保持评估工具的可迁移性。托管评估产品同样会更迭：OpenAI Evals 原计划于 2026 年 10 月 31 日变为只读，11 月 30 日关闭；OpenAI 推荐 Promptfoo，后者现已属于 OpenAI 且仍采用 MIT 许可。应在仓库中以工具无关的格式保存数据集、评分器和阈值，使门禁在更换供应商后仍然可用。完整门禁示例见[评估门禁 CI/CD 案例研究](../16-case-studies/18-eval-gated-cicd.md)。
 
 ### 第 5 阶段：供应链与智能体配置门禁
 
@@ -387,7 +387,7 @@ class ShadowDeployer:
 
 ### 模型迁移也是部署
 
-模型变更如今按供应商的日程到来，而非你的日程。Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役（Anthropic 建议迁至 Sonnet 5.5）；OpenAI 将于 12 月 11 日退役 `gpt-5-2025-08-07` 和 `o3-2025-04-16` 快照；Bedrock 上的 Claude Sonnet 4 则于 10 月 14 日结束服务。Anthropic 提前 60 天通知。OpenAI 对正式发布模型声称提前 6 个月，对专用变体提前 3 个月，对预览模型可能仅提前 2 周；而 `gpt-5.4-cyber` 上线仅 20 天便于 10 月 1 日退役，因此应按短于公告最小值的窗口规划。
+模型变更如今按供应商的日程到来，而非你的日程。Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役（Anthropic 建议迁至 Sonnet 5.5），但在 Bedrock 上运行至 2027 年 4 月 8 日（自 10 月 8 日起处于 Legacy）；OpenAI 将于 12 月 11 日退役 `gpt-5-2025-08-07` 和 `o3-2025-04-16` 快照，并于 2027 年 1 月 14 日退役 GPT-4o、GPT-4o mini、GPT-4.1、GPT-4.1 mini 快照及其微调版本。Anthropic 提前 60 天通知。OpenAI 对正式发布模型声称提前 6 个月、对专用变体提前 3 个月、对预览模型可能仅提前 2 周，但上述 GA 快照的通知只有约 3 个月（10 月 14 日通知）；`gpt-5.4-cyber` 也仅在退役前 20 天通知，因此应按短于公告最小值的窗口规划。
 
 最新模型还会改变 API 契约，迁移可能在质量评估开始前就因请求格式失败：
 

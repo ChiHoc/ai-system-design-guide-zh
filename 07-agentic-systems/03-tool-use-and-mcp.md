@@ -11,7 +11,7 @@
 - [流式工具调用](#流式工具调用)
 - [2025 年修订：Streamable HTTP 与认证](#_2025-年修订-streamable-http-与认证)
 - [MCP 2026-07-28：无状态化改造](#mcp-2026-07-28-无状态化改造)
-- [MCP 扩展与生态系统（2026 年 10 月）](#mcp-扩展与生态系统-2026-年-10-月)
+- [MCP 扩展与生态系统（2026 年 11 月）](#mcp-扩展与生态系统-2026-年-11-月)
 - [Agent Plugins（智能体插件）](#agent-plugins-智能体插件)
 - [Agent-to-Agent 协议（A2A）](#agent-to-agent-协议-a2a)
 - [协议格局：工具、智能体与支付](#协议格局-工具、智能体与支付)
@@ -32,11 +32,12 @@
 
 **细微差别**：生产级栈不再把工具定义“硬编码”进系统提示词；它们使用 **动态清单（Dynamic Manifests）**，仅根据用户意图拉取必要的工具。
 
-2026 年，以下三项模型提供商侧的变化会影响运行框架代码：
+2026 年，以下四项模型提供商侧的变化会影响运行框架代码：
 
-- **最新的 Claude 模型不再支持强制工具调用。**Fable 5.1、Mythos 5.1、Opus 5.5 和 Sonnet 5.5 在 `tool_choice` 为 `any` 或 `tool` 时返回 HTTP 400；仅支持 `auto` 和 `none`。旧的“强制工具调用以获取 JSON”提取模式需要改用 `auto` 加严格工具模式，或改用结构化输出。
+- **规模最大的 Claude 模型不再支持强制工具调用。**Fable 5.1、Mythos 5.1、Opus 5.5 和 Sonnet 5.5 在 `tool_choice` 为 `any` 或 `tool` 时返回 HTTP 400；仅支持 `auto` 和 `none`。Haiku 5.5 仍接受强制 `tool_choice`，但响应会以工具调用开头，不包含 thinking 块。旧的“强制工具调用以获取 JSON”提取模式需要改用 `auto` 加严格工具模式，或改用结构化输出。
 - **工具可在对话中途变化而不丢失缓存。**Anthropic 于 9 月 22 日推出的 `inline-tools-2026-09-15` beta 允许在对话中途的系统消息内定义、替换或移除工具，而不使提示词缓存失效；它还可将拉取到的 MCP 工具列表固定在 `mcp_tool_listing` 块中，防止服务器在会话中途偷换定义。
 - **GPT-6 Astra 的工具调用需要 Responses API。**Astra 不再支持 `temperature`、`top_p` 和 logprobs，因此曾靠调整采样参数或读取 logprobs 来路由工具的运行框架需要采用其他机制。
+- **Claude 也不再支持采样参数。**Anthropic API 版本 `2026-10-21`（10 月 21 日）起，所有模型上的 `temperature`、`top_p` 和 `top_k` 即使使用默认值也会返回 HTTP 400。新 SDK 主版本（Python 2.0.0、TypeScript 1.0.0、Go 2.0.0 等）默认发送该版本，并改用 Apache 2.0 许可证，因此例行升级 SDK 会让仍传入 `temperature=0` 的工具路由代码失效。
 
 ---
 
@@ -140,7 +141,8 @@ flowchart LR
     B --> C[2026 年 1 月 26 日<br>MCP Apps 作为<br>首个正式扩展发布]
     C --> D[2026 年 6 月 18 日<br>企业托管<br>授权稳定版]
     D --> E[2026 年 7 月 28 日<br>无状态核心<br>MRTR、扩展框架]
-    E --> F[2026 年 8 至 9 月<br>新路线图、<br>Skills 扩展定稿]
+    E --> F[2026 年 8 至 9 月<br>新路线图、<br>Skills SEP 定稿]
+    F --> G[2026 年 10 月<br>扩展成熟度阶段；<br>下次修订移至 2027 年 3 月 30 日]
 ```
 
 ### MCP 的三代对比
@@ -180,7 +182,7 @@ sequenceDiagram
 
 ### 已弃用或移除的功能
 
-该修订还采用了正式的功能生命周期（Active、Deprecated、Removed），最短弃用窗口为十二个月，并提供公开的已弃用功能登记表。对于本次修订中新弃用的功能（Roots、Sampling、Logging、DCR），最早移除日期为2027年7月28日；HTTP+SSE 自2025年3月起已弃用，适用更早的时钟。
+该修订还采用了正式的功能生命周期（Active、Deprecated、Removed），最短弃用窗口为十二个月，并提供公开的已弃用功能登记表。对于本次修订中新弃用的功能（Roots、Sampling、Logging、DCR），最早移除日期为2027年7月28日；HTTP+SSE 自2025年3月起已弃用，适用更早的时钟。根据 10 月采纳的 3 月和 9 月发布节奏（SEP-3398），真正可能移除 2026-07-28 弃用功能的首个版本将是 2027 年 9 月版，服务器集群可据此规划具体迁移期限。
 
 | 功能 | 在 2026-07-28 的状态 | 迁移目标 |
 |---------|----------------------|------------|
@@ -199,13 +201,27 @@ sequenceDiagram
 
 ### 扩展框架
 
-核心现在刻意保持精简；其余功能都是**扩展**，以反向 DNS ID 标识、独立于核心规范进行版本化，并通过 SEP 流程中的 Extensions Track 治理。正式扩展包括：
+核心现在刻意保持精简；其余功能都是**扩展**，以反向 DNS ID 标识、独立于核心规范进行版本化，并通过 SEP 流程中的 Extensions Track 治理。
+
+**成熟度阶段（SEP-3392，于 2026 年 10 月 29 日定稿）。**每个扩展都处于三个阶段之一；其规范所在目录（`specification/experimental/`、`beta/` 或 `stable/`）会标明阶段：
+
+| 阶段 | 可发生的变化 | 可以依赖什么 |
+|-------|-----------------|----------------------|
+| **Experimental**（实验性） | 随时可能发生任何变化，且不作通知 | 没有；设计可能消失 |
+| **Beta** | 可有任何变化；破坏性变化应少见、集中发布并写明文档 | 欢迎实际使用，但要为破坏性变化留出预算 |
+| **Stable**（稳定） | 仅可随新的核心协议修订一同变化 | 同一协议修订内的行为固定 |
+
+晋升到核心规范是退出扩展阶段，而非第四个阶段。Beta 扩展之后要么成为 Stable，要么由标准轨 SEP 将其纳入核心；Stable 扩展也可在之后晋升。扩展在协议修订 R 中晋升后，对声明 R 或更新版本的请求而言，它就是核心行为；扩展的最终版本仍适用于更早的协议修订，其规范则移至 `specification/archived/`。每个 Beta 扩展都会说明预期去向：Tasks 计划进入核心，Skills 和 Server Cards 尚未说明。
+
+最初的分类将 MCP Apps 和企业认证列为 **Stable**，Tasks、Skills 和 Server Cards 列为 **Beta**，interceptors、variants、triggers and events 以及 tool annotations 列为 **Experimental**。面试时要说明：SEP 定稿不代表接口稳定。Skills 和 Server Cards 的 SEP 都已定稿，但仍可能发生破坏性变化。
+
+正式扩展包括：
 
 | 扩展 | 状态 | 功能 |
 |-----------|--------|--------------|
-| **Tasks**（`io.modelcontextprotocol/tasks`） | 正式；由 AWS 贡献、改为基于轮询的生命周期 | 工具调用可以返回任务句柄；客户端轮询 `tasks/get`，通过 `tasks/update` 推送中途输入，并以 `tasks/cancel` 取消。这是处理超出单次请求生命周期工作的标准方式。 |
-| **MCP Apps** | 自2026年1月26日起正式 | 工具声明 `ui://` 模板；宿主在 sandboxed iframe 中渲染（无 DOM 访问、默认拒绝 CSP），UI 到宿主的通信通过 postMessage 承载 JSON-RPC，UI 触发的动作仍经过同一工具调用同意路径。Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等均可渲染。 |
-| **企业托管授权（EMA）** | 自2026年6月18日起稳定 | 组织通过 IdP 集中配置 MCP 服务器访问：OIDC 或 SAML 断言经 RFC 8693 交换为 ID-JAG，再由 RFC 7523 JWT bearer grant 换取 MCP access token，无需逐用户同意屏幕。Okta 是首个支持的 IdP；Claude 和 VS Code 在发布时即支持。ID-JAG 授权本身仍是 IETF OAuth 工作组的 Internet-Draft（-04），并非 RFC，因此线缆协议仍可能变化。 |
+| **Tasks**（`io.modelcontextprotocol/tasks`） | Beta；由 AWS 贡献、改为基于轮询的生命周期 | 工具调用可以返回任务句柄；客户端轮询 `tasks/get`，通过 `tasks/update` 推送中途输入，并以 `tasks/cancel` 取消。这是处理超出单次请求生命周期工作的标准方式。 |
+| **MCP Apps** | Stable；自 2026 年 1 月 26 日起正式发布 | 工具声明 `ui://` 模板；宿主在 sandboxed iframe 中渲染（无 DOM 访问、默认拒绝 CSP），UI 到宿主的通信通过 postMessage 承载 JSON-RPC，UI 触发的动作仍经过同一工具调用同意路径。Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等均可渲染。 |
+| **企业托管授权（EMA）** | Stable；2026 年 6 月 18 日发布 | 组织通过 IdP 集中配置 MCP 服务器访问：OIDC 或 SAML 断言经 RFC 8693 交换为 ID-JAG，再由 RFC 7523 JWT bearer grant 换取 MCP access token，无需逐用户同意屏幕。Okta 是首个支持的 IdP；Claude 和 VS Code 在发布时即支持。ID-JAG 授权本身仍是 IETF OAuth 工作组的 Internet-Draft（-04），并非 RFC，因此线缆协议仍可能变化。 |
 
 ### 迁移清单
 
@@ -220,29 +236,31 @@ sequenceDiagram
 
 ---
 
-## MCP 扩展与生态系统（2026 年 10 月）
+## MCP 扩展与生态系统（2026 年 11 月）
 
-本章截至 2026 年 5 月跟踪的路线图条目大多已经交付。截至 2026 年 10 月，状态如下：
+本章截至 2026 年 5 月跟踪的路线图条目大多已经交付。截至 2026 年 11 月上旬，状态如下：
 
-| 路线图条目（2026 年 5 月表述） | 状态（2026 年 10 月） |
+| 路线图条目（2026 年 5 月表述） | 状态（2026 年 11 月） |
 |---------------------------------|--------------------|
 | 传输可扩展性 / 无状态核心 | 已在 2026-07-28 修订中**交付**（见[无状态化改造](#mcp-2026-07-28-无状态化改造)）。8 月 22 日的路线图更进一步：以 Streamable HTTP 为唯一绑定，本地服务器也通过 stdin/stdout 使用它 |
-| MCP Apps（服务器渲染 UI） | 2026 年 1 月 26 日作为首个正式扩展**交付**；Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等可渲染。Apps SDK 于 9 月 8 日在 ext-apps 2.0.0 中迁移到 v2 TypeScript 包，但线缆协议未变，因此 2.x View 能在 1.x 宿主运行，2.x 宿主也能渲染 1.x View：SDK 层有破坏性变化，线缆层没有，这正是扩展框架的设计目标 |
-| Tasks 扩展（长时间运行工作） | 2026-07-28 修订将其作为 `io.modelcontextprotocol/tasks` **交付**，并改为基于轮询的任务句柄；但扩展仓库仍只有预发布标签（9 月 23 至 30 日的 v0.2.0 至 v0.2.2），因此接口仍在稳定中。8 月 22 日路线图计划在组合审查后最终将 Tasks（SEP-2663）纳入核心协议，使任务、订阅和进度通知共用生命周期、取消模型和错误表面 |
-| 企业认证 | 2026 年 6 月 18 日以企业托管授权扩展形式**交付**（Okta 为首个 IdP；Claude 和 VS Code 发布时支持）。下一步是智能体身份：DPoP 发送方约束令牌（SEP-1932）和工作负载身份联合（SEP-1933）仍是开放草案，但 TypeScript 客户端 2.1.0 已支持 DPoP |
-| MCP Server Cards（连接前发现） | 仍为实验性（SEP-2127，审查中）。卡片现由 `GET <streamable-http-url>/server-card` 提供；客户端通过域名的 `/.well-known/ai-catalog.json` 中的条目发现它们。这个跨协议索引由 Linux Foundation 旗下的 Agent Card Working Group 维护，也列出 A2A Agent Card 和 Claude Code 插件；它与核心的 `server/discover` RPC 不同 |
+| MCP Apps（服务器渲染 UI） | **Stable。**2026 年 1 月 26 日作为首个正式扩展发布；Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等可渲染。Apps SDK 于 9 月 8 日在 ext-apps 2.0.0 中迁移到 v2 TypeScript 包，但线缆协议未变，因此 2.x View 能在 1.x 宿主运行，2.x 宿主也能渲染 1.x View：SDK 层有破坏性变化，线缆层没有，这正是扩展框架的设计目标 |
+| Tasks 扩展（长时间运行工作） | **Beta。**2026-07-28 修订将其作为 `io.modelcontextprotocol/tasks` 发布，并改为基于轮询的任务句柄；扩展仓库目前仍只有 v0.2.x 预发布标签，Beta 阶段允许记录在案的破坏性变化，因此接口仍在稳定中。10 月成立的 Tasks and Events 工作组负责该扩展。8 月 22 日路线图计划在组合审查后最终将 Tasks（SEP-2663）纳入核心协议，使任务、订阅和进度通知共用生命周期、取消模型和错误表面 |
+| 企业认证 | **Stable。**2026 年 6 月 18 日以企业托管授权扩展形式发布（Okta 为首个 IdP；Claude 和 VS Code 发布时支持）。下一步是智能体身份：DPoP 发送方约束令牌（SEP-1932）和工作负载身份联合（SEP-1933）仍是开放草案，但 TypeScript 客户端 2.1.0 已支持 DPoP |
+| MCP Server Cards（连接前发现） | **Beta。**SEP-2127 于 10 月 6 日定稿（扩展 ID 为 `io.modelcontextprotocol/server-card`）。卡片可位于任意 URI；`<streamable-http-url>/server-card` 是推荐位置，而非强制要求。客户端通过域名的 AI Catalog `/.well-known/ai-catalog.json` 发现卡片。这个跨协议索引由 Linux Foundation 旗下的 Agent Card Working Group 维护，也列出 A2A Agent Card 和 Claude Code 插件。卡片有意不包含工具、资源或提示词列表，因此客户端仍需通过运行时列表调用获知工具面。它与核心的 `server/discover` RPC 不同 |
 | MCP Registry | 仍处于预览（`registry.modelcontextprotocol.io`），API 冻结在 v0.1；GA 时间尚未公布。8 月 6 日发布的 v1.8.1 修复了 GitHub Pages 组织命名空间接管问题 |
-| 通过 MCP 提供 Skills（新增） | 2026 年 9 月 13 日作为 `io.modelcontextprotocol/skills` 扩展（SEP-2640）**定稿**；见下文 |
+| 通过 MCP 提供 Skills（新增） | **Beta。**SEP（SEP-2640）于 2026 年 9 月 13 日以 `io.modelcontextprotocol/skills` 扩展形式定稿，TypeScript SDK 于 10 月 23 日在 2.4.0 中发布支持；见下文 |
 
-**现在值得区分的两层发现机制：**连接前发现通过域名的 AI Catalog 指向 Server Card（实验性，供 Registry、爬虫和白名单使用）；协议内发现使用 `server/discover` RPC（自 2026-07-28 起为强制核心，用于版本协商）。同一份目录文档可索引 MCP 服务器和 A2A 智能体，企业平台因而可从一个位置将两类远程能力加入白名单，但这仍是发展方向，并非既定标准。
+**现在值得区分的两层发现机制：**连接前发现通过域名的 AI Catalog 指向 Server Card（Beta 扩展，供 Registry、爬虫和白名单使用）；协议内发现使用 `server/discover` RPC（自 2026-07-28 起为强制核心，用于版本协商）。同一份目录文档可索引 MCP 服务器和 A2A 智能体，企业平台因而可从一个位置将两类远程能力加入白名单，但这仍是发展方向，并非既定标准。
 
 ### 8 月 22 日路线图的重点
 
-核心维护者于 2026 年 8 月 22 日发布了为期 6 至 12 个月的路线图，五个领域的 SEP 将加速审查。下次规范修订没有确定日期。
+核心维护者于 2026 年 8 月 22 日发布了为期 6 至 12 个月的路线图，五个领域的 SEP 将加速审查。
+
+**下次修订的时间。**SEP-3398（已接受，于 10 月 27 日合并）将原定于 2026 年 12 月的发布目标移至**2027 年 3 月 30 日**，“仍待迁移日历确认”，并将规范发布一般安排在每年 3 月和 9 月的最后一个星期二。每次发布采用八个月周期：提前 2.5 个月软冻结、提前 1.5 个月 SDK beta、提前 1 个月硬冻结。SEP 进入正式审查前，现需获得工作组或核心维护者赞助。规划上的两个影响：软冻结前尚未定稿的项目会延后整整六个月；SDK 升级可以依固定日期安排，不必当作突发变化追踪。
 
 | 优先领域 | 对构建者的意义 |
 |---------------|----------------------------|
-| **智能体消息原语** | 服务器主动发起的事件与 Webhook（Triggers and Events WG）；Tasks、订阅和进度通知将收敛到统一生命周期 |
+| **智能体消息原语** | 服务器主动发起的事件与 Webhook（现由 Tasks and Events 工作组负责）；Tasks、订阅和进度通知将收敛到统一生命周期 |
 | **原生 HTTP 传输** | 各处只保留一种绑定（Streamable HTTP），本地服务器也通过 stdio 使用；缓存从 `ttlMs` / `cacheScope` 扩展到 ETag，包括带版本的工具调用结果 |
 | **智能体身份与企业安全** | 正在组建的 Agent Identity WG 将与 IETF OAuth 和 WIMSE 小组协调，最终确定 DPoP 及基于工作负载身份联合、ID-JAG 和 RFC 8693 令牌交换的委派身份模型；是否证明有人类在场（交互客户端与无人值守智能体）仍在讨论 |
 | **改进原语** | 重新设计 `tools/call` 结果形态（同时返回 `content` 和 `structuredContent` 导致实现分歧）；为大型工具目录探索服务器侧的渐进式发现机制 |
@@ -252,7 +270,7 @@ sequenceDiagram
 
 ### 通过 MCP 提供 Skills
 
-Agent Skills（`SKILL.md` 目录）于 2026 年 8 月 19 日在 Claude API 上结束 beta；9 月 13 日定稿的 MCP Skills 扩展允许服务器把 Skill 与其描述的工具一并发布，无需复制到文件系统或插件中。声明该扩展的服务器实现 `skills/list` 和 `skills/get`；Skill 文件通过普通的 `resources/read` 读取。每个 Skill 条目包含 frontmatter 和完整文件清单，以及每个文件的 SHA-256 摘要和大小。
+Agent Skills（`SKILL.md` 目录）于 2026 年 8 月 19 日在 Claude API 上结束 beta，并于 10 月 22 日成为 Agentic AI Foundation 项目。MCP Skills 扩展的 SEP 于 9 月 13 日定稿，但该扩展自 10 月 29 日起仍处于 Beta 阶段；它允许服务器把 Skill 与其描述的工具一并发布，无需复制到文件系统或插件中。声明该扩展的服务器实现 `skills/list` 和 `skills/get`；Skill 文件通过普通的 `resources/read` 读取。每个 Skill 条目包含 frontmatter 和完整文件清单，以及每个文件的 SHA-256 摘要和大小。
 
 宿主规则尤其值得掌握，它们回答了“如何防止远程服务器悄然改变智能体加载的指令”这一问题，也就是 Skill 版的工具偷换：
 
@@ -260,15 +278,15 @@ Agent Skills（`SKILL.md` 目录）于 2026 年 8 月 19 日在 Claude API 上�
 - 宿主**不得**预取 Skill 文件，且**必须**将 Skill 内容视为不可信。
 - Skill 的 `allowed-tools` 授权或任何宿主侧代码执行都需要针对该 Skill 的明确审批；跨服务器读取需要逐次审批并列出两台服务器。
 
-采用仍处早期：Hugging Face 的 MCP 服务器已实现它，MCP Inspector 2.6.0 部分支持，官方 SDK 的 PR 到 9 月末仍未合并。其他地方也正把 Skill 作为带版本的生产产物（AWS 于 9 月 30 日为其智能体工具包新增 `update-skill` 命令），因此应像依赖包一样固定版本并审查更新。
+采用仍处早期。Hugging Face 的 MCP 服务器已实现它；TypeScript SDK 2.4.0（10 月 23 日）支持 MCP Skills（服务端使用 `loadSkills`，客户端的 `SkillsClient` 会在每次读取时校验大小、摘要和 frontmatter；只有 `attach` 接线被标记为实验性）；Python SDK 最新版本（2.3.0，10 月 2 日）尚未支持。由于该扩展处于 Beta 阶段，应固定 SDK 版本，并预留它进入 Stable 前发生文档化破坏性变更的可能。其他地方也正把 Skill 作为带版本的生产产物（AWS 于 9 月 30 日为其智能体工具包新增 `update-skill` 命令），因此应像依赖包一样固定版本并审查更新。
 
 **生态规模：**SDK 每月下载量达到数亿。协议自身 7 月 28 日的发布文章称 Tier 1 SDK 月下载量接近 5 亿；Anthropic 另称月下载量为 4 亿、年内增至 4 倍。因此应将总量视为数量级而非精确数字，引用前需核对指标定义。8 月，仅一个连接器目录就列出了**超过 950 个 MCP 服务器**。7 月 28 日正式发布时，AWS、Cloudflare、Google Cloud、Microsoft 和 Netlify 宣布首发支持。Microsoft 推出可由 Microsoft 365 管理中心管理的 MCP 联邦 Copilot Connectors；Apple 让 Xcode 成为外部编程智能体的 MCP 宿主；Bloomberg 也发布了将 MCP 用作内部智能体到工具层的生产案例。
 
-**向无状态修订版的迁移确已发生，但进展缓慢。**2026 年 9 月的 npm 下载量：v1 TypeScript SDK（`@modelcontextprotocol/sdk`）约 2.319 亿次，`@modelcontextprotocol/core` 约 3060 万次、`@modelcontextprotocol/server` 约 2540 万次、`@modelcontextprotocol/client` 约 1910 万次。逐包比较，v2 流量目前约为 v1 的 8% 至 13%，高于 8 月中旬的低个位数百分比，而 v1 仍在增长（截至 8 月 14 日的 30 天约 2.07 亿次）。应为长期双版本期做准备：C# SDK v2.2.0（8 月 13 日）新增 `HttpServerSessionMode`，让同一端点同时服务 2025-11-25 有状态客户端和 2026-07-28 无状态客户端；运营混合客户端服务器群时可借鉴这一模式。
+**向无状态修订版的迁移确已发生，但进展缓慢。**2026 年 10 月的 npm 下载量：v1 TypeScript SDK（`@modelcontextprotocol/sdk`）约 2.458 亿次，`@modelcontextprotocol/core` 约 6210 万次、`@modelcontextprotocol/server` 约 4920 万次、`@modelcontextprotocol/client` 约 3290 万次。逐包比较，v2 流量目前约为 v1 的 13% 至 25%，约为 9 月的 8% 至 13% 的两倍；v1 仍在增长（截至 8 月 14 日的 30 天约 2.07 亿次，9 月为 2.319 亿次）。下载量包括 CI 安装和传递依赖，因此应把比例视为趋势，而非服务器数量普查。应为长期双版本期做准备：C# SDK v2.2.0（8 月 13 日）新增 `HttpServerSessionMode`，让同一端点同时服务 2025-11-25 有状态客户端和 2026-07-28 无状态客户端；运营混合客户端服务器群时可借鉴这一模式。
 
-即使线缆协议未变，SDK 主版本升级仍会破坏代码。Python 中，自 7 月 28 日的 2.0.0 起，`pip install mcp` 会安装 2.x：`FastMCP` 改名为 `MCPServer`，单个 `Client` 取代了 v1 的传输加 `ClientSession` 分层；v1 仅接收安全和关键修复，因此新安装环境中的旧版 `FastMCP` 教程会失效。智能体框架数周内也跟进（OpenAI Agents SDK 0.20.0 同时支持两个主版本；LangChain 1.4.0 根据协商出的协议年代决定 MCP 中断路由），显示出共享依赖主版本变化的影响范围。Tier 1 SDK 现包括 TypeScript、Python、C#、Go、Rust（8 月 21 日晋升）和 Ruby（9 月 28 日晋升）；Java 为 Tier 2，Swift、PHP 和 Kotlin 为 Tier 3。一致性测试套件为该修订发布冻结的需求集（截至 10 月 1 日为 0.2.0-alpha.12）。
+即使线缆协议未变，SDK 主版本升级仍会破坏代码。Python 中，自 7 月 28 日的 2.0.0 起，`pip install mcp` 会安装 2.x：`FastMCP` 改名为 `MCPServer`，单个 `Client` 取代了 v1 的传输加 `ClientSession` 分层；v1 仅接收安全和关键修复，因此新安装环境中的旧版 `FastMCP` 教程会失效。智能体框架数周内也跟进（OpenAI Agents SDK 0.20.0 同时支持两个主版本；LangChain 1.4.0 根据协商出的协议年代决定 MCP 中断路由），显示出共享依赖主版本变化的影响范围。Tier 1 SDK 现包括 TypeScript、Python、C#、Go、Rust（8 月 21 日晋升）和 Ruby（9 月 28 日晋升）；Java 为 Tier 2，Swift、PHP 和 Kotlin 为 Tier 3。一致性测试套件为该修订发布冻结的需求集（11 月上旬仍为 0.2.0-alpha.12）。
 
-**治理：**MCP 由 Linux Foundation 旗下的 Agentic AI Foundation（AAIF）治理。该基金会现托管六个项目（MCP、goose、AGENTS.md、agentgateway、A2A 和前身为 Envoy AI Gateway 的 Agent Router），并于 8 月 12 日报告拥有 247 家成员组织。治理工作组运行 Contributor Ladder 和委派模型，让特定领域工作组无需全体核心维护者审查即可接纳 SEP（规范改进提案）；2026-07-28 修订增加了正式 Extensions Track。自 9 月 28 日起，SEP 作者在提出 PR 前须与相关工作组或兴趣组讨论。AAIF 还于 9 月 14 日推出首个厂商中立的 MCP 认证 Model Context Protocol Associate（MCPA）：费用 $250，考试 90 分钟，依据 2026-07-28 修订，安全与治理占考试内容的 24%。
+**治理：**MCP 由 Linux Foundation 旗下的 Agentic AI Foundation（AAIF）治理。10 月 22 日，AAIF 在原有六个项目（MCP、goose、AGENTS.md、agentgateway、A2A 和前身为 Envoy AI Gateway 的 Agent Router）基础上新增四个项目：Anthropic 的 Agent Skills、OpenAI 的 Open Responses、Hugging Face 的 OpenEnv，以及阿里巴巴的 OpenSandbox，合计托管 **10 个项目、305 家成员组织**。实际意义是：技能格式、开放式 Responses API、智能体环境和沙箱如今与工具协议由同一基金会管理，因此“是否押注单一厂商”的问题对智能体技术栈的大部分组件都有相同答案。治理工作组运行 Contributor Ladder 和委派模型，让特定领域工作组无需全体核心维护者审查即可接纳 SEP（规范改进提案）；2026-07-28 修订增加了正式 Extensions Track。自 9 月 28 日起，SEP 作者在提出 PR 前须与相关工作组或兴趣组讨论；根据 SEP-3398，SEP 正式审查前还需获得工作组或核心维护者赞助。AAIF 还于 9 月 14 日推出首个厂商中立的 MCP 认证 Model Context Protocol Associate（MCPA）：费用 $250，考试 90 分钟，依据 2026-07-28 修订，安全与治理占考试内容的 24%。
 
 来源：modelcontextprotocol.io（规范、路线图和扩展）、blog.modelcontextprotocol.io、github.com/modelcontextprotocol、aaif.io
 
@@ -349,13 +367,13 @@ v1.0 的方法包括 `SendMessage`、`SendStreamingMessage`、`GetTask`、`ListT
 
 A2A 任务支持带流式状态更新的长时间运行操作，因此适合持续数分钟或数小时的企业工作流。
 
-**尚未发布的 v1.1 将增加什么。**`dev-1.1` 分支的工作包括单调递增的 `Task.generation` 字段（2026 年 8 月 12 日合并）。客户端用它检测错过的事件，通过 `current_generation` 长轮询，并用 `if_generation_match` 实现比较并设置；值不匹配时返回 HTTP 412 或 gRPC `ABORTED`。这是多个客户端安全地操控同一个长期远程任务、避免更新丢失的标准答案。9 月 15 日的路线图还列出了双向流式传输和用于编程运行框架集成的官方 A2A CLI。
+**尚未发布的 v1.1 将增加什么。**`dev-1.1` 分支的工作包括单调递增的 `Task.generation` 字段（2026 年 8 月 12 日合并）。客户端用它检测错过的事件，通过 `current_generation` 长轮询，并用 `if_generation_match` 实现比较并设置；值不匹配时返回 HTTP 412 或 gRPC `ABORTED`。这是多个客户端安全地操控同一个长期远程任务、避免更新丢失的标准答案。10 月该分支还新增双向交互的 `SendLiveMessage` 方法（10 月 19 日合并）、`SendMessage` 上由客户端写入的产物（10 月 20 日）、将 `SubscribeToTask` 从 POST 改为 GET（10 月 13 日），以及优先使用 AI Catalog 而非 `/.well-known/agent-card.json` 的发现指南（10 月 21 日）。原定路线图中的官方编程运行框架集成用 A2A CLI 已于 10 月 2 日引入（a2a-cli v0.3.1 于 10 月 16 日发布）。
 
 ### 行业采用
 
 - 发布时获得包括 Atlassian、Salesforce、SAP、LangChain 和 PayPal 在内的 50 多家技术合作伙伴支持
 - 2025 年 6 月捐赠给 **Linux Foundation**，并于 2026 年 8 月 17 日作为成长阶段项目纳入 **Agentic AI Foundation**，因此 MCP 和 A2A 现归属同一个中立基金会；AAIF 称有 150 多家支持组织，Google Cloud、Amazon Bedrock AgentCore 和 Microsoft Azure AI Foundry 原生支持 A2A
-- **版本 0.3**（2025 年 7 月）新增 gRPC、带签名的 Agent Card 和扩展的 Python SDK 支持。**v1.0.0** 于 2026 年 3 月 12 日发布，**v1.0.1**（2026 年 5 月 28 日）截至 2026 年 10 月仍是最新规范版本；协议没有 v1.2。更高版本号属于 SDK：a2a-python 1.2.1（1.2 系列新增多副本集群模式）、a2a-js 1.3.0、a2a-java 1.4.0.Final 和 a2a-go v2.6.0
+- **版本 0.3**（2025 年 7 月）新增 gRPC、带签名的 Agent Card 和扩展的 Python SDK 支持。**v1.0.0** 于 2026 年 3 月 12 日发布，**v1.0.1**（2026 年 5 月 28 日）截至 11 月上旬仍是最新规范版本；协议没有 v1.2。更高版本号属于 SDK：a2a-python 1.3.0（10 月 27 日；1.2 系列新增多副本集群模式）、a2a-js 1.3.0、a2a-java 1.4.0.Final 和 a2a-go v2.7.0（10 月 21 日）
 - NIST 于 2026 年 2 月启动了 “AI Agent Standards Initiative”，部分原因是对 A2A/MCP 发展势头的回应
 
 来源：github.com/a2aproject/A2A（发布、规范和路线图）、aaif.io/blog/a2a-joins-aaif
@@ -484,9 +502,22 @@ STDIO MCP 服务器隐含地把进程边界当作信任边界，而 2026 年不�
 
 **走在规范前面的逐工具授权。**TypeScript 服务器 2.1.0（9 月 23 日）新增针对每个工具、资源和提示词的请求时范围质询（`requireScopes`），在处理器运行前返回 HTTP 403 `insufficient_scope`；TypeScript 客户端 2.1.0 加入 DPoP 发送方约束令牌（RFC 9449，遵循草案 SEP-1932），使单独窃取到的持有者令牌不足以完成访问。
 
+### 无状态协议，共享对象：CVE-2026-111770
+
+无状态核心让人容易尝试一种捷径：既然请求不再依赖会话，就在启动时创建一个服务器对象和一个传输对象，让所有客户端共用。官方 TypeScript SDK 中，这种模式造成了跨租户泄露。**CVE-2026-111770**（CVSS 7.7，2026 年 10 月）：多个客户端共用服务器或传输对象时，一个客户端的响应可能被交付给另一个客户端。受影响范围为 `@modelcontextprotocol/server` 2.0.0 至 2.2.x，2.3.0 已修复，但这不是可直接替换的升级：2.3.0 强制每个无状态请求或每个会话各自创建一个服务器和传输对象，因此启动时只创建一次的应用必须重构。
+
+同一发布周期还暴露了另一个值得注意的默认设置。拒绝其他服务所签发令牌的受众检查（CVE-2026-111771）已在 `sdk` 1.32.0 和 `server` 2.3.0 修复，但它是**可选启用**的：只有传入 `expectedResource` 才会生效。升级时未配置它，漏洞仍然存在。
+
+由此可推广出几条经验：
+
+- **“无状态”描述的是线缆协议，不是进程。**响应路由、处理中请求映射和缓冲区仍保存在内存中；这些对象应限定到请求或会话，并用两个并发客户端测试响应绝不会串线。
+- **安全修复可能需要修改代码。**依赖机器人升级版本并通过 CI，并不能证明漏洞已消除。应阅读安全公告，而不仅是变更日志。
+- **可选启用的修复必须有人负责。**将其作为配置工作项跟踪，并添加测试，确保为其他资源签发的令牌会被拒绝。
+
 ### 面向生产 MCP 的纵深防御检查清单
 
-- 所有远程 MCP 服务器都运行在带有 OAuth 2.1、PKCE 和受众绑定令牌（RFC 8707）的后面，并在每次请求中验证签名、签发者和受众。
+- 所有远程 MCP 服务器都运行在带有 OAuth 2.1、PKCE 和受众绑定令牌（RFC 8707）的后面，并在每次请求中验证签名、签发者和受众。SDK 的受众检查默认关闭（TypeScript 使用 `expectedResource`），因此要显式启用。
+- 服务器和传输对象按请求或会话创建，绝不在多个客户端间共享（CVE-2026-111770）。
 - 客户端将每份存储的凭据绑定到签发者，并拒绝将其发送给 MCP 服务器指定的授权服务器。
 - 可写和敏感工具要求逐级授权范围（403 `insufficient_scope`）；高价值部署使用绑定 DPoP 的令牌。
 - 本地 HTTP 服务器绑定回环地址，校验 `Origin` 和 `Host`；限制请求体大小（4 MiB），并限制及回收服务器会话。
@@ -556,7 +587,7 @@ response = client.messages.create(  # GA: no beta namespace or beta header
 )
 ```
 
-**迁移陷阱：**在 Claude API 和 Google Cloud 上，Claude Opus 5.5 与 Sonnet 5.5 对旧版 `computer_20251124` 工具返回 HTTP 400（Bedrock 仍接受）；使用 `claude-3-7-sonnet-20250219` 或 `claude-sonnet-4-20250514` 的示例则指向已退役模型。
+**迁移陷阱：**在 Claude API 和 Google Cloud 上，Claude 5.5 系列模型（Opus、Sonnet 和 Haiku）对旧版 `computer_20251124` 工具返回 HTTP 400（Bedrock 仍接受）；使用 `claude-3-7-sonnet-20250219` 或 `claude-sonnet-4-20250514` 的示例则指向已退役模型。
 
 **批量动作会前移人工关口。**Claude 现在可以在一轮内返回多个计算机 `tool_use` 块。执行器按顺序运行，在首次失败时停止，并对后续每个块返回 `is_error` 和“Not executed: an earlier computer action in this turn failed.”。因此一次模型往返就能完成多步且有后果的操作，虽降低逐步延迟和成本，但放在模型轮次之间的确认会来得太晚。Anthropic 文档要求在每个块执行前进行人工检查：收到批次时审查每个动作，并在每个有后果的动作执行前暂停，即使它位于批次中间。拒绝应按失败处理：该块返回 `is_error`，余下批次返回停止消息，再让模型重新规划。
 
@@ -635,11 +666,23 @@ MCP 本身并不能解决这个问题。协议提供工具目录（`tools/list` 
 
 ---
 
+### 问：2026-07-28 修订版让 MCP 无状态了。现在能否在负载均衡器后让所有客户端共用一个服务器对象？
+
+**强回答：**
+可以运行多个实例，但不能让多个客户端共用同一个对象。无状态意味着协议会话不再把客户端绑定到某个实例，因此任何副本都可处理任何请求；这不代表进程内对象可以安全共享：服务器和传输对象仍保存处理中请求映射和响应路由信息。官方 TypeScript SDK 已通过 CVE-2026-111770 证明这一点：多个客户端共用服务器或传输对象时，一个客户端的响应可能被交给另一个客户端；2.3.0 的修复要求修改代码，为每个无状态请求或会话创建服务器和传输对象。我的设计会在无状态端点上按请求创建服务器，把跨调用状态保存在绑定到已认证用户的服务器签发句柄中，显式开启 SDK 默认关闭的受众检查，并添加两个租户并发请求、响应绝不能串线的测试。我也会确认框架实际捆绑的 SDK 版本，因为基于 SDK 构建的封装库可能会晚数周才引入这些修复。
+
+---
+
 ## 参考资料
 - Model Context Protocol. “规范修订版 2026-07-28：变更日志”（2026 年 7 月）。https://modelcontextprotocol.io/specification/2026-07-28/changelog
 - Model Context Protocol. “授权”（2026-07-28 修订）。https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
 - Model Context Protocol 博客。“新 MCP 路线图”（2026 年 8 月 22 日）。https://blog.modelcontextprotocol.io/posts/mcp-roadmap/
 - Model Context Protocol. “Skills 扩展概览”（2026 年 9 月）。https://modelcontextprotocol.io/extensions/skills/overview
+- Model Context Protocol. “SEP-3398：发布周期更新”（2026 年 10 月接受）。https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/3398-release-cycle-updates.md
+- Model Context Protocol. “SEP-3392：扩展生命周期”（2026 年 10 月定稿）。https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/3392-extension-lifecycle.md
+- Model Context Protocol. “扩展概览”（阶段、晋升至核心及各扩展的当前阶段）。https://modelcontextprotocol.io/extensions/overview
+- Model Context Protocol. “SEP-2127：MCP Server Cards”（2026 年 10 月定稿）。https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127
+- Linux Foundation. “Agentic AI Foundation announces four new projects”（2026 年 10 月 22 日）。https://www.linuxfoundation.org/press/agentic-ai-foundation-announces-four-new-projects-agent-skills-open-responses-openenv-and-opensandbox
 - Model Context Protocol 博客。“企业托管授权”（2026 年 6 月）。https://blog.modelcontextprotocol.io/posts/enterprise-managed-auth/
 - Anthropic. “模型上下文协议规范”（2025）
 - A2A Project. “Agent2Agent 协议规范 v1.0.1”（2026 年 5 月）。https://github.com/a2aproject/A2A/releases/tag/v1.0.1
@@ -647,6 +690,7 @@ MCP 本身并不能解决这个问题。协议提供工具目录（`tools/list` 
 - Linux Foundation. “Agent2Agent 协议项目”（2025）
 - AIR Security. “Plugin4Shell”（2026 年 9 月）。https://www.air.security/blog-posts/plugin4shell
 - Anthropic. “计算机使用工具”文档。https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool
+- [MCP TypeScript SDK 共享服务器与传输对象漏洞公告，CVE-2026-111770（GHSA-jm63-cq47-j5jp）](https://github.com/advisories/GHSA-jm63-cq47-j5jp)
 - NIST. “AI 智能体标准倡议”（Feb 2026）
 - JSON-RPC 2.0 规范。
 - Pydantic 文档。

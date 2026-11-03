@@ -1,6 +1,6 @@
 # Microsoft Agent Framework、CrewAI 与 Agent SDK 生态
 
-过去一年里，多智能体框架生态逐渐收敛。Microsoft 将 AutoGen 和 Semantic Kernel 合并为 **Microsoft Agent Framework**，其 1.0 版于 2026 年 4 月 2 日正式可用；AutoGen 现在处于维护模式，由社区管理。CrewAI 于 2026 年 9 月 28 日发布 1.15.23，加入检查点和声明式 Flows；它报告被超过 60% 的 Fortune 500 企业采用（供应商声称）。主要实验室也都推出了自己的智能体 SDK：Anthropic 的 Claude Agent SDK、OpenAI 的 Agents SDK、Google 的 ADK 和 AWS 的 Strands Agents。2026 年，这些实验室还开始提供托管智能体循环：Claude Managed Agents、OpenAI Agents API（2026 年 9 月 10 日公开测试）和 Bedrock Managed Agents（2026 年 9 月 29 日预览）。
+过去一年里，多智能体框架生态逐渐收敛。Microsoft 将 AutoGen 和 Semantic Kernel 合并为 **Microsoft Agent Framework**，其 1.0 版于 2026 年 4 月 2 日正式可用；AutoGen 现在处于维护模式，由社区管理。CrewAI 于 2026 年 11 月 1 日发布 1.15.34，加入检查点和声明式 Flows；它报告被超过 60% 的 Fortune 500 企业采用（供应商声称）。主要实验室也都推出了自己的智能体 SDK：Anthropic 的 Claude Agent SDK、OpenAI 的 Agents SDK、Google 的 ADK 和 AWS 的 Strands Agents。2026 年，这些实验室还开始提供托管智能体循环：Claude Managed Agents、OpenAI Agents API（2026 年 9 月 10 日公开测试）和 Bedrock Managed Agents（2026 年 9 月 29 日预览）。截至 2026 年 11 月，三者均未 GA。
 
 本章的版本号附有发布日期，因为这些 SDK 往往每一两周就发布新版本。请固定版本。
 
@@ -55,6 +55,7 @@ class ContentFlow(Flow):
 | 1.14.0 | 2026 年 4 月 7 日 | 运行时状态**检查点**（`CheckpointConfig`、`SqliteProvider`）、事件系统和执行器重构，以及 RAG 工具的 SSRF 防护与路径/URL 验证。**破坏性变更**：移除 `CodeInterpreterTool` |
 | 1.15.0 | 2026 年 6 月 25 日 | **声明式 Flow 加载**（含 crew action 的 `FlowDefinition`）、DMN 模式，以及跨所有 LLM 调用的 token 用量汇总 |
 | 1.15.22 / 1.15.23 | 2026 年 9 月 16 日 / 9 月 28 日 | 追踪中的人工反馈和暂停事件、连接别名、OpenRouter 嵌入、原生支持 Gemini 3.8 Flash |
+| 1.15.24 至 1.15.34 | 2026 年 10 月 7 日至 11 月 1 日 | 不到四周内同一分支发布 11 个补丁版本；并无 1.16 或 2.0。固定具体版本并阅读每份变更日志 |
 
 1.13 系列（2026 年春）加入的企业特性依旧重要：已文档化的 SSO、RBAC 权限矩阵、A2A 任务委派，以及针对移除 `stop` 参数的 OpenAI 模型的修复。
 
@@ -66,7 +67,7 @@ class ContentFlow(Flow):
 
 ### 合并：AutoGen + Semantic Kernel = Agent Framework
 
-Microsoft 由原班团队将 **Microsoft Agent Framework（MAF）** 打造为 AutoGen 和 Semantic Kernel 的直接继任者。MAF 1.0 于 2026 年 4 月 2 日在 .NET 和 Python 上正式可用（Microsoft 公告日期为 4 月 3 日），号称 API 稳定并提供长期支持。它大约每周发布一次：截至 2026 年 9 月 18 日，Python 为 1.19.0；截至 10 月 1 日，.NET 为 1.23.0。Go SDK 处于公开预览。
+Microsoft 由原班团队将 **Microsoft Agent Framework（MAF）** 打造为 AutoGen 和 Semantic Kernel 的直接继任者。MAF 1.0 于 2026 年 4 月 2 日在 .NET 和 Python 上正式可用（Microsoft 公告日期为 4 月 3 日），号称 API 稳定并提供长期支持。它大约每周发布一次：Python 和 .NET 于 2026 年 10 月 30 日分别达到 1.24.0 和 1.27.0。“稳定且有长期支持”也意味着应阅读发布说明：Python 1.22.0（10 月 15 日）写入的持久化记录无法由 1.22 以前的运行时读取，因此不要用混合版本 worker 共用一个存储，也不要在升级后降级；Python 1.23.0（10 月 22 日）发布三项标记为破坏性的变更（MCP 2.x 基础支持、AG-UI 授权范围改为必填，以及 Docker shell 的 `extra_run_args` 更名为 `unsafe_extra_run_args`）。Go SDK 仍处于公开预览。
 
 **这次合并整合了什么：**
 - **来自 AutoGen**：用于单智能体和多智能体对话模式的简单抽象（群聊、轮询、交接）
@@ -129,44 +130,45 @@ workflow = (
 
 ### Claude Agent SDK（Anthropic）
 
-Claude Agent SDK（由 Claude Code SDK 更名而来）提供了驱动 Claude Code 的同样工具、智能体循环和上下文管理，作为 Python（`claude-agent-sdk` 0.2.163）和 TypeScript（`@anthropic-ai/claude-agent-sdk` 0.3.287）库提供；版本截至 2026 年 10 月 1 日。
+Claude Agent SDK（由 Claude Code SDK 更名而来）提供了驱动 Claude Code 的同样工具、智能体循环和上下文管理，作为 Python（`claude-agent-sdk` 0.2.176）和 TypeScript（`@anthropic-ai/claude-agent-sdk` 0.3.316）库提供，两个版本都于 2026 年 10 月 31 日发布。
 
 - **内置工具**：文件读取、命令执行和代码编辑，智能体无需自定义工具即可工作。
 - **子智能体**：有名称的子智能体定义，具有自己的上下文和工具允许列表。
 - **控制项**：`max_turns`、`max_budget_usd`、`effort`，以及基于分类器的 `auto`、`dontAsk` 等权限模式。
 - **部署**：Claude API、Amazon Bedrock、Google Cloud（Vertex AI）和 Microsoft Foundry。
-- **易踩的坑**：SDK 捆绑 Claude Code CLI，CLI 发布可能悄然改变默认模型。Claude Code 在 2.1.280（9 月 22 日）和 2.1.284（9 月 28 日）分别将 Opus 5.5、Sonnet 5.5 设为默认模型时，SDK 自身的 CI 也曾失败，随后不得不固定模型。务必显式传入 `model=`。
+- **易踩的坑**：SDK 捆绑 Claude Code CLI，因此 CLI 发布可能悄然改变默认值。Claude Code 在 2.1.280（9 月 22 日）和 2.1.284（9 月 28 日）分别将 Opus 5.5、Sonnet 5.5 设为默认模型时，SDK 自身的 CI 也曾失败，随后不得不固定模型。自 2.1.302（10 月 16 日）起，在第三方提供方、遥测关闭或全新安装时，未指定权限模式的 SDK 会话默认进入 `default` 模式。务必显式传入 `model=` 和 `permission_mode=`。
 
 ### OpenAI Agents SDK
 
-OpenAI 使用原生 Python/TypeScript 构造多智能体工作流的轻量框架。2026 年 9 月最后一个 PyPI 版本是 `openai-agents` 0.22.3（9 月 17 日）；0.23.1 于 10 月 2 日发布到 PyPI。JS 的 `@openai/agents` 为 0.18.0（9 月 10 日）。
+OpenAI 使用原生 Python/TypeScript 构造多智能体工作流的轻量框架。Python `openai-agents` 为 0.24.0（2026 年 10 月 15 日）；0.23.0 未发布到 PyPI，因此 0.23.1（10 月 2 日）包含了该版的变更。JS `@openai/agents` 为 0.21.0（10 月 20 日）。
 
 - **基于交接**：智能体通过 handoff 互相委派，无需中央监督者。
 - **Guardrails（护栏）**：输入和输出护栏；0.22.1（9 月 8 日）新增覆盖整个 MCP 服务器的护栏。
 - **MCP 集成**：0.20.0 同时支持 MCP Python SDK v1 和 v2；自定义 MCP HTTP 认证的应用必须使用已安装主版本对应的类型，或固定 `mcp<2`。
 - **沙箱智能体**（自 2026 年 4 月的 0.14.0 起）：`SandboxAgent`、清单、快照和托管沙箱客户端。
 - **测试工具**（8 月 15 日的 0.21.0）：与提供方无关的 `agents.testing`，以及实时和语音测试模块；要求 OpenAI Python SDK 3.0+。
-- **需要应对的变动**：0.20.0（8 月 11 日）将 `gpt-5.6-luna` 设为隐式默认模型；0.22.0（8 月 19 日）使同时传入 `organization` 或 `project` 与显式客户端的应用出现破坏性兼容问题。
-- **实时智能体**：自 0.18.0（2026 年 7 月 7 日）起，实时智能体默认使用 `gpt-realtime-2.1`。截至 0.22.3，尚不支持 9 月 10 日正式可用的全双工 `gpt-live-1`。原始的 `gpt-realtime` 和 `gpt-realtime-mini` 将于 2027 年 1 月 20 日停用，应固定 2.1 系列模型。
+- **需要应对的变动**：0.20.0（8 月 11 日）将 `gpt-5.6-luna` 设为隐式默认模型；0.22.0（8 月 19 日）使同时传入 `organization` 或 `project` 与显式客户端的应用出现破坏性兼容问题。0.23 系列一次更改四项默认值：`gpt-transcribe` 成为默认语音转文字模型；会话历史要求加密信封；默认会隐藏工具失败详情；默认追踪导出不含推理过程。
+- **实时智能体**：自 0.18.0（2026 年 7 月 7 日）起，实时智能体默认使用 `gpt-realtime-2.1`。截至 0.22.3 尚未支持 9 月 10 日正式可用的全双工 `gpt-live-1`；规划前应检查当前版本说明。原始的 `gpt-realtime` 和 `gpt-realtime-mini` 将于 2027 年 1 月 20 日停用，应固定 2.1 系列模型。
 
 ### OpenAI AgentKit（部分功能正在退出）
 
 AgentKit（2025 年 10 月）围绕 Responses API 和 Agents SDK 打包了可视化 **Agent Builder**、可嵌入且可换主题的聊天 UI **ChatKit**、集中治理 OpenAI 产品中数据源和工具连接的 **Connector Registry**，以及 **Evals**。其中两项即将退出：
 
 - **Agent Builder** 将于 2026 年 11 月 30 日关闭（6 月 3 日宣布弃用）。OpenAI 引导用户改用 Agents SDK 或 ChatGPT Workspace Agents。
-- **Evals** 平台将于 10 月 31 日转为只读、11 月 30 日关闭，并提供迁往 Promptfoo 的指南。OpenAI 于 2026 年 3 月同意收购 Promptfoo；后者仍采用 MIT 许可，并支持其他提供方。Reusable Prompts 也将于 11 月 30 日关闭。
+- **Evals** 平台将于 2026 年 11 月 30 日关闭（OpenAI 的指南还宣布将于 10 月 31 日起只读），并提供迁往 Promptfoo 的指南。Promptfoo 现属 OpenAI，仍采用 MIT 许可并支持多家提供方。Reusable Prompts 也将于 11 月 30 日关闭。
 
 **实际影响**：OpenAI 正向两个端点收敛：代码优先的 Agents SDK 和完全托管的 Agents API（见下文）。中间的可视化构建器在推出八个月后就被弃用。应将智能体定义保存在自己掌控的代码中；画布导出不能作为长期可信的事实来源。
 
 ### OpenAI Apps SDK
 
-Apps SDK 扩展了 **Model Context Protocol**，使一个 MCP 服务器能够连同其工具一起交付 UI。开发者同时定义逻辑和交互界面，应用在像 ChatGPT 这样的客户端中渲染。MCP 项目已将同一理念标准化为 **MCP Apps** 扩展；其 SDK 于 2026 年 9 月 8 日发布 2.0.0，迁移到 v2 TypeScript SDK 包，但线协议不变，因此 2.x 视图仍可在 1.x 宿主中渲染。参见 [工具使用与 MCP](../07-agentic-systems/03-tool-use-and-mcp.md)。
+Apps SDK 扩展了 **Model Context Protocol**，使一个 MCP 服务器能够连同其工具一起交付 UI。开发者同时定义逻辑和交互界面，应用在像 ChatGPT 这样的客户端中渲染。MCP 项目已将同一理念标准化为 **MCP Apps** 扩展，并按 2026 年 10 月 29 日采纳的扩展成熟度阶段分类为 Stable（SEP-3392）；其 SDK 于 2026 年 9 月 8 日发布 2.0.0，迁移到 v2 TypeScript SDK 包，但线协议不变，因此 2.x 视图仍可在 1.x 宿主中渲染。参见 [工具使用与 MCP](../07-agentic-systems/03-tool-use-and-mcp.md)。
 
 ### Google Agent Development Kit（ADK）
 
 Google 的框架针对 Google 生态做了优化，但与模型无关：
 
-- **版本**：Python 2.0 于 2026 年 5 月 19 日正式可用，9 月 25 日达到 2.10.0（2.11.0 于 10 月 2 日登陆 PyPI）；Go 2.0 于 6 月 30 日发布（`google.golang.org/adk/v2`），9 月 30 日为 v2.5.0；TypeScript 2.0.0 于 8 月 21 日正式可用，9 月 30 日为 2.2.0，其 Workflow API 仍标为实验性；Java 仍在 1.x（9 月 18 日的 1.10.1）。Python 1.x 系列仍有补丁更新。
+- **版本**：Python 2.0 于 2026 年 5 月 19 日正式可用，目前为 2.13.0（10 月 23 日）；Go 2.0 于 6 月 30 日发布（`google.golang.org/adk/v2`），目前为 v2.6.0（10 月 13 日）；TypeScript 2.0.0 于 8 月 21 日正式可用，目前为 2.4.0（10 月 28 日）；Java 仍在 1.x（1.13.0，10 月 21 日）。Python 1.x 系列仍有补丁更新。
+- **2.13.0 的遥测变化**：Python 2.13.0 默认使用 OpenTelemetry GenAI semconv 1.44 schema，并移除 `call_llm` span；基于该 span 构建的仪表板会悄然停止显示数据。迁移期间可设置 `ADK_TELEMETRY_SCHEMA_VERSION_OPT_IN=otel_semconv_1_36` 保留旧 schema。
 - **图工作流（2.0）**：静态与动态图、扇出与汇合（`JoinNode`）、逐节点重试和超时、Schema 验证、人工在环暂停与恢复。ADK-TS 2.0 弃用 `SequentialAgent`、`ParallelAgent` 和 `LoopAgent`（目前仍可运行，但会发出警告）。
 - **原生 A2A**：内置 Agent-to-Agent 协议支持，便于跨厂商编排
 - **Vertex AI 集成**：可部署到 Agent Engine Runtime 以获得托管式主机服务
@@ -175,7 +177,7 @@ Google 的框架针对 Google 生态做了优化，但与模型无关：
 
 ### 其他智能体 SDK
 
-AWS 的 **Strands Agents** 是 PyPI 上月下载量最高的实验室 SDK（截至 2026 年 10 月 1 日的一个月约 3650 万次；和此类计数一样会受到 CI 放大）。其新 harness 包于 9 月 22 日将默认模型改为 Claude Opus 5，又是一次静默变更。**Vercel AI SDK 7**（2026 年 6 月 25 日）新增持久化 `WorkflowAgent` 和实验性的 `HarnessAgent`，可通过统一 API 运行 Claude Code、Codex 等 harness。Pydantic AI 和 Mastra 参见 [Pydantic AI 与 Mastra](11-pydantic-ai-and-mastra.md)；Haystack 3 与 Agno 3 参见 [框架选择指南](08-framework-selection-guide.md)。
+AWS 的 **Strands Agents** 是 PyPI 上月下载量最高的实验室 SDK（截至 2026 年 11 月 1 日的 30 天约 3710 万次；和此类计数一样会受到 CI 放大；`strands-agents` 1.63.0 于 10 月 30 日发布）。其新 harness 包于 9 月 22 日将默认模型改为 Claude Opus 5，又是一次静默变更。**Vercel AI SDK 7**（2026 年 6 月 25 日）新增持久化 `WorkflowAgent` 和实验性的 `HarnessAgent`，可通过统一 API 运行 Claude Code、Codex 等 harness。Pydantic AI 和 Mastra 参见 [Pydantic AI 与 Mastra](11-pydantic-ai-and-mastra.md)；Haystack 3 与 Agno 3 参见 [框架选择指南](08-framework-selection-guide.md)。
 
 ---
 
@@ -193,12 +195,12 @@ flowchart LR
 
 | 运行时 | 状态 | 交给供应商的内容 | 计费 | 需要核查的限制 |
 |---|---|---|---|---|
-| **Claude Managed Agents** | 已上线；功能持续新增至 2026 年 9 月 | 会话；Anthropic 托管或自托管沙箱；记忆存储；定时任务部署（6 月 9 日）；服务端评估的 `auto` 权限策略（9 月 10 日）；通过 `ant apply` 和提交到仓库的 `claude-lock.json` 将智能体定义为代码（ant CLI 1.30.0，9 月 3 日） | token 加每个运行中会话每小时 $0.08（空闲免费）；硬性会话预算达到时以 `budget_reached` 停止（8 月 7 日）；无批处理折扣 | 仅限 Claude 模型 |
-| **OpenAI Agents API** | 2026 年 9 月 10 日公开测试 | Codex harness：持久会话、上下文压缩、故障恢复、子智能体（`max_concurrent_subagents` 默认 6）；OpenAI 托管或自托管沙箱；托管浏览器计算机操作（9 月 29 日） | 无 API 费；收取模型、工具和容器费（1、4、16 GB 沙箱每 20 分钟分别为 $0.03、$0.12、$0.48） | 测试期仅支持美国数据驻留，不支持零数据保留 |
-| **Bedrock Managed Agents**（由 OpenAI 提供底层能力） | 2026 年 9 月 29 日预览 | 在 AWS 内运行的定制 Agents API，具备每智能体 IAM 角色、CloudTrail 日志，以及重要操作前的审批 | 预览期间不额外收费 | 仅限 us-east-1、us-east-2 和 us-west-2 |
+| **Claude Managed Agents** | Claude API 上为 beta（请求头 `managed-agents-2026-04-01`）；也可在 AWS 上通过 Claude Platform 使用；自 10 月 22 日起支持 Google Cloud 上的 Claude | 会话；Anthropic 托管或自托管沙箱；记忆存储；定时任务部署（6 月 9 日）；服务端评估的 `auto` 权限策略（9 月 10 日）；通过 `ant apply` 和提交到仓库的 `claude-lock.json` 将智能体定义为代码（ant CLI 1.30.0，9 月 3 日） | token 加每个运行中会话每小时 $0.08（空闲免费）；硬性会话预算达到时以 `budget_reached` 停止（8 月 7 日）；无批处理折扣 | 仅限 Claude 模型 |
+| **OpenAI Agents API** | 自 2026 年 9 月 10 日起公开 beta | Codex harness：持久会话、上下文压缩、故障恢复、子智能体（`max_concurrent_subagents` 默认 6）；OpenAI 托管或自托管沙箱；托管浏览器计算机操作（9 月 29 日） | 无 API 费；收取模型、工具和容器费（1、4、16 GB 沙箱每 20 分钟分别为 $0.03、$0.12、$0.48）；自 10 月 9 日起，仅在活跃轮次期间收取托管沙箱计算费 | 测试期仅支持美国数据驻留，不支持零数据保留 |
+| **Bedrock Managed Agents**（由 OpenAI 提供底层能力） | 自 2026 年 9 月 29 日起公开预览 | 在 AWS 内运行的定制 Agents API，具备每智能体 IAM 角色、CloudTrail 日志，以及重要操作前的审批 | 预览期间不额外收费 | 仅限 us-east-1、us-east-2 和 us-west-2 |
 | **Foundry Agent Service** | Routines 于 2026 年 9 月 24 日正式可用 | 支持周期性、定时和事件触发的托管智能体 | Azure 资源消耗计费 | 网络出站控制仍在预览 |
 
-托管运行时在 token 之外引入了**第二种成本计量**（会话或沙箱时长），因此单任务成本模型必须计入运行时和空闲行为。风险也更集中：OpenAI 于 9 月 29 日发生的事故，使 Agents API 连同 Responses、ChatGPT 和 Codex 退化约 5 小时 20 分钟；回退方案必须跨供应商，而不只是切换模型。
+托管运行时在 token 之外引入了**第二种成本计量**（会话或沙箱时长），因此单任务成本模型必须计入运行时和空闲行为。计费方式正转向只计算活跃时长：Claude 仅按会话运行时计费；OpenAI 自 10 月 9 日起也只在活跃轮次期间收取托管沙箱计算费，因此在两种平台上等待人工审批都不再消耗沙箱时长。风险也更集中：OpenAI 于 9 月 29 日发生的事故，使 Agents API 连同 Responses、ChatGPT 和 Codex 退化约 5 小时 20 分钟；回退方案必须跨供应商，而不只是切换模型。
 
 自行运行循环与租用运行时之间还有一个中间选项：**为自己的循环购买托管服务**。AWS AgentCore Runtime V2（2026 年 9 月 18 日宣布，通过 `platformVersion V2` 启用）可从已初始化智能体的快照恢复新实例；AWS 报告 P75 冷启动约 2 秒，原运行时则约 5.4 至 30 秒，计费单价更高但 GB 小时显著减少（供应商报告）。框架和循环仍由你掌控，服务器交给供应商。
 
@@ -217,7 +219,7 @@ flowchart LR
 
 | 特性 | CrewAI | MS Agent Framework | LangGraph | Claude Agent SDK | OpenAI Agents SDK | Google ADK |
 |---------|--------|-------------------|-----------|-----------------|-------------------|------------|
-| **当前版本** | 1.15.23（9 月 28 日） | Python 1.19.0（9 月 18 日）、.NET 1.23.0（10 月 1 日） | 1.2.12（9 月 21 日） | Python 0.2.163、TS 0.3.287 | Python 0.22.3（9 月 17 日）、JS 0.18.0 | Python 2.10.0（9 月 25 日）、TS 2.2.0（9 月 30 日）、Go 2.5.0（9 月 30 日）、Java 1.10.1 |
+| **当前版本** | 1.15.34（11 月 1 日） | Python 1.24.0、.NET 1.27.0（10 月 30 日） | 1.2.19（10 月 30 日） | Python 0.2.176、TS 0.3.316（10 月 31 日） | Python 0.24.0（10 月 15 日）、JS 0.21.0（10 月 20 日） | Python 2.13.0（10 月 23 日）、TS 2.4.0（10 月 28 日）、Go 2.6.0（10 月 13 日）、Java 1.13.0（10 月 21 日） |
 | **核心抽象** | 任务/流程/Flow | 工作流/智能体 | 状态/图 | 智能体循环 + 子智能体 | 交接/智能体 | 智能体 + 图工作流 |
 | **架构** | 声明式 + 状态机 | 图工作流 | 循环状态图 | 层级树 | 群体交接 | 有向图 |
 | **易用性** | 高 | 中 | 低 | 中 | 高 | 中 |
@@ -235,7 +237,7 @@ flowchart LR
 ### 问：什么时候会选择 CrewAI 而不是 LangGraph？
 
 **强答案：**
-**速度与精度的权衡**，但差距比一年前小了。当我需要快速为标准流程（如内容生成或数据分析）搭建智能体团队时，会使用 **CrewAI**；它的角色、任务抽象与 Flows 用少量代码即可实现，而且自 1.14 起支持状态检查点，自 1.15 起支持声明式加载 Flows。当我需要对每次状态迁移进行**细粒度控制**，从任意检查点分支调试，多轮人工在环中断，或处理不适合“角色扮演团队”模式的复杂错误恢复时，则使用 **LangGraph**。讨论采用情况时应选对指标：CrewAI 的 GitHub star 更多（约 5.93 万对 4.26 万），但 LangGraph 的 PyPI 月下载量约为其 18 倍（4370 万对 240 万），因此更多团队实际依赖 LangGraph。
+**速度与精度的权衡**，但差距比一年前小了。当我需要快速为标准流程（如内容生成或数据分析）搭建智能体团队时，会使用 **CrewAI**；它的角色、任务抽象与 Flows 用少量代码即可实现，而且自 1.14 起支持状态检查点，自 1.15 起支持声明式加载 Flows。当我需要对每次状态迁移进行**细粒度控制**，从任意检查点分支调试，多轮人工在环中断，或处理不适合“角色扮演团队”模式的复杂错误恢复时，则使用 **LangGraph**。讨论采用情况时应选对指标：截至 2026 年 11 月，CrewAI 的 GitHub star 更多（约 6.04 万对 4.43 万），但 LangGraph 的 PyPI 月下载量约为其 18 倍（4480 万对 240 万），因此更多团队实际依赖 LangGraph。
 
 ### 问：Microsoft 将 AutoGen 转入维护模式，转而采用 Agent Framework。这会如何影响现有的 AutoGen 部署？
 
@@ -250,7 +252,7 @@ flowchart LR
 ### 问：何时会把智能体循环交给 OpenAI Agents API 或 Claude Managed Agents 等托管运行时？
 
 **强答案：**
-当我需要自行构建的难点（持久会话、上下文压缩、崩溃恢复、沙箱生命周期、逐次调用权限评估）成本超过供应商绑定的代价，并且运行时的数据条款适合该工作负载时。第二个条件往往起决定作用：OpenAI Agents API 测试版仅支持美国数据驻留，且不支持零数据保留，许多受监管的工作负载因此无法采用。我还会计算 token 之外的第二种成本（会话小时或沙箱分钟），以及故障影响范围：供应商故障如今可能让模型、harness 和沙箱同时不可用。我通常保留自己掌控的、与供应商无关的编排层，将托管运行时作为接口后的叶子智能体，并把智能体定义保存为仓库代码（`ant apply` 配合提交的锁文件正是正确方向），从而保持运行时可替换。
+当我需要自行构建的难点（持久会话、上下文压缩、崩溃恢复、沙箱生命周期、逐次调用权限评估）成本超过供应商绑定的代价，并且运行时的数据条款适合该工作负载时。第二个条件往往起决定作用：OpenAI Agents API 测试版仅支持美国数据驻留，且不支持零数据保留，许多受监管的工作负载因此无法采用；三个托管运行时目前仍处于 beta 或预览阶段，因此其合同和价格都应视为暂定。我还会计算 token 之外的第二种成本（会话小时或活跃沙箱时长），以及故障影响范围：供应商故障如今可能让模型、harness 和沙箱同时不可用。我通常保留自己掌控的、与供应商无关的编排层，将托管运行时作为接口后的叶子智能体，并把智能体定义保存为仓库代码（`ant apply` 配合提交的锁文件正是正确方向），从而保持运行时可替换。
 
 ---
 

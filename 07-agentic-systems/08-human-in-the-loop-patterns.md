@@ -45,16 +45,16 @@
 | 产品（2026） | 门控方式 |
 |---|---|
 | **Claude Managed Agents** 自动权限策略（9 月 10 日） | 服务端评估每次 agent 或 MCP 工具调用，决定执行、拒绝或暂停等待审批；结果出现在事件的 `evaluation` 字段中，`ant beta:sessions connect` 可连接终端实时审批 |
-| **Claude Code** auto mode | 服务端分类器；自 2.1.284（9 月 28 日）起，未配置权限模式的交互会话默认进入 auto mode |
+| **Claude Code** auto mode | 服务端分类器；自 2.1.284（9 月 28 日）起，未配置权限模式的交互会话默认进入 auto mode。无头运行情况不同：自 2.1.302（10 月 16 日）起，在第三方 provider、遥测关闭或全新安装时，未指定权限模式的 `claude -p` 和 Agent SDK 会话默认使用 `default` 模式，因此 CI 调用方应显式设置模式 |
 | **OpenAI dots**（9 月 29 日发布） | 内置规则与 Custom Rules 可针对每个动作设置允许、阻止或要求审批；可能影响账户或共享信息的动作会自动进入审查；空闲时，dot 只能进行只读研究 |
 | **OpenAI Agents API** computer use（9 月 29 日） | 每个新网站来源都需要明确的 `browser_origin_access` 审批（启用网络访问并不等于批准）；登录通过单独的界面完成，凭据不会进入模型输入 |
 | **GitHub Copilot** computer use（10 月 1 日公开预览） | 按应用审批，永久授权可审查、可重置，并提供组织级停用开关 |
 
-一个相关的基础能力是**决策模型**：它为一组固定答案评分，而不是生成文本，正适合门控场景。OpenAI 的 Decisions API（9 月 29 日限量预览）使用 Luna 模型来分类输入、路由请求或选择 agent 动作；Cloudflare 的 Clef（10 月 1 日发布，Apache 2.0）返回预设答案的概率，供系统决定执行还是暂缓。其基于 Qwen3.8-27B 的版本中位延迟为 209 ms，Clef-flash 为 39 ms。Cloudflare 所称“不再需要人类在环”是供应商主张；更稳妥的用法是让它作为人类审批前的低成本第一道门。
+一个相关的基础能力是**决策模型**：它为一组固定答案评分，而不是生成文本，正适合门控场景。OpenAI 的 Decisions API（9 月 29 日限量预览，10 月 6 日进入 beta、10 月 22 日正式发布，使用 `gpt-6-luna`）可分类输入、路由请求或选择 agent 动作；Cloudflare 的 Clef（10 月 1 日发布，Apache 2.0）返回预设答案的概率，供系统决定执行还是暂缓。其基于 Qwen3.8-27B 的版本中位延迟为 209 ms，Clef-flash 为 39 ms（厂商报告）。Cloudflare 所称“不再需要人类在环”是供应商主张；更稳妥的用法是让它作为人类审批前的低成本第一道门。决策模型研究还报告了两种值得测试的失效模式：概率偏低，以及 agent 正确读取状态后仍采取错误动作（论文和定价见[研究雷达主题 16](../RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)）。因此应在标注流量上校准阈值，并验证动作本身，而不只验证分类结果。
 
 **AI 审批现在也能满足人类审批门槛。** 自 2026 年 9 月 1 日起，Copilot code review 提交的审批可计入仓库的必需审批规则（公开预览、默认关闭、按文件路径限定范围，且像人类审批一样会在新提交后失效）。如果变更也是由 agent 编写，再允许另一个模型的审批满足分支保护，两人规则就会变成无人参与的规则。涉及身份认证、支付、基础设施和 agent 自身配置的路径应保留至少一名人类审批者；只有错误合并容易回滚时，才让 AI 审批计数。
 
-**必须说明的限制**：权限分类器是便利层，不是隔离边界。Johann Rehberger 于 2026 年 8 月展示 auto-mode 绕过时，一条“混淆环境”攻击链在小样本的 5 次运行中成功了 3 或 4 次。据他的报告，Anthropic 回应称 auto mode 是依赖尽力而为分类器的便利功能，而非安全保证；真正的边界是操作系统隔离和网络出口控制。每道策略门都应配合[智能体安全](09-agentic-security-and-sandboxing.md)中的沙箱措施。
+**必须说明的限制**：权限分类器是便利层，不是隔离边界。Johann Rehberger 于 2026 年 8 月展示 auto-mode 绕过时，一条“混淆环境”攻击链在小样本的 5 次运行中成功了 3 或 4 次。据他的报告，Anthropic 回应称 auto mode 是依赖尽力而为分类器的便利功能，而非安全保证；真正的边界是操作系统隔离和网络出口控制。Anthropic 自己的红队测试（2026 年 10 月 22 日，厂商报告）发现，生产监控器未能阻止超过 55% 的攻击（见[智能体安全](09-agentic-security-and-sandboxing.md#隔离措施必须独立于-agent-运行环境)）。每道策略门都应配合该章节中的沙箱措施。
 
 ---
 
@@ -96,7 +96,7 @@
 我们为每个影响重大的步骤计算一个 **Uncertainty Score（不确定性分数）**。
 
 - 如果该分数超过阈值，agent 会**自动暂停**并向人类操作员发送通知。
-- **分数来源已经变化。** token logprobs 正从前沿 API 中消失（GPT-6 Astra 不提供 logprobs、temperature 或 top_p），而模型口述的置信度校准不佳。当前做法是使用独立、经过校准的评分器：决策模型或分类器针对一组固定结果（继续、询问、升级）返回概率，并通过标注案例调整暂缓阈值。
+- **分数来源已经变化。** token logprobs 正从前沿 API 中消失（GPT-6 Astra 不提供 logprobs、temperature 或 top_p；Anthropic API 版本 `2026-10-21` 则拒绝所有 Claude 模型上的 `temperature`、`top_p` 和 `top_k`），而模型口述的置信度校准不佳。当前做法是使用独立、经过校准的评分器：决策模型或分类器针对一组固定结果（继续、询问、升级）返回概率，并通过标注案例调整暂缓阈值。
 - **示例**：一个 agent 在尝试解决复杂账单争议时意识到用户意图含糊不清。它会停下来并说：*“我并不完全确定该如何处理这个特定的退款案例。请稍等，我去请一位人工专家来看一下。”*
 - **升级记录也是产品数据。** Anthropic 于 2026 年 9 月 30 日介绍其运行在 Claude Managed Agents 上的销售线索 agent：每段对话最后会走向结账、简短答复，或转交销售代表，并附上完整对话及转交原因。据 Anthropic 报告（供应商数据），从线索到商机的转化率提高了一倍多，成交时间缩短约五天，需要人工介入的对话占比大致减半。“原因”字段使升级队列成为反馈循环，而非单纯的待办堆积。
 
@@ -125,6 +125,9 @@
 - Claude Platform 发布说明（Managed Agents 自动权限策略，2026 年 9 月 10 日）。https://platform.claude.com/docs/en/release-notes/overview
 - Rehberger, J. “Breaking Claude Code Opus 5 Auto Mode”（Embrace The Red，2026 年 8 月）。https://embracethered.com/blog/posts/2026/breaking-claude-code-opus-5-and-automode/
 - Anthropic. “How Anthropic's sales team rebuilt inbound with Claude Managed Agents”（2026 年 9 月）。https://claude.com/blog/how-anthropics-sales-team-rebuilt-inbound-with-claude-managed-agents
+- Anthropic. “Red-teaming Auto Mode”（2026 年 10 月 22 日）。https://alignment.anthropic.com/2026/red-teaming-auto-mode/
+- OpenAI. “Decisions API” guide. https://developers.openai.com/api/docs/guides/decisions
+- Claude Code changelog（2.1.302 无头运行权限模式默认值，2026 年 10 月 16 日）。https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
 
 ---
 

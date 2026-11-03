@@ -1,6 +1,6 @@
 # LangSmith 可观测性
 
-2023 年，LLM 可观测性还只是“记录字符串”。如今，它是**完整轨迹调试**和**自动化评估流水线**；到 2026 年末，各平台正打通从追踪到评估再到微调的闭环。LangSmith 是 LangChain 原生的选择，位于拥挤的 **LLMOps** 层中，这一层还包括 Langfuse（自 2026 年 1 月起属于 ClickHouse；Python SDK 4.16.0）、LangWatch、Braintrust 和 Arize Phoenix（2026 年 10 月 1 日版本 20.19.0，采用 Elastic-2.0 许可证；Dynatrace 于 2026 年 8 月 13 日同意以 $915M 收购 Arize）。所有权变化如今也是选型标准：优先使用可接收 OpenTelemetry、并允许导出追踪和数据集的工具。
+2023 年，LLM 可观测性还只是“记录字符串”。如今，它是**完整轨迹调试**和**自动化评估流水线**；到 2026 年末，各平台正打通从追踪到评估再到微调的闭环。LangSmith 是 LangChain 原生的选择，位于拥挤的 **LLMOps** 层中，这一层还包括 Langfuse（自 2026 年 1 月起属于 ClickHouse；Python SDK 5.1.0 于 10 月 30 日发布，是 10 月 14 日以来的新主版本）、LangWatch、Braintrust 和 Arize Phoenix（采用 Elastic-2.0 许可证；Dynatrace 于 2026 年 10 月 1 日完成对 Arize 的 $915M 收购）。Phoenix 21.0.0（10 月 30 日）默认启用认证，因此自托管升级前须先配置认证。所有权变化如今也是选型标准：优先使用可接收 OpenTelemetry、并允许导出追踪和数据集的工具。
 
 ## 目录
 
@@ -9,7 +9,7 @@
 - [LLM 的单元测试（数据集）](#llm-的单元测试-数据集)
 - [自动化评估器（LLM 作为裁判）](#自动化评估器)
 - [部署管理：A/B 测试](#a-b-测试)
-- [2026 年 9 月的平台变化](#_2026-年-9-月的平台变化)
+- [平台变化：2026 年 9 至 10 月](#平台变化-2026-年-9-至-10-月)
 - [面试题](#面试题)
 - [参考资料](#参考资料)
 
@@ -59,14 +59,15 @@ LangSmith 支持线下**实验比较**和线上的变体标记。流量划分与
 
 ---
 
-## 2026 年 9 月的平台变化
+## 平台变化：2026 年 9 至 10 月
 
 | 变化 | 日期 | 设计含义 |
 |---|---|---|
 | 延长留存的 SaaS 追踪最多保留 **180 天** | 自 2026 年 9 月 14 日起 | SaaS 追踪存储不是审计日志。若合规要求更久留存，应导出到自有存储，或使用自托管/BYOC（规则未变） |
 | **LangSmith Fine-Tuning** 公开测试（`smithtune` CLI） | 2026 年 9 月 24 日 | 追踪轨迹可通过 Fireworks 或 Baseten 成为开放权重模型的 SFT 或 LoRA 运行，再评估与部署。值得关注，因为 OpenAI 正逐步结束自助微调（自 2027 年 1 月 6 日起，现有客户也不能创建新任务） |
 | **Engine v2** | 2026 年 9 月 24 至 25 日 | 生成红队假设，发现错误、延迟、成本趋势和重复工具调用，并在更广的评估集上验证修复建议。LangChain 称 Engine 现在使用的 usage credit 减少 40% |
-| SDK 发布节奏 | 2026 年 8 至 9 月 | `langsmith` 从 0.11.0（8 月 14 日）升至 0.14.2（9 月 30 日）：应像其他依赖一样固定版本 |
+| LangChain Standard Units（1 LSU = $1）的按用量计费，替代按运行次数和运行时长计价 | 2026 年 10 月 1 日 | 部署计算和追踪都按 LSU 计费（企业价格表中，可观测性与评估每条追踪为 0.0075 LSU），因此追踪量会成为预算项。可抽样记录高流量、低价值追踪，错误和金丝雀继续完整追踪；对所有流量启用在线评估器前重新核算成本 |
+| SDK 发布节奏 | 2026 年 8 至 10 月 | `langsmith` 从 0.11.0（8 月 14 日）升至 0.14.16（10 月 29 日），仅 10 月就发布 14 个版本：应像其他依赖一样固定版本 |
 
 ---
 
@@ -80,13 +81,14 @@ LangSmith 支持线下**实验比较**和线上的变体标记。流量划分与
 ### Q: 你如何证明像 LangSmith 这样的可观测性平台的成本是合理的？
 
 **强答：**
-这部分成本会被**开发者生产力**和**Token 效率**抵消。工程师仅靠“猜”模型为什么出错所耗费的一天成本，往往远高于每月订阅费。此外，通过 LangSmith 找出“游移型”agent（即步骤太多的 agent），我可以把图的平均步骤数从 8 优化到 5。由于每一步都会重发不断增长的上下文，输入 token 的减少幅度可能超过步骤数下降的 37.5%；当 agent 工作负载每输出一个 token 就消耗数百个输入 token 时，这很重要。我还会为评审者编列预算：如果每条 trace 都用 LLM 评审，其费用可能超过可观测性平台的席位费，因此默认用廉价决策模型覆盖 100% 流量，再抽样使用 LLM 评审者更合理。
+这部分成本会被**开发者生产力**和**Token 效率**抵消；LangSmith 自 2026 年 10 月 1 日起改为按用量计费，因此成本随追踪量变化，应按追踪数量核算，而非按席位核算。工程师仅靠“猜”模型为什么出错所耗费的一天成本，往往远高于每月订阅费。此外，通过 LangSmith 找出“游移型”agent（即步骤太多的 agent），我可以把图的平均步骤数从 8 优化到 5。由于每一步都会重发不断增长的上下文，输入 token 的减少幅度可能超过步骤数下降的 37.5%；当 agent 工作负载每输出一个 token 就消耗数百个输入 token 时，这很重要。我还会为评审者编列预算：如果每条 trace 都用 LLM 评审，其费用可能超过可观测性平台的席位费，因此默认用廉价决策模型覆盖 100% 流量，再抽样使用 LLM 评审者更合理。
 
 ---
 
 ## 参考资料
 - LangChain。“LangSmith Observability” 文档：https://docs.langchain.com/langsmith/home
 - LangChain。“LangSmith Engine, agents, fine-tuning and trajectories”（2026 年 9 月）：https://www.langchain.com/blog/langsmith-engine-agents-fine-tuning-trajectories
+- LangChain. LangSmith 计费说明（自 2026 年 10 月 1 日起按用量计费）：https://docs.langchain.com/langsmith/billing
 - Rao 与 Callison-Burch。“JEV vs. LLMs as Rubric Judges: Cheaper, Faster, and Wrong in the Same Places”（arXiv 2609.29769，2026 年 9 月）：https://arxiv.org/abs/2609.29769
 
 ---

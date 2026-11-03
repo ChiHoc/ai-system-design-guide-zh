@@ -77,13 +77,13 @@ Agent（智能体）是长期运行、具状态、会产生副作用的进程，
 
 ## 托管式智能体运行时：租用持久循环
 
-截至 2026 年 9 月，Anthropic 和 OpenAI 都把智能体运行框架本身作为内置持久会话的托管运行时出售（OpenAI 的 Agents API 于 9 月 10 日加入 Claude Managed Agents 的行列）；AWS 还在自有云中提供 OpenAI 的方案。这在“框架检查点”和“自行运行持久执行引擎”之外增加了第三种选择：租用循环。
+截至 2026 年 9 月，Anthropic 和 OpenAI 都把智能体运行框架本身作为内置持久会话的托管运行时出售（OpenAI 的 Agents API 于 9 月 10 日加入 Claude Managed Agents 的行列）；AWS 还在自有云中提供 OpenAI 的方案。这在“框架检查点”和“自行运行持久执行引擎”之外增加了第三种选择：租用循环。截至 2026 年 11 月上旬，下文三种托管 agent 运行时均未 GA，因此应把其 API、价格和合规条款视为 beta 条款。
 
-| 平台 | 状态（2026 年 10 月 1 日） | 持久性与控制功能 | 需核对的限制 |
+| 平台 | 状态（2026 年 11 月 2 日） | 持久性与控制功能 | 需核对的限制 |
 |----------|--------------------------|---------------------------------|----------------------|
-| **Claude Managed Agents** | 已发布 | 持久会话；达到 `budget_reached` 后暂停的会话硬预算（8 月 7 日）；通过 cron 定时部署（自 6 月 9 日起）；借助 `ant apply` 和已提交的 `claude-lock.json` 实现 agents-as-code（ant CLI 1.30.0，9 月 3 日）；服务器侧评估的自动权限策略和实时终端接入（9 月 10 日） | 按词元加运行时间每会话小时 $0.08 计费（空闲时间免费）；无 Batch 折扣 |
-| **OpenAI Agents API** | 公开 beta（9 月 10 日） | 托管 Codex 运行框架：持久会话、上下文压缩、恢复、子智能体委派、通过 HTTP 的 MCP 服务器、运行中引导；OpenAI 托管或自托管沙箱；托管浏览器的计算机使用（9 月 29 日） | 发布时仅支持美国数据驻留且无 Zero Data Retention；按模型、工具和容器计费（沙箱每 20 分钟会话 $0.03 至 $0.48） |
-| **Amazon Bedrock Managed Agents**（由 OpenAI 提供支持） | 预览（9 月 29 日） | 在 AWS 内运行的定制 OpenAI Agents API：逐智能体 IAM 角色、CloudTrail 日志、持久会话、重要操作前的人工审批 | 仅支持 us-east-1、us-east-2 和 us-west-2；预览期间不额外收费 |
+| **Claude Managed Agents** | Claude API 上为 beta（请求头 `managed-agents-2026-04-01`）；也可在 AWS 上通过 Claude Platform 使用；自 10 月 22 日起支持 Google Cloud 上的 Claude | 持久会话；达到 `budget_reached` 后暂停的会话硬预算（8 月 7 日）；通过 cron 定时部署（自 6 月 9 日起）；借助 `ant apply` 和已提交的 `claude-lock.json` 实现 agents-as-code（ant CLI 1.30.0，9 月 3 日）；服务器侧评估的自动权限策略和实时终端接入（9 月 10 日） | 按 token 加运行时间每会话小时 $0.08 计费（空闲时间免费）；无 Batch 折扣 |
+| **OpenAI Agents API** | 自 9 月 10 日起公开 beta；尚未宣布 GA | 托管 Codex 运行框架：持久会话、上下文压缩、恢复、子智能体委派、通过 HTTP 的 MCP 服务器、运行中引导；OpenAI 托管或自托管沙箱；托管浏览器的计算机使用（9 月 29 日） | 仅支持美国数据驻留，推出时不支持 Zero Data Retention；按模型、工具和容器收费（托管容器每 20 分钟 $0.03/1 GB 至 $1.92/64 GB，按分钟计费，最低 5 分钟）。自 10 月 9 日起，OpenAI 托管沙箱只在活跃轮次期间收取计算费用；轮次间空闲时间（如等待人工审批）不再计入沙箱时长，与 Claude 的运行时长计费方式一致 |
+| **Amazon Bedrock Managed Agents**（由 OpenAI 提供支持） | 自 9 月 29 日起公开预览 | 在 AWS 内运行的定制 OpenAI Agents API：逐智能体 IAM 角色、CloudTrail 日志、持久会话、重要操作前的人工审批 | 仅支持 us-east-1、us-east-2 和 us-west-2；预览期间不额外收费 |
 | **AWS AgentCore Runtime V2** | 9 月 18 日宣布 | 从已初始化智能体的快照恢复各实例；P75 冷启动约 2 秒，原运行时约 5.4 至 30 秒（AWS 报告） | 通过 `platformVersion` V2 主动启用；费率更高，但 GB 小时数大幅减少 |
 | **Microsoft Foundry Agent Service** | Routines 于 9 月 24 日 GA | 已发布智能体支持周期性、单次定时和事件触发 | 网络出站控制仍处预览 |
 

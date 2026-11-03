@@ -229,13 +229,13 @@ def top_p_sample(logits, p=0.9):
 
 | 提供商 | 变化内容 |
 |--------|----------|
-| Anthropic | 对 Claude Opus 4.7 及之后的所有 Claude 模型，Claude API 会对非默认的 `temperature`、`top_p` 或 `top_k` 返回 400。Python SDK 1.0（2026 年 8 月 20 日）从 Messages 方法签名中移除了这些参数，因此传入它们会触发 `TypeError`（旧模型仍可通过 `extra_body` 接收它们）。 |
+| Anthropic | 自 API 版本 `2026-10-21`（2026 年 10 月 21 日）起，所有 Claude 模型的 `temperature`、`top_p` 或 `top_k` 无论是否为默认值，都会返回 400；新的 SDK 主版本（Python 2.0.0、TypeScript 1.0.0、Go 2.0.0）默认发送该版本。此前，Claude 4.7 及后续模型仅对非默认值返回 400；Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法签名中移除这些参数。在 Bedrock 上，新版本仅适用于 Claude 4.7 及后续模型。 |
 | Google | Google 于 2026 年 7 月 21 日在 Gemini API 中弃用了 `temperature`、`top_p` 和 `top_k`。Gemini 3.8 Flash 用 `thinking_level`（`low`、默认的 `medium`、`high`）替代 `thinking_budget`。 |
 | OpenAI | GPT-6 Astra（2026 年 9 月 3 日）不接受自定义 `temperature` 或 `top_p`，也不返回 logprobs。 |
 
 现在的控制面是**推理强度（reasoning effort）**（或 thinking level），而不是采样器。这带来的变化包括：
-- **确定性**：将 `temperature=0` 用于“可复现性”的代码现在会失效或正逐步淘汰（Claude API 返回 400、Anthropic Python SDK 1.0 抛出 `TypeError`、GPT-6 Astra 不支持、Gemini 已弃用），而且它本来也无法保证逐位完全一致的输出。批量 GPU 服务、MoE 路由和浮点归约顺序会使每次运行的输出发生变化，除非引擎以牺牲部分吞吐量为代价运行确定性、批次无关模式。
-- **置信度信号**：基于 logprob 的路由、弃答或人工升级评分在 Astra 上不可用。应改用校准后的分类器、验证器轮次或结构化自我评估。
+- **确定性**：将 `temperature=0` 用于“可复现性”的代码现在会失效或正逐步淘汰（当前 API 版本下所有 Claude 模型都会返回 400、GPT-6 Astra 不支持、Gemini 已弃用），而且它本来也无法保证逐位完全一致的输出。批量 GPU 服务、MoE 路由和浮点归约顺序会使每次运行的输出发生变化，除非引擎以牺牲部分吞吐量为代价运行确定性、批次无关模式。
+- **置信度信号**：基于 logprob 的路由、弃答或人工升级评分在 Astra 上不可用。应改用校准后的分类器、验证器轮次或结构化自我评估，也可使用能返回带概率的类型化答案的决策模型（OpenAI Decisions API，或 vLLM 与 SGLang 的原生端点；见[研究雷达主题 16](../RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)）。应使用自己的数据校准概率：早期研究发现决策模型会低估置信度。
 - **多样性**：best-of-n 的多样性现在来自 prompt 变化、不同模型或提供商自身的采样，而非提高 temperature。
 - **抽象层**：当切换到这些模型时，硬编码采样参数的封装会失效。应将提供商特定参数置于轻量、按模型区分的配置之后。
 
@@ -373,8 +373,8 @@ TPS = (total_tokens - 1) / (total_time - TTFT)
 ### 速度是定价档位
 
 提供商现在将速度作为独立于模型的商品出售：
-- **OpenAI**：Fast 档位（2026 年 7 月 30 日由 Priority 更名）为 Standard 的 2 倍（GPT-5.5 为 2.5 倍）；Ultrafast 为 6 倍，自 2026 年 9 月 29 日起在 GPT-6 Astra 上正式可用。面向部分客户预览的 GPT-5.6 Sol Ultrafast 运行在 Cerebras 上，输出速度最高可达 750 tok/s。
-- **Anthropic**：Claude Opus 5.5 的 fast mode 售价为每 1M token $8/$40（标准档位的 2 倍），仅作为 Claude API 的研究预览提供。
+- **OpenAI**：Fast 档位（2026 年 7 月 30 日由 Priority 更名）为 Standard 的 2 倍（GPT-5.5 为 2.5 倍）；Ultrafast 为 6 倍，自 2026 年 9 月 29 日起在 GPT-6 Astra 上正式可用，并自 10 月 8 日起向所有 API 用户开放 GPT-6.1 Sol（每 1M token $12/$60）。OpenAI 还面向部分客户预览了运行于 Cerebras、输出速度最高可达 750 tok/s 的 GPT-5.6 Sol Ultrafast。
+- **Anthropic**：Claude Opus 5.5 的 fast mode 售价为每 1M token $8/$40（标准档位的 2 倍），于 10 月 15 日结束研究预览，现已在 Claude API、Google Cloud 上由 Anthropic 管理的 Claude Models，以及 Azure 托管的 Foundry 部署中提供。
 - **扩散语言模型（Diffusion LMs）**以并行细化代替逐 token decode：Inception 报告 Mercury 2.5 在 NVIDIA GPU 上达到 1,107 tok/s，标价为每 1M token $0.20/$0.75。
 
 延迟现在是路由维度：将面向用户的轮次发送到快速档位，将后台 agent 步骤发送到 Standard 或 Batch。
@@ -405,7 +405,7 @@ Throughput = concurrent_requests * TPS / average_output_tokens
 
 峰值吞吐量和 batch=1 速度单独看都会误导。**有效吞吐量（goodput）**是在同一时间满足 TTFT 和 ITL SLO 的请求速率。比较引擎或加速器时，应在你的 SLO 下、以符合自身流量形态的负载比较**吞吐量与交互性帕累托曲线**。
 
-SemiAnalysis 的 AgentX 场景（多轮、长上下文且前缀复用率高的 agent 流量）显示了运行点的重要性。对于 DeepSeek V4 Pro，它报告 Vera Rubin NVL72 在每用户 170 tok/s、按自有成本假设计算时，每单位 TCO 的吞吐量约为 GB300 的 67 倍；但在每用户 80 tok/s 的 P90 SLA、3 年租赁定价下，仅比 GB300 NVL72 多 62% 的 token（分析师报告）。相同硬件、相同模型，根据选取的交互性目标和成本口径不同，既可以得出 67 倍的标题数字，也可以得出 1.6 倍的结果。接受任何加速器宣称前，都应索取两者。
+SemiAnalysis 的 AgentX 场景（多轮、长上下文且前缀复用率高的 agent 流量）显示了运行点的重要性。对于 DeepSeek V4 Pro，它报告 Vera Rubin NVL72 在每用户 170 tok/s、按自有成本假设计算时，每单位 TCO 的吞吐量约为 GB300 的 67 倍；但在每用户 80 tok/s 的 P90 SLA、3 年租赁定价下，仅比 GB300 NVL72 多 62% 的 token（分析师报告）。相同硬件、相同模型，根据选取的交互性目标和成本口径不同，既可以得出 67 倍的标题数字，也可以得出 1.6 倍的结果。首次独立测试 Artificial Analysis 的 AA-AgentPerf（2026 年 10 月 15 日）测得 Rubin 每兆瓦峰值吞吐量仅为 GB300 的 1.14 至 1.45 倍，具体取决于模型；只有在每用户速度较高时优势才更大。接受任何加速器宣称前，应索取完整曲线并确认测量方。
 
 ---
 
@@ -542,7 +542,7 @@ responses = model.generate_batch(batch)
 缓存公共前缀的 KV 张量（system prompts、工具定义、few-shot 示例、先前 agent 轮次）。
 - **TTFT 降低**：跳过共享前缀的 prefill，因此节省量随其占 prompt 的比例增长。具有长而稳定前缀的 agent 循环获益最大。
 - **机制**：vLLM 将固定大小的 KV 块哈希为一条由此前所有内容确定的链；SGLang 则将前缀存入基数树。被驱逐的块可沿层级链向下溢出：GPU HBM、主机 DRAM、磁盘、对象存储或对等节点。
-- **安全性**：共享前缀缓存是跨租户时序侧信道，因为命中比未命中返回得更快。应按租户为缓存键加盐（vLLM `cache_salt`），并保持引擎更新：已在 0.30.0 修复的 vLLM 公告 GHSA-935w-9g4m-p28p 发现，一个 API 路径上的工具续接轮次会丢失盐值。应将 vLLM 0.30.0 视为最低版本；2026 年 8—9 月的公告潮还包括单请求杀死引擎和模型加载 RCE（均已在 0.28.0 修复）。
+- **安全性**：共享前缀缓存是跨租户时序侧信道，因为命中比未命中返回得更快。应按租户为缓存键加盐（vLLM `cache_salt`），并保持引擎更新：已在 0.30.0 修复的 vLLM 公告 GHSA-935w-9g4m-p28p 发现，一个 API 路径上的工具续接轮次会丢失盐值。应将 vLLM 0.32.0 视为最低版本；2026 年 8—9 月的公告潮还包括单请求杀死引擎和模型加载 RCE（均已在 0.28.0 修复），10 月的 0.31.0 和 0.32.0 修复了 `/health` 仍显示健康时的生成卡死和通向 Ghostscript 的图像解码路径。
 
 ### 多 LoRA 服务（Multi-LoRA Serving）
 
@@ -618,11 +618,12 @@ class RequestMetrics:
     cost_usd: float
 
 def calculate_cost(metrics: RequestMetrics) -> float:
-    # USD per 1M tokens, standard tier list prices as of October 2026.
-    # Ignores cache-write premiums, batch discounts and long-context surcharges.
+    # USD per 1M tokens, standard tier list prices as of November 2026.
+    # Ignores cache-write premiums, batch discounts and long-context surcharges
+    # (OpenAI above 272K input; Claude Haiku 5.5 above a 100K-token prompt).
     pricing = {
         "gpt-6-sol": {"input": 2.00, "cached": 0.20, "output": 10.00},
-        "claude-sonnet-5-5": {"input": 2.00, "cached": 0.20, "output": 10.00},
+        "claude-sonnet-5-5": {"input": 2.00, "cached": 0.10, "output": 10.00},
     }
     rates = pricing[metrics.model]
     return (
@@ -684,7 +685,7 @@ LLM 推理有两个截然不同的阶段：
 
 关键洞察是二者协同工作。temperature 改变分布形状，top-p 截断分布。
 
-2026 年的注意事项：许多托管推理模型已不再接受这些参数（Claude API 自 Opus 4.7 起拒绝非默认值、Google 于 2026 年 7 月在 Gemini API 中弃用它们、GPT-6 Astra 不支持它们）。在这些模型上，推理强度是主要调节项，采样器设置由提供商决定。上表仍适用于自托管引擎。
+2026 年的注意事项：许多托管推理模型已不再接受这些参数（API 版本 `2026-10-21` 下 Claude API 对所有模型都拒绝这些参数，即使是默认值；Google 于 2026 年 7 月在 Gemini API 中弃用它们；GPT-6 Astra 不支持它们）。在这些模型上，推理强度是主要调节项，采样器设置由提供商决定。上表仍适用于自托管引擎。
 
 ### 问：当 API 不再接受 temperature 时，如何获得可复现输出？
 

@@ -159,7 +159,7 @@
 | **[Zep + Graphiti](https://github.com/getzep/graphiti)** | 当“它是什么时候变成真的？”很重要的时间性事实 | 开源时间知识图谱。每条事实边包含两条时间线：`valid_at` / `invalid_at`（事实在真实世界中何时成立）和 `created_at` / `expired_at`（图何时记录它、何时取代它）。在 DMR 上以 94.8% 对 93.4% 超过 MemGPT。双时态查询可区分“3 月 12 日我们相信什么？”与“现在什么是真的？”。 | 写入路径比纯向量存储更重（图提取、去重、冲突解决）。 |
 | **[LangMem + LangGraph](https://langchain-ai.github.io/langmem/)** | 当你想要用 LangGraph 编排所有四种记忆类型 | 支持情景、语义，*以及*程序记忆。LangMem 中的程序记忆允许代理根据反馈更新自己的系统提示词。后台提取异步运行。 | 绑定 LangGraph；如果你不在 LangChain 技术栈上，它吸引力较低。 |
 | **[OpenAI ChatGPT 记忆](https://openai.com/index/memory-and-new-controls-for-chatgpt/)** | 消费级聊天连续性，而非生产级代理记忆 | 双层架构：显式“已保存记忆”加上轻量级会话摘要预注入上下文。在推理时跳过检索步骤，因此延迟更低。 | 相比 Mem0 风格检索，精度更差。没有用于企业集成的细粒度程序化 API。 |
-| **Cursor / Windsurf** | 面向软件工程代理的、具备代码库感知的 L2/L3 | 在项目打开时对代码库建立索引；用 `@` 提及来显式引入上下文。Windsurf 的“Memories”在约 48 小时使用后学习架构模式。 | 领域被代码锁定。不是通用记忆层。 |
+| **Cursor / Devin Desktop（原 Windsurf）** | 面向软件工程代理的、具备代码库感知的 L2/L3 | 在项目打开时对代码库建立索引；用 `@` 提及来显式引入上下文。移除 Cascade 时，Windsurf 自动生成的 Cascade “Memories”成为迁移项目（2026 年 9 月）：向导会将其迁移到 Devin Local，此后它是 Devin Desktop 唯一的 agent。 | 领域被代码锁定。不是通用记忆层；产品变动也说明你依赖的记忆应可导出。 |
 | **[Cognition Devin](https://cognition.ai/blog/devin-sonnet-4-5-lessons-and-challenges)** | 以仓库为作用域的工程代理 | 仓库 wiki 每隔数小时自动索引；更偏好显式压缩/总结，而非由模型管理状态。Devin Search 是一个代理式代码库记忆查询接口。 | 对工程工作流有强意见。 |
 
 **Generative Agents（Park 等人 2023）** 仍然是每篇综述都会引用的参考架构。近期性 / 重要性 / 相关性的检索公式（`alpha_recency * recency + alpha_importance * importance + alpha_relevance * relevance`，各项都归一化到 [0,1]，其中重要性由 LLM 评为 1-10）至今仍在上述大多数系统中用于生产。
@@ -267,7 +267,7 @@ agent 推断出一个事实，把它存成 ground truth（事实真值），随�
 ### 问：为什么仅靠 “Context Window（上下文窗口）” 对 staff-level Agent architecture（团队级智能体架构）来说不够？
 
 **强答案：**
-第一是**成本和延迟**：缓存读取如今只按基础输入价的 0.025 至 0.1 倍计费，因此完整缓存的 100 万词元前缀不再贵得离谱（按当前 Claude 模型约每轮 $0.20 至 $0.25：Opus 5.5 和 Sonnet 5.5 每百万缓存词元 $0.20，Fable 5.1 为 $0.25）。但缓存未命中时仍按全价计费，OpenAI 的输入一旦超过 272K 就对整个请求按长上下文价格计费，而预填充延迟仍随长度增加。第二是**信噪比**：大上下文会出现上下文腐化，模型被无关历史分散注意力；MemTrapBench 更表明，即使是相关记忆也可能扭曲推理。staff-level 架构会使用**选择性记忆检索**（基于历史的 RAG）只拉取 3 至 5 条最相关的历史交互，让推理引擎专注于当前子目标。
+第一是**成本和延迟**：缓存读取如今只按基础输入价的 0.025 至 0.1 倍计费，因此完整缓存的 100 万词元前缀不再贵得离谱（按当前 Claude 模型约每轮 $0.10 至 $0.25：Sonnet 5.5 自 10 月 7 日起每百万缓存词元 $0.10，Opus 5.5 为 $0.20，Fable 5.1 为 $0.25）。但缓存未命中时仍按全价计费，OpenAI 的输入一旦超过 272K 就对整个请求按长上下文价格计费；Claude Haiku 5.5 的提示超过 100K token（含缓存读写）后，整个请求按 5 倍计费；预填充延迟也仍随长度增加。第二是**信噪比**：大上下文会出现上下文腐化，模型被无关历史分散注意力；MemTrapBench 更表明，即使是相关记忆也可能扭曲推理。staff-level 架构会使用**选择性记忆检索**（基于历史的 RAG）只拉取 3 至 5 条最相关的历史交互，让推理引擎专注于当前子目标。
 
 ### 问：你会如何为生产级 AI agent 设计 procedural memory（程序性记忆）？
 

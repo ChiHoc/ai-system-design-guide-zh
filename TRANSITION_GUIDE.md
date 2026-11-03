@@ -365,7 +365,7 @@ DevOps / Platform Engineer
 #### 你的 90 天计划
 
 **第 1 个月：LLM 服务**
-- 部署 vLLM 0.30.0 或之后版本（2026 年 8 月和 9 月超过 20 项安全公告后的当前安全下限，包括模型加载远程代码执行缺陷），服务 IBM Granite 4.2 8B 等小型 Apache-2.0 模型
+- 部署 vLLM 0.32.0 或之后版本（2026 年 10 月 18 日起的安全下限：0.30.0 修复了 8 月和 9 月超过 20 项安全公告，包括模型加载远程代码执行缺陷；0.32.0 修复了影响该版本的两项 10 月 CVE。注意 0.32.0 需要 Python 3.11，且默认不再允许所有 CORS 源），服务 IBM Granite 4.2 8B 等小型 Apache-2.0 模型
 - 添加 Prometheus 指标：tokens/sec、延迟 P50/P95/P99、队列深度
 - 基于请求队列设置 auto-scaling（自动扩缩容）
 - 阅读此仓库：[04-inference-optimization](04-inference-optimization/)、[11-infrastructure-and-mlops](11-infrastructure-and-mlops/)
@@ -541,7 +541,7 @@ EM              6–12 mo      $200–280K    AI Engineering Manager
 1. **GitHub 作品集**：一个打磨完善的端到端项目胜过 10 个玩具项目
 2. **写一篇博客文章**：描述你解决过的一个真实问题以及解决方式（错误分析、评估流水线、RAG 延迟修复）
 3. **为开源做贡献**：OpenHands、LlamaIndex、DSPy、RAGAS。即使是文档 PR 也能让你被注意到。
-4. **使用本仓库的面试准备材料**：[00-interview-prep/01-question-bank.md](00-interview-prep/01-question-bank.md) 包含 147 道题，并配有高质量答案
+4. **使用本仓库的面试准备材料**：[00-interview-prep/01-question-bank.md](00-interview-prep/01-question-bank.md) 包含 155 道题，并配有高质量答案
 5. **找一次模拟面试或一位导师**：和坐过面试官席位的人一起，职业转型会更快。Om 在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 和 [Topmate](https://topmate.io/ombharatiya) 提供 1:1 AI 系统设计模拟面试与转型指导
 
 **面试中该说什么：**

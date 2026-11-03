@@ -2,7 +2,7 @@
 
 LangChain 早已不再只是一个“提示库（prompting library）”。它已经发展为一个用于构建生产级 LLM 应用的**模块化生态系统**。LangGraph（它在 2025 年 10 月升级到 v1.0，并且是所有 LangChain agent 的默认运行时）负责有状态编排。**LCEL（LangChain Expression Language，LangChain 表达式语言）** 仍然是构建可组合链路最快的方式。
 
-版本快照及发布日期（这些数字每月都在变化）：`langchain` 1.4.3（2026 年 9 月 28 日）、`langchain-core` 1.6.6（9 月 29 日）、`langgraph` 1.2.12（9 月 21 日）。JS 端截至 2026 年 10 月 1 日分别是 `langchain` 1.5.15、`@langchain/core` 1.2.14 和 `@langchain/langgraph` 1.4.18。
+版本快照及发布日期（这些数字每月都在变化）：`langchain` 1.4.7（2026 年 10 月 21 日）、`langchain-core` 1.7.3（10 月 29 日）、`langgraph` 1.2.19（10 月 30 日）。JS 端 `langchain` 1.6.0（10 月 28 日）、`@langchain/core` 1.3.2（10 月 29 日）和 `@langchain/langgraph` 1.6.0（10 月 30 日）。
 
 ## 目录
 
@@ -129,7 +129,7 @@ const CreateInvoice = v.object({
 });
 
 const llm = new ChatAnthropic({ model: "claude-sonnet-5-5" });
-// @langchain/anthropic (1.5.12) still defaults to a forced tool call, which
+// @langchain/anthropic defaulted to a forced tool call as of 1.5.12, which
 // Fable 5.1, Opus 5.5 and Sonnet 5.5 reject with a 400: ask for native JSON-schema output.
 const structured = llm.withStructuredOutput(toJsonSchema(CreateInvoice), {
   method: "jsonSchema",
@@ -163,6 +163,7 @@ flowchart TD
 - 工具装饰器应从 `langchain_core.tools` 导入，而不是 `langchain.tools`。
 - 依赖 Pydantic v1 的输出解析器必须迁移。`langchain-core` v1.0 已移除了 v1 兼容层（[发布说明](https://github.com/langchain-ai/langchain/releases/tag/langchain-core%3D%3D1.0.0)）。
 - `langchain-core` 1.6.4（2026 年 9 月 21 日）将聊天消息历史类标记为弃用。对话状态应存放在 LangGraph 检查点存储中。
+- `langchain-core` 1.7.0（2026 年 10 月 22 日）和 `@langchain/core` 1.3.0 会把工具调用参数作为 `tool-call-delta` 增量片段发送，而非截至当前的完整快照。`.tool_calls` 和组装后的消息保持不变，但在调用期间读取原始流事件的代码（包括自定义流转换器和较旧的 LangGraph SDK 客户端）必须先更新；要暂缓升级，可固定 `langchain-core<1.7`（或 `@langchain/core<1.3.0`）。
 - 导入 `langchain-mcp-adapters` 的代码可在 1.4+ 上迁移到 `langchain.mcp`；在完成与自有服务器的引导和认证流程测试前，应继续固定适配器版本。
 
 ---
@@ -182,7 +183,7 @@ LCEL 提供了**自动流式输出和并行化**。在传统 Python chain 中，
 ### 问：一个结构化抽取链在 Claude Opus 5 上正常工作，但团队切换模型 ID 到 Opus 5.5 后开始返回 HTTP 400。原因是什么，如何修复？
 
 **强答案：**
-这个链几乎肯定是通过**强制工具调用**（类型为 `tool` 或 `any` 的 `tool_choice`）获取结构化输出；过去两年这一直是框架的常用技巧。Fable 5.1、Opus 5.5 和 Sonnet 5.5 对强制工具选择返回 400，而 Opus 5.5 的 thinking 也无法关闭。立即修复方法是升级 `langchain-anthropic`（1.7.3 为 Fable 和 Opus 5.5 将 `with_structured_output` 改路由到原生 JSON Schema 输出，1.7.5 加入 Sonnet 5.5），或显式调用 `with_structured_output(..., method="json_schema")`。显式写法更稳妥，因为并非所有集成都自动改路由：JS 的 `@langchain/anthropic` 仍默认强制工具调用，因此必须自行传入 `method: "jsonSchema"`。流程修复更重要：模型 ID 也是依赖，模型切换应经过与包升级相同的评估门槛，并在修改模型 ID **之前**升级合作伙伴包。我还会搜索代码库里写死的 `temperature` 和 `tool_choice`，因为 GPT-6 Astra 与 Anthropic Python SDK 1.x 也拒绝或移除了采样参数。
+这个链几乎肯定是通过**强制工具调用**（类型为 `tool` 或 `any` 的 `tool_choice`）获取结构化输出；过去两年这一直是框架的常用技巧。Fable 5.1、Opus 5.5 和 Sonnet 5.5 对强制工具选择返回 400，而 Opus 5.5 的 thinking 也无法关闭。立即修复方法是升级 `langchain-anthropic`（1.7.3 为 Fable 和 Opus 5.5 将 `with_structured_output` 改路由到原生 JSON Schema 输出，1.7.5 加入 Sonnet 5.5），或显式调用 `with_structured_output(..., method="json_schema")`。显式写法更稳妥，因为并非所有集成都自动改路由：JS 的 `@langchain/anthropic` 在 1.5.12 版本时默认强制工具调用，因此必须自行传入 `method: "jsonSchema"`。流程修复更重要：模型 ID 也是依赖，模型切换应经过与包升级相同的评估门槛，并在修改模型 ID **之前**升级合作伙伴包。我还会搜索代码库里写死的 `temperature` 和 `tool_choice`，因为 GPT-6 Astra 拒绝自定义采样参数，Anthropic API 版本 `2026-10-21`（10 月 SDK 主版本默认使用）起，所有 Claude 模型上的 `temperature`、`top_p` 和 `top_k` 即使使用默认值也会返回 400。
 
 ---
 

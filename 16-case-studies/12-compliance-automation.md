@@ -71,7 +71,7 @@ claims = extract_claims(document)
 
 然后再将每个主张独立与相关法规进行检查。
 
-主张列表应通过结构化输出（JSON schema）生成，而不是强制工具调用：在最新 Claude 模型（Fable 5.1、Opus 5.5、Sonnet 5.5）上，将 `tool_choice` 设为 `any` 或指定工具会返回 HTTP 400，使为旧模型编写的提取代码失效。
+主张列表应通过结构化输出（JSON schema）生成，而不是强制工具调用：在 Opus 5.5、Sonnet 5.5 和 Fable/Mythos 5.1 上，将 `tool_choice` 设为 `any` 或指定工具会返回 HTTP 400，使为旧模型编写的提取代码失效（Haiku 5.5 接受该设置但会跳过思考）。
 
 ### 2. 为什么法规用 RAG（检索增强生成）而不是微调？
 

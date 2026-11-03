@@ -240,9 +240,10 @@ def retrieve(query: str, user_id: str, top_k: int = 20) -> List[Chunk]:
 **3. 重排序：**
 ```
 Rerank top-20 to get top-5 with a cross-encoder.
-Model: a hosted 32K-context reranker (Cohere Rerank 4 Fast, Voyage
-rerank-3) or self-hosted bge-reranker-v2-m3 (multilingual, open
-weights); verify on Spanish and Mandarin queries before choosing
+Model: a hosted 32K-context reranker, Cohere Rerank 5 (Pro $0.05,
+Fast $0.02 per 1M tokens) or Voyage rerank-3, or self-hosted
+bge-reranker-v2-m3 (multilingual, open weights); verify on Spanish
+and Mandarin queries before choosing
 Latency budget: ~150ms (matches the p95 budget below)
 ```
 
@@ -270,6 +271,8 @@ QUESTION: {query}
     
     return format_with_source_links(response, chunks)
 ```
+
+这里不设置 `temperature`：Claude API 版本 `2026-10-21` 对所有模型的任何采样参数，即使为默认值，也返回 400；GPT-6 Astra 也不接受这些参数。依据来自提示词、检索和引用检查，而非采样设置。
 
 #### 扩展性与可靠性
 
@@ -1003,7 +1006,7 @@ Refresh: quarterly, sampled from recent traffic; archive old sets
 **2. 评分设计：**
 
 - 每个维度（忠实度、完整性、语气、安全性）使用二元通过/失败，而不是 1-5 分量表。二元决策可复现；Likert 量表会漂移。
-- 为了规模化使用 LLM-as-judge（以大模型充当评审）：一个廉价模型（GPT-6 Luna、Gemini 3.8 Flash、Claude Haiku 4.5），配合每个维度的 rubric 和 few-shot 锚点示例。
+- 为了规模化使用 LLM-as-judge（以大模型充当评审）：一个廉价模型（GPT-6 Luna、Gemini 3.8 Flash、Claude Haiku 5.5），配合每个维度的 rubric 和 few-shot 锚点示例。由于这些维度是二元的，决策模型（如 OpenAI Decisions API；见[决策模型](../RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)）可为明确的判断提供更低成本的选择。它不提供理由，且其概率与任何裁判一样需要以人工评分样本校准。
 - judge 校准：每月与人工评分切片做一致性检查。judge-human 一致性本身就是仪表盘指标；低于 85% 一致性时，先修正 judge 提示词，再讨论任何产品结论。
 
 **3. CI 门禁：**
@@ -1042,7 +1045,7 @@ dominant cost and it is what keeps the judge honest.
 
 **6. 评估资产留存：**
 
-将数据集、评分量规、评审提示词和门禁阈值保存在自有仓库中，把托管评估平台视为可替换的运行器。OpenAI 托管的 Evals 将于 2026 年 10 月 31 日转为只读，并于 11 月 30 日关闭；OpenAI 建议用户迁移至其在 2026 年 3 月同意收购的 Promptfoo。LangSmith SaaS 自 2026 年 9 月 14 日起最多只保留 180 天的扩展留存追踪数据。要维持跨季度趋势线，必须使用自己可控的存储。
+将数据集、评分量规、评审提示词和门禁阈值保存在自有仓库中，把托管评估平台视为可替换的运行器。OpenAI 托管的 Evals 将于 2026 年 11 月 30 日关闭；OpenAI 建议用户迁移至现属 OpenAI、仍采用 MIT 许可的 Promptfoo。LangSmith SaaS 自 2026 年 9 月 14 日起最多只保留 180 天的扩展留存追踪数据。要维持跨季度趋势线，必须使用自己可控的存储。
 
 ### 强候选人的区别点
 
@@ -1249,7 +1252,7 @@ p50 和 p99 的 TTFT 与 token 间延迟、队列等待时间、批次占用率�
 - 他们会限制队列，并说明过载时客户端会看到什么。
 - 他们报告的是符合 SLO 时的 goodput，而非峰值吞吐量。
 - 他们会说生产中将运行 vLLM 或 SGLang，因为两者都已实现连续批处理和分页 KV；并通过面试展示自己理解这些引擎在做什么。
-- 他们会将引擎视为命运共同体领域。输入在到达 GPU 前就会经过校验：在修复前，向 vLLM 的嵌入端点发送一个带负 token ID 的未认证请求，会令所有客户端的引擎崩溃，直至重启（CVE-2026-93592，已在 v0.28.0 修复）。共享前缀缓存还是跨租户侧信道，因此应按租户为缓存键加盐（vLLM 的 `cache_salt`），并保持引擎已打补丁（v0.30.0 修复了一条会丢弃该盐值、重新打开前缀缓存成员关系预言机的路径）。
+- 他们会将引擎视为命运共同体领域。输入在到达 GPU 前就会经过校验：在修复前，向 vLLM 的嵌入端点发送一个带负 token ID 的未认证请求，会令所有客户端的引擎崩溃，直至重启（CVE-2026-93592，已在 v0.28.0 修复）。共享前缀缓存还是跨租户侧信道，因此应按租户为缓存键加盐（vLLM 的 `cache_salt`），并保持引擎已打补丁（v0.30.0 修复了一条会丢弃该盐值、重新打开前缀缓存成员关系预言机的路径；v0.32.0 为当前最低安全版本）。
 
 **相关练习提示词**（由准备服务商 Aced，原 Exponent，根据 Anthropic 和 OpenAI 面试流程中的候选人报告整理；未经公司确认）：GPU 积分或配额计费系统、从一个带宽受限源向数千台机器点对点分发大型文件（例如模型权重），以及每秒 100,000 请求的 token 生成服务。采用相同的方法：澄清工作负载，找到瓶颈资源，限制队列，并按 SLO 衡量。
 

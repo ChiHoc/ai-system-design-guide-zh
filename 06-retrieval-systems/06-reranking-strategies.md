@@ -1,6 +1,6 @@
 # 重排序策略
 
-Reranking（重排序）是检索的第二阶段，使用高精度模型对一小组候选结果（Top 50-100）重新打分。它是“高效搜索（efficient search）”与“完美 grounding（事实对齐）”之间的桥梁：第一阶段检索优化召回率（recall），重排序优化精确率（precision）。截至 2026 年 10 月，生产中常见的托管方案有 Cohere Rerank 4（Fast 和 Pro）、Voyage rerank-3 / rerank-3-lite；开放权重方案有 Qwen3-Reranker 和 bge-reranker-v2-m3。选择取决于成本模式、尾部延迟、上下文长度、语言覆盖、许可证，以及是否需要自行托管权重。
+Reranking（重排序）是检索的第二阶段，使用高精度模型对一小组候选结果（Top 50-100）重新打分。它是“高效搜索（efficient search）”与“完美 grounding（事实对齐）”之间的桥梁：第一阶段检索优化召回率（recall），重排序优化精确率（precision）。常见的生产托管方案包括 Cohere Rerank 5（Fast 和 Pro，2026 年 10 月正式发布）以及 Voyage rerank-3 / rerank-3-lite，两者价格相同，分别为每 1M token $0.02 和 $0.05；开放权重方案有 Qwen3-Reranker 和 bge-reranker-v2-m3。选择取决于成本模式、尾部延迟、上下文长度、语言覆盖、许可证，以及是否需要自行托管权重。
 
 ## 目录
 
@@ -123,14 +123,16 @@ Stage 3: Cross-encoder      -> Top 10
 | ms-marco-MiniLM-L-6 | 22M，开放权重 | 512 | Apache 2.0 | 英语，适合 CPU 的基线 |
 | bge-reranker-base | 278M，开放权重 | 512 | MIT | 英语 |
 | **bge-reranker-v2-m3** | 568M，开放权重 | 模型卡示例中为 512（基础模型为 8K） | Apache 2.0 | 多语言常用模型 |
-| **Cohere Rerank 4**（`rerank-v4.0-fast` / `-pro`） | API | 32K | 按用量付费的 API | 2025 年 12 月宣布；继任 Rerank 3.5（4,096 token 上下文） |
+| **Cohere Rerank 5**（`rerank-v5.0-pro` / `-fast`） | API，仅文本 | 32K | Pro 每 1M token $0.05 / Fast 每 1M token $0.02 | 2026 年 10 月 21 日正式发布。分数经过校准，可解读为文档有用的概率；Context Focus 会返回文档内部带分数的片段。Rerank 4（`rerank-v4.0-pro` / `-fast`，32K）和 Rerank 3.5（4K）仍在列 |
 | **Voyage rerank-3 / rerank-3-lite** | API | 32K | 每 1M token $0.05 / $0.02 | 2026 年 9 月 30 日发布；价格和 API 与 rerank-2.5 相同，基于 2.5 调整的分数阈值仍可用 |
 | **Qwen3-Reranker-8B** | 8B，开放权重 | 32K | Apache 2.0 | 表现强的开放权重文本重排序器（2025 年 6 月） |
 | **Qwen3-VL-Reranker-2B / 8B** | 开放权重 | 32K | Apache 2.0 | 多模态（文本、图像、页面截图），2026 年 1 月 |
 | jina-reranker-v3.5 | 0.6B，开放权重 | 长上下文 | CC BY-NC 4.0（非商业） | 基于 Qwen3-0.6B 的列表式重排序器；商业用途需通过 Jina API 或另行取得许可 |
 | LightOn-rerank | 0.8B / 2B / 4B，开放权重 | 长上下文 | 查看模型卡 | 基于 Qwen3.5 的逐点式和列表式变体（2026 年 7 月） |
 
-Voyage 报告称，rerank-3 相比 rerank-2.5 总体提升 0.96%、长文档提升 3.35%；相比 Cohere Rerank v4.0 Pro 总体提升 2.72%、长文档提升 13.84%（供应商自报，涵盖 95 个数据集及 MAIR）。这些数字更适合用来判断增益集中在哪些场景（长文档与遵循指令的相关性），不宜当作中立排名。
+Voyage 报告称，rerank-3 相比 rerank-2.5 总体提升 0.96%、长文档提升 3.35%；相比 Cohere Rerank v4.0 Pro 总体提升 2.72%、长文档提升 13.84%（供应商自报，涵盖 95 个数据集及 MAIR）。三周后，Cohere 报告称 Rerank 5 Pro 在 BRIGHT 上得分 82.2，比 Voyage rerank-3 高 5.8 分，比其自家 Rerank 4 Pro 高 12.4 分（厂商报告）。各家都在自己的评测中胜出。应将两组结果都视为增益方向的信号（长文档、推理密集型任务和遵循指令的相关性），不宜当作中立排名。
+
+**校准后的分数会改变候选筛选方式。** Cohere 报告称，Rerank 5 的预期校准误差约为 0.06，而 Rerank 4 Pro 为 0.38、Voyage rerank-3 为 0.23（厂商报告），并建议将 0.50（Pro）和 0.45（Fast）作为“有用”阈值。如果这在你的数据上也成立，就能用分数阈值替代固定 top-k：简单查询传入两个片段，困难查询传入十个。需注意两点：Rerank 4 上调优的阈值不能沿用，因为分数尺度已变化；Cohere 测试集上的校准不等于你的数据也经过校准，因此应在自己的黄金测试集上重新拟合阈值。Context Focus 将同一思路应用到文档内部，返回带分数的片段；Cohere 报告称，移除一半上下文后仍保留 96% 的答案质量。可将片段裁剪作为控制上下文预算的手段，并在裁剪后测量忠实度，因为丢失限定语可能改变答案。
 
 **“Lost in the Middle” 修复**：重排序器的训练目标是优先关注与位置无关的相关信息，确保“中间”位置的数据在送入最终 LLM 之前被正确评分。
 
@@ -172,7 +174,7 @@ def cohere_rerank(
     top_k: int = 5
 ) -> list[dict]:
     response = co.rerank(
-        model="rerank-v4.0-pro",  # or "rerank-v4.0-fast" for lower latency
+        model="rerank-v5.0-pro",  # or "rerank-v5.0-fast" for lower latency
         query=query,
         documents=documents,
         top_n=top_k,
@@ -195,12 +197,12 @@ def cohere_rerank(
 |----------|-------------------|-------|
 | 英语、自托管、CPU | bge-reranker-base 或 MiniLM-L-6 | MiniLM 快约 4 倍，但质量较低 |
 | 多语言、自托管 | bge-reranker-v2-m3 或 Qwen3-Reranker | 若有 GPU，长输入可选 Qwen3 |
-| 最高质量、托管服务 | Cohere Rerank 4 Pro 或 Voyage rerank-3 | 用自己的数据比较两者；供应商数字不一致 |
-| 成本敏感的托管服务 | Voyage rerank-3-lite 或 Cohere Rerank 4 Fast | rerank-3-lite 每 1M token 为 $0.02 |
-| 长文档或工具输出（8K+） | 任一 32K 重排序器（Cohere Rerank 4、Voyage rerank-3、Qwen3） | 截断已非主要限制；每个文本对的 token 数才是成本 |
+| 最高质量、托管服务 | Cohere Rerank 5 Pro 或 Voyage rerank-3 | 两者每 1M token 均为 $0.05；供应商数字不一致，请用自己的数据比较 |
+| 成本敏感的托管服务 | Voyage rerank-3-lite 或 Cohere Rerank 5 Fast | 两者每 1M token 均为 $0.02 |
+| 长文档或工具输出（8K+） | 任一 32K 重排序器（Cohere Rerank 5、Voyage rerank-3、Qwen3） | 截断已非主要限制；每个文本对的 token 数才是成本 |
 | 页面截图、图表 | Qwen3-VL-Reranker | Apache 2.0，多模态 |
 
-**成本估算：**对 50 个各约 500 token 的候选重排序，每次查询约处理 25K token。按 Voyage rerank-3 每 1M token $0.05 计算，每次查询约 $0.00125；每日 1M 次查询约 $1,250。按 token 计费意味着长文本块和更深的候选列表会线性增加费用，因此候选深度和文本块长度既影响延迟，也影响成本。
+**成本估算：**对 50 个各约 500 token 的候选重排序，每次查询约处理 25K token。按每 1M token $0.05（Voyage rerank-3 或 Cohere Rerank 5 Pro）计算，每次查询约 $0.00125；每日 1M 次查询约 $1,250。按 token 计费意味着长文本块和更深的候选列表会线性增加费用，因此候选深度和文本块长度既影响延迟，也影响成本。
 
 ---
 
@@ -445,7 +447,7 @@ C: [doc3]
 Output order: _
 ```
 
-**Listwise 通常更好**，因为 LLM 可以直接比较文档。当前的小型模型（GPT-6 Luna、Claude Haiku 4.5）让低推理档位的列表式排序值得尝试，但须在评测集上检查质量，而且它仍会增加 1–2s 延迟，因此宜留给法律、医疗等高风险企业搜索。专用列表式重排序器（jina-reranker-v3.5、LightOn-rerank 的列表式变体）则能以交叉编码器级延迟进行跨文档比较。
+**Listwise 通常更好**，因为 LLM 可以直接比较文档。当前的小型模型（GPT-6 Luna、Claude Haiku 5.5）让低推理档位的列表式排序值得尝试，但须在评测集上检查质量，而且它仍会增加 1–2s 延迟，因此宜留给法律、医疗等高风险企业搜索。专用列表式重排序器（jina-reranker-v3.5、LightOn-rerank 的列表式变体）则能以交叉编码器级延迟进行跨文档比较。
 
 ### 多文档滑动窗口
 
@@ -627,7 +629,7 @@ Bi-Encoder（双编码器）会在知道任何查询之前，就为文档创建�
 ### Q: 如何处理极长查询的重排（例如一整段文本）？
 
 **标准答案：**
-经典的 BERT 规模交叉编码器（MiniLM、bge-reranker-base）上限为 512 token，因此长查询和长文本块会被截断。过去的解决方法是 **Sliding Window Reranking（滑动窗口重排）**或 **Query Summarization（查询摘要）**。当前重排序器改变了限制：Cohere Rerank 4、Voyage rerank-3 和 Qwen3 重排序器支持 32K token，因此问题转为每个文本对的成本与延迟，而非截断，因为按 token 计费和注意力计算成本都会随输入长度增加。我的做法是先用截短的文本块快速重排 50 个候选，再对前 5 至 10 个候选使用 32K 重排序器处理全文。这在智能体式 RAG 中尤为重要：此时“文档”是较长的工具输出，查询则是一段自然语言相关性标准，恰好也是 Voyage 自报 rerank-3 增益最大的场景（长文档和 MAIR 指令遵循测试集）。
+经典的 BERT 规模交叉编码器（MiniLM、bge-reranker-base）上限为 512 token，因此长查询和长文本块会被截断。过去的解决方法是 **Sliding Window Reranking（滑动窗口重排）**或 **Query Summarization（查询摘要）**。当前重排序器改变了限制：Cohere Rerank 5、Voyage rerank-3 和 Qwen3 重排序器支持 32K token，因此问题转为每个文本对的成本与延迟，而非截断，因为按 token 计费和注意力计算成本都会随输入长度增加。我的做法是先用截短的文本块快速重排 50 个候选，再对前 5 至 10 个候选使用 32K 重排序器处理全文。这在智能体式 RAG 中尤为重要：此时“文档”是较长的工具输出，查询则是一段自然语言相关性标准，恰好也是 Voyage 自报 rerank-3 增益最大的场景（长文档和 MAIR 指令遵循测试集）。
 
 ---
 
@@ -638,6 +640,7 @@ Bi-Encoder（双编码器）会在知道任何查询之前，就为文档创建�
 - BAAI BGE Reranker: https://huggingface.co/BAAI/bge-reranker-base
 - Cohere Rerank: https://docs.cohere.com/docs/rerank
 - [Voyage AI. “rerank-3”（2026 年 9 月）](https://blog.voyageai.com/2026/09/30/rerank-3/)
+- [Cohere. “Rerank 5”（2026 年 10 月）](https://cohere.com/blog/rerank-5)
 - [“The Embedder's Dilemma”（arXiv 2608.12875，2026 年 8 月）](https://arxiv.org/abs/2608.12875)
 - Sun et al. "Is ChatGPT Good at Search? Investigating Large Language Models as Re-Ranking Agents" (2023)
 

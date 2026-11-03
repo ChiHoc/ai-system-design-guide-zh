@@ -32,12 +32,12 @@
 截至 2026，这是最常见的企业模式。
 
 - **监督器**：高推理模型（Claude Opus 5.5 或 Fable 5.1、GPT-6 Astra 或 GPT-6.1 Sol），负责分解用户提示并将任务委派给工作器。
-- **工作器**：快速、成本高效的模型（Claude Sonnet 5.5 或 Haiku 4.5、GPT-6 Luna、Gemini 3.8 Flash），负责执行工作。
+- **工作器**：快速、成本高效的模型（Claude Sonnet 5.5 或 Haiku 5.5、GPT-6 Luna 或 GPT-6.1 Terra、Gemini 3.8 Flash），负责执行工作。
 - **审阅者**：一个独立智能体，根据监督器的原始计划验证汇总后的输出。
 
 **架构**：LangGraph 仍然是实现这类具备状态感知的分层循环的主导框架。截至 2026，Claude Agent SDK、Google ADK 和 Microsoft Agent Framework 都原生支持这种模式。
 
-**付费前重新核对模型档位划分。**曾支持以廉价工作器配昂贵监督器的价差已经收窄：Claude Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol 的标价都是每 1M 词元 $2/$10，Opus 5.5 降至 $4/$20；Anthropic 自家的智能体评测（厂商报告）显示，Sonnet 5.5 与 Opus 5.5 只差几个百分点。如果工作器能力相近而成本仅便宜一半，监督器树的协调开销可能超过节省的费用。每一代模型都应重新运行路由评测。
+**付费前重新核对模型档位划分。**曾支持以廉价工作器配昂贵监督器的价差已经收窄：Claude Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol 的标价都是每 1M 词元 $2/$10，Opus 5.5 降至 $4/$20；Anthropic 自家的智能体评测（厂商报告）显示，Sonnet 5.5 与 Opus 5.5 只差几个百分点。如果工作器能力相近而成本仅便宜一半，监督器树的协调开销可能超过节省的费用。10 月底部价差又拉开：Claude Haiku 5.5 的提示不超过 100K 词元时标价为 $0.10/$0.50（超过后整个请求按 5 倍计费），GPT-6.1 Terra 为 $1/$5，因此短上下文的窄任务工作器重新变得便宜，长上下文工作器则可能越过价格陡增点。每一代模型都应重新运行路由评测。
 
 **监督器如今也成为产品功能。**编程产品和托管运行时已提供协调器：Cursor 的 Projects beta（2026 年 9 月 10 日）由协调智能体规划工作，并按需委派给多个并行子智能体；Cursor 报告（内部使用的厂商数据）新 Projects 用户合并的 PR 增加 30%。OpenAI Agents API 使用 `max_concurrent_subagents` 限制扇出（默认 6）；Claude Managed Agents 在多智能体名册中加入 `advisor`，供主线程在轮次中途咨询。平台级并发上限是监督器模式一直需要的预算控制，应主动设置，而非沿用默认值。
 
@@ -63,7 +63,7 @@
 |----------|----------------------|----------|----------|-------------------------|
 | **以代码定义工作流** | 程序 | 阶段确定、可审计、可测试；在固定位置设置人工检查点 | 任务形态变化时不够灵活 | GitHub Copilot 动态工作流（10 月 1 日公开预览）：顺序或并行阶段、阶段间结构化结果、子智能体相互验证、暂停供人工审查 |
 | **模型驱动的委派** | 协调模型 | 能适应事先未知的任务形态 | 成本更难限制、审计更难 | GitHub 的 `/fleet`、Cursor Projects |
-| **带质量关口的级联** | 代码，辅以模型评分关口 | 廉价模型起草；只有未通过关口时才升级 | 关口校准成为关键组件 | GitHub HydraFusion 的“cascade”模式（9 月 30 日研究预览） |
+| **带质量关口的级联** | 代码，辅以模型评分关口 | 廉价模型起草；只有未通过关口时才升级 | 关口校准成为关键组件 | GitHub Copilot Fusion 的 Cascade 工作流（10 月 28 日正式发布，源自 9 月 30 日 HydraFusion 研究预览） |
 
 阶段已知且审计轨迹重要时，使用以代码定义的工作流；阶段未知时，使用模型驱动的委派；如果大多数输入都很简单，可在两者前面加一层级联。
 
@@ -83,8 +83,8 @@
 
 | 框架 | 图模型 | 关键差异化 |
 |-----------|-------------|-------------------|
-| **LangGraph**（约 42.6k stars） | 带类型化状态的命令式 DAG | 最成熟，社区最广 |
-| **Google ADK**（约 21.7k stars） | 内置 A2A 的图工作流（2.x） | 原生 Google Cloud 集成；ADK TypeScript 2.0 弃用 Sequential、Parallel 和 Loop 智能体，转向图 |
+| **LangGraph**（约 44.3k stars） | 带类型化状态的命令式 DAG | 最成熟，社区最广 |
+| **Google ADK**（约 22.1k stars） | 内置 A2A 的图工作流（2.x） | 原生 Google Cloud 集成；ADK TypeScript 2.0 弃用 Sequential、Parallel 和 Loop 智能体，转向图 |
 | **Microsoft Agent Framework** | 工作流图（顺序、并发、转交） | 统一 .NET + Python，企业治理 |
 | **Claude Agent SDK** | 基于监督器的分层树 | 内置工具（bash、editor），可直接用于生产 |
 
@@ -111,19 +111,19 @@
 
 ## 多智能体的 2026 框架版图
 
-现在每个主要 AI 实验室都在提供智能体框架。截至 2026 年 10 月，多智能体编排版图如下（star 数截至 10 月 1 日）：
+现在每个主要 AI 实验室都在提供智能体框架。截至 2026 年 11 月上旬，多智能体编排版图如下（版本与 star 数截至 11 月 2 日）：
 
 | 框架 | 提供方 | 多智能体模型 | 状态 |
 |-----------|----------|-------------------|--------|
-| **LangGraph** | LangChain | 基于图，最灵活 | 生产中；LangGraph 1.2.12（约 42.6k stars） |
+| **LangGraph** | LangChain | 基于图，最灵活 | 生产中；LangGraph 1.2.19（约 44.3k stars） |
 | **Claude Agent SDK** | Anthropic | 带内置工具的监督器树 | GA（Python + TypeScript） |
-| **Google ADK** | Google | 原生支持 A2A 的图工作流 | Python 2.10.0、TypeScript 2.0.0、Go 2.0、Java 1.10.1 |
-| **Microsoft Agent Framework** | Microsoft | 工作流 + 群聊模式、A2A 和 MCP 互操作 | 2026 年 4 月 2 日 GA；Python 1.19.0、.NET 1.23.0；AutoGen 进入维护模式 |
-| **OpenAI Agents SDK** | OpenAI | 带护栏的基于转交群体 | Python 0.22.3（约 29.8k stars）；Python + TypeScript |
-| **CrewAI** | CrewAI Inc. | 基于角色的 crew 与 Flows | 1.15.23（约 59.3k stars；厂商称覆盖 60% 以上的《财富》500 强企业） |
+| **Google ADK** | Google | 原生支持 A2A 的图工作流 | Python 2.13.0、TypeScript 2.4.0、Go 2.6.0、Java 1.13.0 |
+| **Microsoft Agent Framework** | Microsoft | 工作流 + 群聊模式、A2A 和 MCP 互操作 | 2026 年 4 月 2 日 GA；Python 1.24.0、.NET 1.27.0；AutoGen 进入维护模式 |
+| **OpenAI Agents SDK** | OpenAI | 带护栏的基于转交群体 | Python 0.24.0、TypeScript 0.21.0（约 30.4k stars）；仍处于 1.0 前 |
+| **CrewAI** | CrewAI Inc. | 基于角色的 crew 与 Flows | 1.15.34（约 60.4k stars；厂商称覆盖 60% 以上的《财富》500 强企业） |
 | **Smolagents** | HuggingFace | 轻量级、开源 | 1.26.0（2026 年 5 月 29 日）；此后未发布新版本 |
 
-**关键趋势**：没有任何单一框架能在所有四种多智能体模式（监督器、群体、流水线、辩论）上都表现出色。团队越来越多地组合框架使用，例如用 LangGraph 处理复杂编排，用 CrewAI 处理面向业务用户的自动化。另一个趋势是托管运行时：OpenAI Agents API、Claude Managed Agents 和 Amazon Bedrock Managed Agents（预览）托管运行框架本身，使“自建还是租用”的决策上移一层（参见[持久执行](11-durable-execution.md)）。
+**关键趋势**：没有任何单一框架能在所有四种多智能体模式（监督器、群体、流水线、辩论）上都表现出色。团队越来越多地组合框架使用，例如用 LangGraph 处理复杂编排，用 CrewAI 处理面向业务用户的自动化。另一个趋势是托管运行时：OpenAI Agents API（公开 beta）、Claude Managed Agents（beta）和 Amazon Bedrock Managed Agents（公开预览）托管运行框架本身，使“自建还是租用”的决策上移一层（参见[持久执行](11-durable-execution.md)）。截至 2026 年 11 月上旬，三者均未 GA，因此租用前请检查 beta 条款（API 稳定性、数据保留、数据驻留）。
 
 ---
 
@@ -146,7 +146,7 @@
 - **智能体 A**：根据 B 的批评完善答案。
 - **结果**：收敛到比任何单个智能体都能产生的更高质量结果。
 
-**让不同模型家族担任评审者。**同一家族的评审模型会共享盲点。GitHub HydraFusion 的“critique”模式（2026 年 9 月 30 日研究预览）将此纳入设计：由另一模型家族的评审者审查草稿，起草者只修改一次。把讨论限制为一次修订同样重要；无限辩论只会变成两个智能体的循环失控。
+**让不同模型家族担任评审者。**同一家族的评审模型会共享盲点。GitHub HydraFusion 的“critique”模式（2026 年 9 月 30 日研究预览）将此纳入设计：由另一模型家族的评审者审查草稿，起草者只修改一次。该模式于 10 月 28 日作为 **Copilot Fusion** 正式发布，其 Critique 工作流由一个模型起草、一个只读评审模型检查，再由原模型修订（还提供 Single 和 Cascade 工作流，以及 Standard、High、Max 三档 effort）。把讨论限制为一次修订同样重要；无限辩论只会变成两个智能体的循环失控。
 
 ---
 

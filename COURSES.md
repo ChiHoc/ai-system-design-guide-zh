@@ -80,7 +80,7 @@
 | **[Evaluating and Debugging Generative AI（评估与调试生成式 AI）](https://www.deeplearning.ai/short-courses/evaluating-debugging-generative-ai/)** | DeepLearning.AI + W&B | 免费 | 涵盖追踪（tracing）、使用 W&B Weave 进行评估，以及实验追踪。 |
 | **[Quality and Safety for LLM Applications（LLM 应用的质量与安全）](https://www.deeplearning.ai/short-courses/quality-safety-llm-applications/)** | DeepLearning.AI + WhyLabs | 免费 | 涵盖幻觉检测、毒性、偏差评估和漂移监控。 |
 | **[LangSmith Evaluation Concepts（LangSmith 评估概念）](https://docs.langchain.com/langsmith/evaluation-concepts)** | LangChain | 免费 | 如果你使用 LangChain 生态，官方 LangSmith 文档是最好的实操评估参考。涵盖离线和在线评估。 |
-| **[Arize Phoenix 文档](https://arize.com/docs/phoenix)** | Arize Phoenix | 免费 | 使用 Phoenix 追踪与评估的实操教程，其代码以 Elastic License 2.0 提供。Dynatrace 于 2026 年 8 月同意收购 Arize，并称 Phoenix 会继续提供。 |
+| **[Arize Phoenix 文档](https://arize.com/docs/phoenix)** | Arize Phoenix | 免费 | 使用 Phoenix 追踪与评估的实操教程，其代码以 Elastic License 2.0 提供。Dynatrace 于 2026 年 10 月 1 日完成对 Arize 的收购，并表示 Phoenix 会继续提供。 |
 
 > 📖 另见本仓库的配套指南：
 > - [AI Evals：Comprehensive Study Guide (Phoenix + Langfuse)](ai_evals_comprehensive_study_guide.md)

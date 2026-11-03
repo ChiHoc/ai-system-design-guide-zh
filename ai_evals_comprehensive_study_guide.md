@@ -213,7 +213,7 @@ ASSISTANT RESPONSE:
 
 这些工具都支持相同核心概念：traces（追踪）、spans（调用片段）、datasets（数据集）、evaluations（评估）和 experiments（实验）。本指南的方法论可应用于任一平台。
 
-**将供应商风险作为选型标准。** 2026 年该类别的所有权和条款多次变化。Dynatrace 同意以 $915M 收购 Phoenix 维护者 Arize（8 月 13 日公布）。Langfuse 自 1 月归属 ClickHouse。OpenAI 正关闭托管 Evals 平台（10 月 31 日只读，11 月 30 日下线），引导用户使用其拥有的 Promptfoo。9 月 14 日起 LangSmith SaaS 的延长保留 trace 最多保留 180 天。共同防御是：通过 OpenTelemetry（OpenInference 或基于 OTel 的 Langfuse SDK）埋点，以便将 trace 转到其他后端；将任何用作真值的 trace 复制进自己控制的版本化数据集。
+**将供应商风险作为选型标准。** 2026 年该类别的所有权和条款多次变化。Dynatrace 于 10 月 1 日完成以 $915M 收购 Phoenix 维护者 Arize。Langfuse 自 1 月归属 ClickHouse。OpenAI 将于 11 月 30 日关闭托管 Evals 平台，引导用户使用现属 OpenAI、仍采用 MIT 许可的 Promptfoo。9 月 14 日起 LangSmith SaaS 的延长保留 trace 最多保留 180 天，10 月 1 日起以 LangChain Standard Units 按用量计费（1 LSU = $1），不再按运行次数和运行时间计价。共同防御是：通过 OpenTelemetry（OpenInference 或基于 OTel 的 Langfuse SDK）埋点，以便将 trace 转到其他后端；将任何用作真值的 trace 复制进自己控制的版本化数据集。
 
 ### 搭建 Phoenix（免费、自托管）
 
@@ -1183,7 +1183,7 @@ with ThreadPoolExecutor(max_workers=20) as executor:
     results = list(executor.map(run_judge, all_traces))
 ```
 
-**固定 judge，而不只是提示词。** 示例使用 `gpt-4o`，普通 OpenAI 版本设置 `temperature=0`，因为该模型仍接受采样参数。新模型越来越不接受：Claude API 对 Opus 4.7 及之后的非默认 `temperature` 或 `top_p` 返回 400，Anthropic Python SDK 1.0（2026 年 8 月 20 日）从 Messages 方法签名移除这些参数（旧模型仍可通过 `extra_body` 传入），Google 于 2026 年 7 月 21 日在 Gemini API 弃用它们，GPT-6 Astra 不接受定制 `temperature`、`top_p` 或 logprobs。这些模型的可复现性来自固定精确模型 ID 和推理强度，每次 judge 运行都记录两者，任一变化后重新在测试集测量 TPR/TNR。Judge 模型也会按计划退役：`claude-sonnet-4-5-20250929` 于 2026 年 11 月 30 日退出 Claude API，Claude Haiku 4.5 于 11 月 15 日退出 Microsoft Foundry，因此在它们上验证过的 judge 需在此前对替代模型重新验证。
+**固定 judge，而不只是提示词。** 示例使用 `gpt-4o`，普通 OpenAI 版本设置 `temperature=0`，因为该模型仍接受采样参数。新模型越来越不接受：自 Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型的 `temperature`、`top_p` 或 `top_k` 即使是默认值也返回 400，该版本由 Python 2.0.0 和 TypeScript 1.0.0 SDK 默认发送（较早版本的 Claude 4.7 及之后模型已拒绝非默认值）；Google 于 2026 年 7 月 21 日在 Gemini API 弃用相同参数，GPT-6 Astra 不接受定制 `temperature`、`top_p` 或 logprobs。这些模型的可复现性来自固定精确模型 ID 和推理强度，每次 judge 运行都记录两者，任一变化后重新在测试集测量 TPR/TNR。Judge 模型也会按计划退役：`claude-sonnet-4-5-20250929` 于 2026 年 11 月 30 日退出 Claude API，Microsoft Foundry 列出 Claude Haiku 4.5 的日期为 11 月 15 日。示例中的 `gpt-4o` 也有期限：OpenAI 将于 2027 年 1 月 14 日关闭剩余的 GPT-4o 和 GPT-4o mini 快照（`gpt-4o-2024-08-06`、`gpt-4o-2024-11-20`、`gpt-4o-mini-2024-07-18`）及其微调模型，指定 `gpt-6-luna` 为替代。使用这些模型验证过的 judge 须在期限前对替代模型重新验证。
 
 **示例结果：** 1000 条 traces 的原始通过率 = 84.4%
 
@@ -2372,11 +2372,11 @@ PM 和 QA 往往比工程师标得更好，因为：
 |---|---|---|
 | 前沿：GPT-6 Astra（$10/$50）、Claude Opus 5.5（$4/$20） | ~$12-30 | 复杂主观判断、安全关键、确定上限 |
 | 中间层：GPT-6.1 Sol、Claude Sonnet 5.5（均 $2/$10） | ~$6 | 对照上限验证后的多数生产 judge |
-| 小型：GPT-6 Luna（$0.10/$0.50）、Claude Haiku 4.5（$1/$5） | ~$0.30-3 | 明确标准、清晰评分准则 |
-| 决策模型：TypeSafe Jev（早期访问，每 1M 输入 $0.042） | ~$0.08-0.35 | 高吞吐二元检查条件；返回分数，无书面理由 |
+| 小型：GPT-6 Luna、Claude Haiku 5.5（均 $0.10/$0.50；Haiku 5.5 适用于不超过 100K token 的提示词） | ~$0.30 | 明确标准、清晰评分准则 |
+| 决策模型：TypeSafe Jev（早期访问，每 1M 输入 $0.042）或 OpenAI Decisions API（正式发布，每 1M 输入 $0.10） | ~$0.08-0.35 | 高吞吐二元检查条件；返回分数，无书面理由 |
 | 基于代码的评测 | $0 | 格式检查、模式匹配、参数校验 |
 
-成本假设每次判断约 2K 输入和 200 输出 token，采用 2026 年 10 月标价（括号为每 1M 输入/输出 token 美元价格；Jev 仅计输入）。Jev 范围从标价到 LangChain 集成中测得的每调用 $0.00035。推理 token 按输出计费，因此 high 强度 judge 可能花表中数倍成本。显式设置强度并测量。
+成本假设每次判断约 2K 输入和 200 输出 token，采用 2026 年 11 月标价（括号为每 1M 输入/输出 token 美元价格；Jev 和 Decisions API 仅计输入）。旧版 Claude Haiku 4.5（$1/$5）每 1K 约 $3，是 Haiku 5.5 的十倍，尽管 Haiku 5.5 对相同文本的 tokenizer 计数约多 30%。Jev 范围从标价到 LangChain 集成中测得的每调用 $0.00035。推理 token 按输出计费，因此 high 强度 judge 可能花表中数倍成本。显式设置强度并测量。
 
 **提示：** 先从强模型开始，先验证评审提示词，再测试更便宜模型是否能给出相似的 TPR/TNR（真阳性率/真阴性率）。通常是可以的。
 
@@ -2435,7 +2435,7 @@ def cached_eval(trace, eval_fn):
 
 ### 策略 5：使用提示缓存与批量价格
 
-Judge 提示大部分是固定文本：定义、标准、few-shot 示例，末尾仅少量 trace 专属内容。固定部分放前面以应用提供方提示缓存。Claude Opus 5.5 缓存读取按输入标价 0.05 倍（每 1M $0.20）、GPT-6.1 Sol 为 0.05 倍（$0.10），多数其他当前模型为 0.1 倍（Claude Sonnet 5.5、GPT-6 Sol 为 $0.20）。两家写入均为输入标价 1.25 倍（Anthropic 5 分钟层；OpenAI GPT-5.6 及之后 TTL 固定 30 分钟）。离线评估很少需数秒返回，因此通过半价批量 API：Opus 5.5 Batch 每 1M $2/$10，GPT-6 Sol Batch/Flex 为 $1/$5。
+Judge 提示大部分是固定文本：定义、标准、few-shot 示例，末尾仅少量 trace 专属内容。固定部分放前面以应用提供方提示缓存。Claude Opus 5.5（每 1M $0.20）、Claude Sonnet 5.5（$0.10，2026 年 10 月 7 日从 $0.20 降价）、GPT-6.1 Sol（$0.10）和 GPT-6.1 Terra（$0.05）缓存读取按输入标价 0.05 倍计费；多数其他当前模型为 0.1 倍（GPT-6 Sol 为 $0.20；Claude Haiku 5.5 和 GPT-6 Luna 为 $0.01）。Anthropic 5 分钟层和 OpenAI 30 分钟缓存（GPT-5.6 及之后）的写入为输入标价 1.25 倍，Anthropic 1 小时层为 2 倍，OpenAI 12 小时选项（2026 年 10 月 20 日）为 2.5 倍。30 分钟内完成的评估无需支付 12 小时写入费用。离线评估很少需数秒返回，因此通过半价批量 API：Opus 5.5 Batch 每 1M $2/$10，GPT-6 Sol Batch/Flex 为 $1/$5。
 
 ### 实时防线（Real-Time Guardrails）的延迟考量
 
@@ -2682,7 +2682,7 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 
 - **judgy** - 用于 LLM judges（大模型评审员）的统计偏差校正：[github.com/ai-evals-course/judgy](https://github.com/ai-evals-course/judgy)
 - **rank_bm25** - 用于 RAG 系统的 BM25 检索
-- **litellm** - 统一 LLM API 接口。固定版本：PyPI 1.82.7 和 1.82.8 被入侵（恶意软件公告 GHSA-92x9-889m-jgmw）。运行 LiteLLM 代理时，部署修复 CVE-2026-37004（未认证 RCE，1.83.7 修复）、CVE-2026-49468（认证绕过，1.84.0 修复）和 CVE-2026-84377（认证用户通过 `api_base` 重定向调用并外泄存储的提供方密钥；仅在 1.96.2 等特定补丁版修复，临时措施为 `allow_client_side_credentials=false`）的版本
+- **litellm** - 统一 LLM API 接口。绝不安装 1.82.7、1.82.8 或 1.107.0：三者均被入侵（恶意软件公告 GHSA-92x9-889m-jgmw），1.107.0 及其容器镜像于 2026 年 10 月 21 日被投毒。按哈希固定包，按摘要固定代理镜像。运行 LiteLLM 代理时，在所用版本线上运行 1.100.4、1.101.3、1.102.2、1.103.1 或更高版本（CVE-2026-114612，CVSS 9.9，自 1.91.0 起默认配置即可利用）；Enterprise 许可的代理需要 1.103.10、1.104.8、1.105.6 或 1.106.5（GHSA-w4c7-34wj-hqm8，CVSS 10.0）。保持 `allow_client_side_credentials=false`，防止调用方通过 `api_base` 重定向已存储的提供方密钥。见[保护网关](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)
 
 ### 关键原则（回顾）
 
@@ -3036,13 +3036,13 @@ Return your evaluation as JSON:
 
 ### 9. Judge 的模型选择
 
-| 模型级别 | 示例（每 1M 输入/输出美元标价，2026 年 10 月） | 适用场景 |
+| 模型级别 | 示例（每 1M 输入/输出美元标价，2026 年 11 月） | 适用场景 |
 |------------|------------|-----------------|
 | 前沿 | Claude Opus 5.5（$4/$20）、GPT-6 Astra（$10/$50） | 高风险评估、复杂推理、建立性能上限 |
 | 中间层 | Claude Sonnet 5.5、GPT-6.1 Sol（均 $2/$10） | 对照上限验证后的多数生产 judge |
-| 快速低成本 | GPT-6 Luna（$0.10/$0.50）、Gemini 3.8 Flash（12 月 31 日前首发 $0.75/$3.75，之后 $1.50/$7.50）、Claude Haiku 4.5（$1/$5） | 准则明确的成本敏感、高吞吐评估 |
+| 快速低成本 | GPT-6 Luna（$0.10/$0.50）、Gemini 3.8 Flash（12 月 31 日前首发 $0.75/$3.75，之后 $1.50/$7.50）、Claude Haiku 5.5（提示词不超过 100K token 为 $0.10/$0.50，超过为 $0.50/$2.50） | 准则明确的成本敏感、高吞吐评估 |
 | 开放权重，自托管 | Qwen3.8-27B（Apache 2.0）、IBM Granite 4.2 30B（Apache 2.0）、GLM-5.3-Flash（MIT，总参数 320B / 激活 18B） | 不能离开网络的数据 |
-| 决策模型 | TypeSafe Jev（早期访问） | 极高吞吐二元检查条件；无书面理由，无弃答 |
+| 决策模型 | TypeSafe Jev（早期访问）、OpenAI Decisions API（2026 年 10 月 22 日正式发布） | 极高吞吐二元检查条件；无书面理由，无弃答；用自己的标签校准阈值 |
 
 与人工标签的一致性更多因任务而非层级变化，因此唯一有意义的准确率是自己测试集上测得的 TPR/TNR。可行时选用与被评系统不同模型家族的 judge（见上文自我偏好偏差）。
 
@@ -3426,7 +3426,7 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 
 ### 研究与思想引领
 
-- **OpenAI Evals Platform**：正在退役。现有评估于 2026 年 10 月 31 日只读，看板和 API 于 2026 年 11 月 30 日停服；见[弃用页面](https://developers.openai.com/api/docs/deprecations)。OpenAI 迁移指南指向 [Promptfoo](https://www.promptfoo.dev/)。
+- **OpenAI Evals Platform**：正在退役。看板和 API 于 2026 年 11 月 30 日停服（原定 10 月 31 日进入只读阶段），因此应立即导出；见[弃用页面](https://developers.openai.com/api/docs/deprecations)。OpenAI 迁移指南指向 [Promptfoo](https://www.promptfoo.dev/)。
 - **OpenAI Cookbook**（实用示例与指南）: [cookbook.openai.com](https://cookbook.openai.com/)
 - **OpenAI Research**: [openai.com/research](https://openai.com/research)
 - **Anthropic Research**: [anthropic.com/research](https://www.anthropic.com/research)
@@ -3459,7 +3459,7 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 |---------|-------|-------------|----------|----------------|
 | **Anthropic** | 安全性 / 红队演练 | Partial | 前沿风险 | Constitutional classifiers（宪法式分类器）、多次对抗测试 |
 | **OpenAI** | 应对准备 / 商业应用 | Promptfoo（MIT） | 企业级场景 | SME probing（专家级探测）、上下文化评测；托管 Evals 平台于 2026 年 11 月 30 日停服 |
-| **Arize** | 可观测性 | Phoenix（ELv2） | 生产级规模 | OTel-native（与 OpenTelemetry 原生兼容）、数据湖集成；Dynatrace 同意收购 Arize（2026 年 8 月） |
+| **Arize** | 可观测性 | Phoenix（ELv2） | 生产级规模 | OTel-native（与 OpenTelemetry 原生兼容）、数据湖集成；2026 年 10 月 1 日起归属 Dynatrace |
 | **RAGAS** | RAG 专用 | Yes（Apache 2.0） | RAG 流水线 | 无参照指标（Reference-free metrics）、合成测试数据生成 |
 | **Maxim** | 代理式系统 | No | 多智能体应用 | 仿真框架、低代码评测 |
 | **Langfuse** | 自定义 Pipeline | Yes（MIT） | 数据主权 | 可自托管、对数据全面控制 |

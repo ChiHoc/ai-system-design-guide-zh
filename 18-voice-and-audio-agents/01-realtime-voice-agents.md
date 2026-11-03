@@ -2,7 +2,7 @@
 
 语音智能体是围绕 LLM 构建的软实时媒体系统。推理相对容易，难的是**时序**：接入音频、判断人究竟何时说完、思考，并足够快地发出语音，让对话保持自然。时序失衡时，用户会和智能体同时说话、重复问题，最后挂断。本章讨论三种架构、轮次交接与插话、延迟和每分钟成本、电话接入、会话限制、评估与监管。
 
-适用范围：如果在构建电话、客服或语音优先产品，应阅读本章；其他场景可先看[智能体基础](../07-agentic-systems/01-agent-fundamentals.md)和[工具调用](../17-tool-use-and-computer-agents/01-tool-use-landscape.md)中的通用部分。下文模型名、价格和延迟为 2026 年 10 月快照，按月变化。标为**供应商自报**的数字来自供应商；标为**推算**的每分钟数字由标价计算。
+适用范围：如果在构建电话、客服或语音优先产品，应阅读本章；其他场景可先看[智能体基础](../07-agentic-systems/01-agent-fundamentals.md)和[工具调用](../17-tool-use-and-computer-agents/01-tool-use-landscape.md)中的通用部分。下文模型名、价格和延迟为 2026 年 11 月初快照，按月变化。标为**供应商自报**的数字来自供应商；标为**推算**的每分钟数字由标价计算。
 
 ## 目录（Table of Contents）
 
@@ -30,7 +30,7 @@
 
 **1. 级联流水线：** `mic -> VAD -> streaming STT -> turn detection -> LLM -> streaming TTS -> speaker`。音频在边界转为**文本**，每个阶段都可替换，供应商通常不同。
 
-**2. 单一语音到语音模型（S2S）：** 一个模型听音频、推理、调用工具并输出音频，文本仅为转录副通道。现有例子包括 OpenAI Realtime API 的 `gpt-realtime-2.1` 和 `-2.1-mini`（2026 年 7 月 6 日）、Google `gemini-3.8-live`（9 月 15 日正式发布）、Amazon Nova 2 Sonic（Bedrock 将 Nova Sonic v1 的生命周期结束日期定为 9 月 14 日），以及使用 Realtime 兼容事件的 xAI `grok-voice-think-fast-2.0`。它们是**按轮次**工作，而非完全双工：Realtime API 通过 `server_vad` 或 `semantic_vad` 检测轮次，再作答。
+**2. 单一语音到语音模型（S2S）：** 一个模型听音频、推理、调用工具并输出音频，文本仅为转录副通道。现有例子包括 OpenAI Realtime API 的 `gpt-realtime-2.1` 和 `-2.1-mini`（2026 年 7 月 6 日）、Google `gemini-3.8-live`（9 月 15 日正式发布）、Amazon Nova 2.5 Sonic（2026 年 10 月 5 日在 Bedrock 正式发布，与 Nova 2 Sonic 同价，支持 256K 上下文、七种语言、可控轮次交接及异步工具调用），以及使用 Realtime 兼容事件的 xAI `grok-voice-3.0`。xAI 在 10 月将 `grok-voice-latest` 别名从 `grok-voice-2.0` 切至 3.0 并弃用 2.0，因此使用该别名的用户无需改代码就被升级：应固定带日期的 ID，并在迁移前重跑语音评估。它们是**按轮次**工作，而非完全双工：Realtime API 通过 `server_vad` 或 `semantic_vad` 检测轮次，再作答。
 
 **3. 全双工语音前端加委派式后端（说话者与思考者）：** 双工语音模型边说边听，负责何时回答、附和、停顿或让出话轮，把推理与工具调用交给独立文本模型。OpenAI 的 `gpt-live-1`（API 于 2026 年 9 月 10 日正式发布）是代表：**Responses 委派**以 OpenAI 模型为后端（官方指南建议从 `gpt-6-luna` 开始，较难任务用 `gpt-6-sol`）；**客户端委派**可把任务交给客户运行的任意代理。Gemini 3.8 Live Extended Thinking 处在第二、三类之间：虽是单模型，却能边说边在后台推理。LiveKit Agents 1.8.1（9 月 10 日）加入 `DuplexModel` 接口，arXiv 2609.19334 等预印本也把能向文本后端发出委派令牌的双工前端形式化。
 
@@ -91,10 +91,10 @@ flowchart TB
 
 ## 技术栈
 
-| 层 | 当前选择（2026 年 10 月） | 说明 |
+| 层 | 当前选择（2026 年 11 月） | 说明 |
 |----|--------------------------|------|
-| **编排** | 开源的 LiveKit Agents 1.8.4、Pipecat 1.12.0；托管的 Vapi、Retell、Bland、ElevenLabs Agents、Deepgram Voice Agent | LiveKit 已用统一接口接入九家 S2S 提供商，“S2S 供应商很少”已不准确 |
-| **S2S 与双工模型** | `gpt-live-1`、`gpt-realtime-2.1` / `-2.1-mini`、`gemini-3.8-live` / `-extended-thinking`、Nova 2 Sonic、`grok-voice-think-fast-2.0`；Azure Voice Live（兼容 Realtime，提供 `gpt-realtime-2.1`，未列出 `gpt-live-1`） | 开源全双工模型有 NVIDIA PersonaPlex（7B，基于 Moshi；供应商自报轮次交接 0.170 秒） |
+| **编排** | 开源的 LiveKit Agents 1.8.10、Pipecat 1.15.0；托管的 Vapi、Retell、Bland、ElevenLabs Agents、Deepgram Voice Agent | LiveKit 已用统一接口接入九家 S2S 提供商，“S2S 供应商很少”已不准确 |
+| **S2S 与双工模型** | `gpt-live-1`、`gpt-realtime-2.1` / `-2.1-mini`、`gemini-3.8-live` / `-extended-thinking`、Nova 2.5 Sonic、`grok-voice-3.0`；Azure Voice Live（兼容 Realtime，提供 `gpt-realtime-2.1`，未列出 `gpt-live-1`） | 开源全双工模型有 NVIDIA PersonaPlex（7B，基于 Moshi；供应商自报轮次交接 0.170 秒） |
 | **流式 STT** | Deepgram Flux、AssemblyAI Universal-3.5 Pro Realtime、ElevenLabs Scribe v2 Realtime、OpenAI `gpt-live-transcribe`、Gemini 3.5 Transcribe Live、Cartesia Ink-2；自托管 NVIDIA `nemotron-3.5-asr-streaming-0.6b` | `whisper-1` 和 `gpt-4o-*-transcribe` 模型将于 2027 年 2 月 26 日停用 |
 | **轮次检测** | LiveKit 音频 `TurnDetector`、Pipecat Smart Turn v3、STT 内置轮次结束（Deepgram Flux、Cartesia Ink-2） | LiveKit 基于转录文本的检测器已弃用 |
 | **TTS** | ElevenLabs Eleven v4 Turbo（推理中位数约 100 毫秒）与 Flash v2.5（约 75 毫秒）、Deepgram Flux TTS（首音频“最快 80 毫秒”）、Cartesia Sonic 3.6、Gemini 3.8 Flash 与 Flash-Lite TTS、`gpt-4o-mini-tts`；延迟均为供应商自报 | `tts-1`、`tts-1-hd` 和 `gpt-4o-mini-tts` 快照将于 2027 年 1 月 6 日停用；OpenAI 指定 `gpt-realtime-2.1-mini` 为替代，因此仅用 OpenAI 的级联方案，TTS 阶段最后也会落到 S2S 模型。开放模型有 Chatterbox Flash（MIT）、Kokoro-82M（Apache 2.0）、Voxtral-4B-TTS（CC BY-NC，不能商用自托管） |
@@ -141,7 +141,7 @@ flowchart TB
 | 测量 | 数值 | 来源 |
 |------|------|------|
 | 级联单轮示例 | 1.044 秒：端点检测 0.200 + STT 0.125 + LLM 0.336 + 轮次完成 0.024 + TTS 0.359 | Pipecat 1.9.0 更新说明（示例，非基准） |
-| 带推理的 S2S 首音频时间 | Grok Voice Think Fast 2.0 为 0.70 秒；Gemini 3.8 Live 为 1.18 秒；高强度 `gpt-realtime-2.1` 为 1.21 秒；搭配 Astra 后端且中等强度的 GPT-Live-1 为 1.34 秒 | Artificial Analysis（独立测量） |
+| 带推理的 S2S 首音频时间 | Grok Voice Think Fast 2.0 为 0.70 秒（测量时 xAI 尚未为 3.0 弃用 Grok Voice 2.0）；Gemini 3.8 Live 为 1.18 秒；高强度 `gpt-realtime-2.1` 为 1.21 秒；搭配 Astra 后端且中等强度的 GPT-Live-1 为 1.34 秒 | Artificial Analysis（独立测量） |
 | GPT-Live 轮次交接 | 0.798 秒；`gpt-realtime-2.1` 为 1.41 秒 | OpenAI（供应商自报） |
 | 针对语音优化的 LLM 首个回答 token | Mercury Voice（扩散推理模型，2026 年 9 月 29 日企业正式发布）：生产语音提示中位数 320 毫秒，p95 为 750 毫秒 | Inception（供应商自报） |
 
@@ -180,8 +180,8 @@ flowchart TB
 | **`gpt-realtime-2.1`** | 每百万音频 token 输入 $32／缓存 $0.40／输出 $64 | 来电音频约 $0.019/分钟、代理语音约 $0.077/分钟（推算） | 每次回答重新发送整段对话；若未命中缓存，通话越长，每分钟越贵 |
 | **`gpt-realtime-2.1-mini`** | 每百万音频 token $10／$0.30／$20 | 输入约 $0.006、输出约 $0.024（推算） | 同样会重新发送历史 |
 | **Gemini 3.8 Live**（含 Extended Thinking） | 每百万音频 token 输入 $3／输出 $12；文本 $0.75／$4.50 | 输入约 $0.005、输出约 $0.018 | 思考 token 按输出计费 |
-| **xAI Grok voice** | $0.08/分钟 | $0.08 | 固定每分钟价格；文本输入另计 |
-| **流式 STT** | `gpt-live-transcribe` $0.017/分钟；Deepgram Flux $0.0077/分钟（促销 $0.0065）；AssemblyAI Universal-3.5 Pro Realtime $0.45/小时；ElevenLabs Scribe v2 Realtime $0.39/小时；Gemini 3.5 Transcribe Live 约 $0.009/分钟 | $0.0065–0.017 | AssemblyAI 对空闲连接时间计费 |
+| **xAI Grok voice** | $0.08/分钟（`grok-voice-3.0`，与 2.0 同价） | $0.08 | 固定每分钟价格；文本输入另计 |
+| **流式 STT** | `gpt-live-transcribe` $0.017/分钟；Deepgram Flux 按量付费 $0.0077/分钟（预付 Growth 套餐 $0.0065）；AssemblyAI Universal-3.5 Pro Realtime $0.45/小时；ElevenLabs Scribe v2 Realtime $0.39/小时；Gemini 3.5 Transcribe Live 约 $0.009/分钟 | $0.0065–0.017 | AssemblyAI 对空闲连接时间计费 |
 | **TTS** | Gemini 3.8 Flash TTS 每百万 token 输入 $0.50／输出 $9（促销至 12 月 31 日，此后 $1／$18）；Flash-Lite TTS 每百万音频输出 token $6（此后 $12）；`gpt-4o-mini-tts` 每百万音频 token $12（快照于 2027 年 1 月 6 日停用） | 浮动 | 预算要考虑 2027 年 1 月 1 日 Gemini 价格翻倍 |
 | **打包平台** | Vapi $0.05/分钟另加按成本转付的供应商费用（电话费前约 $0.08–0.13）；Retell 示例约 $0.13；Bland $0.12–0.14；ElevenLabs Agents $0.08（峰值 $0.16）；Deepgram Voice Agent $0.075（自带 LLM 与 TTS 为 $0.050）；Cartesia $0.06 | $0.05–0.14 | 平台费加模型选择 |
 | **流式翻译** | `gpt-realtime-translate` $0.034/分钟；Gemini 3.5 Live Translate（预览）约 $0.037/分钟 | 每会话分钟 $0.034–0.037 | 每个目标语言需独立会话，因此会话数随说话者与语言数增长 |
@@ -214,7 +214,7 @@ Realtime 的换算依据是：来电音频每 100 毫秒 1 token（每分钟 600
 | **OpenAI Realtime API** | 会话最长 60 分钟；每次响应重新发送整段对话 | 裁剪并总结；更长通话需带状态重连 |
 | **OpenAI GPT-Live** | 128K 上下文。超过 90% 时启动替换语音引擎，以指令加最多 8,192 token 历史作为种子，其中包括旧轮次摘要；指令最多 16,384 token。未公布最长持续时间，但存在 `expired` 关闭原因。SIP 外呼最多 2 小时 | 把槽位、预约及已验证身份存于应用状态；给上下文标版本 |
 | **Gemini Live（3.8）** | 不做上下文压缩时，纯音频 15 分钟、音视频 2 分钟；单连接约 10 分钟，会有 GoAway 警告；恢复令牌有效期 2 小时 | 长通话开启滑动窗口压缩；实现重连与恢复 |
-| **Amazon Nova 2 Sonic** | 连接最长 8 分钟（AWS 记录了续接模式） | 续接连接并交接状态 |
+| **Amazon Nova Sonic** | Nova 2 Sonic：连接最长 8 分钟（AWS 记录了续接模式）。Nova 2.5 Sonic 的发布材料未说明限制，应实测而非假定限制已取消 | 续接连接并交接状态 |
 
 **把语音模型上下文视为缓存，而非事实来源。** GPT-Live 文档明确指出，压缩后的对话历史不是预约记录。业务依赖的信息——来电者确认了什么、预订了什么、证明了什么身份——都应存入能跨压缩、重连和模型切换的应用状态。还有两个 9 月出现的客户端陷阱：Gemini 3.8 Live Extended Thinking 中，`turnComplete` 不再表示模型空闲（应检查 `interaction_status`）；GPT-Live 没有“口头响应已结束”事件。针对旧 API 编写的状态机会在两处失效。
 
@@ -267,14 +267,14 @@ STT 与平台选择会约束合规方案，因此不仅要检查最终文本，�
 | 基准 | 衡量内容 | 当前数字 |
 |------|----------|----------|
 | **tau-Voice**（Sierra，arXiv 2603.13686，2026 年 3 月） | 含噪声、口音和打断的全双工语音工具任务 | 文本代理 85%；语音在干净音频下 31%–51%，真实条件下 26%–38%；79%–90% 的失败来自代理行为 |
-| **tau-bench 语音排行榜**（Sierra） | 零售、航空、电信、银行 | `gpt-live-1` pass@1 为 81.7%（据发布报道搭配中等强度 GPT-6 Astra）；Pine Voice Preview 75.4%；`grok-voice-think-fast-1.0` 67.3% |
+| **tau-bench 语音排行榜**（Sierra，1.x） | 零售、航空、电信、银行 | `gpt-live-1` pass@1 为 81.7%（据发布报道搭配中等强度 GPT-6 Astra）；Pine Voice Preview 75.4%；`grok-voice-think-fast-1.0` 67.3%。tau-bench 2.0.0（10 月 19 日）增加六语言包、冻结的语音基准和 200 个任务的实体捕获领域，发布说明称“分数不能与 1.x 比较” |
 | **供应商自报** | 同类任务 | Google：Gemini 3.8 Live Extended Thinking 68.6%，基础版 30.1%；其表格中搭配 Astra 的 GPT-Live-1 为 67.9%。OpenAI：搭配 Astra 后端时，GPT-Live 首次成功率 83.6%，`gpt-realtime-2.1` 为 45.7%。这些数字不可与排行榜或彼此直接比较 |
 | **tau-Elicitation**（arXiv 2609.13602，预印本） | 准确捕获姓名、ID、日期 | 稳健准确成功率 0.14–0.41 |
 | **tau-Multilingual**（arXiv 2609.35820，预印本） | 非英语任务 | 西班牙语、葡萄牙语和印地语与英语差距不超过 3.2 分；韩语低 14.7 分、普通话低 8.4 分 |
 | **APEX-Voice**（arXiv 2609.34973，预印本） | 专业多步骤流程 | 没有前沿语音系统的 Pass@1 高于 25%；最佳 Reliable@3 为 10.8%；有状态协调是主要故障 |
 | **Artificial Analysis 语音到语音** | 推理、对话动态、延迟 | Big Bench Audio 已饱和（领先分数 97.6%–99.7%）；Conversational Dynamics：StepAudio 3 为 98.9%，GPT-Live-1 为 97.3%，Gemini 3.8 Live 为 96.1% |
 
-双工分数必须注明后端模型：同一语音层接入不同后端，得分可能相差很大。工具支持部分跟上了：OpenAI Agents SDK v0.21.0 增加语音测试模块（截至 v0.22.3 尚不支持 GPT-Live），Pipecat 提供带 LLM 评审的脚本化评估 CLI。另见[评估智能体系统](../07-agentic-systems/10-evaluating-agentic-systems.md)。
+双工分数必须注明后端模型：同一语音层接入不同后端，得分可能相差很大。工具支持部分跟上了：OpenAI Agents SDK v0.21.0 增加语音测试模块，并在 0.23.0 将 `gpt-transcribe` 设为默认语音 STT 模型（未固定模型的用户会静默切换），Pipecat 提供带 LLM 评审的脚本化评估 CLI。另见[评估智能体系统](../07-agentic-systems/10-evaluating-agentic-systems.md)。
 
 ---
 
@@ -286,7 +286,7 @@ STT 与平台选择会约束合规方案，因此不仅要检查最终文本，�
 | **欧盟合成内容标记实践守则**（2026 年 6 月 10 日定稿） | 自愿选择的合规路径 | 至少两层标记（签名元数据加不可察觉水印）；纯音频内容允许口头声明 |
 | **美国 FCC 24-17**（2024 年 2 月） | 已生效 | TCPA 将 AI 生成语音视为“人工或预录语音”，因此 AI 外呼需事先明确同意（电话营销需书面同意）；逐通话保留同意记录 |
 | **FCC 24-84**（2024 年 8 月） | 拟议规则，未查到最终规则 | 拟要求征求同意和每次通话开始时披露 AI；即使如此仍建议披露 |
-| **FCC 撤销同意规则**（2026 年 9 月 30 日通过） | 已通过；联邦公报发布后 30 天生效（截至 2026 年 10 月初尚未发布） | 取代 2024 年“一次撤销全部”规则：来电者可把退出限制在所针对的信息类来电，但退出电话营销仍适用于全部电话营销。只有明确、显著披露时才可将一种方式设为唯一退出方式（语音代理可用自动语音或按键退出）；否则任何合理请求都有效，代理须识别口头退出并记录其范围 |
+| **FCC 撤销同意规则**（FCC 26-67，2026 年 9 月 30 日通过） | 最终规则于 2026 年 10 月 26 日刊登联邦公报，**2026 年 11 月 25 日生效**。配套提案（意见截止 11 月 25 日，回复截止 12 月 28 日）征求对缩短撤销执行期限、一次撤销全部方式、双向短信及关联公司的意见 | 通过将 AI 语音视为人工语音的 FCC 24-17 覆盖 AI 语音电话。取代 2024 年“一次撤销全部”规则：来电者可把退出限制在所针对的信息类来电，但退出电话营销仍适用于全部电话营销。只有明确、显著披露时才可将一种方式设为唯一退出方式（语音代理可用自动语音或按键退出）；否则任何合理请求都有效，代理须识别口头退出并记录其范围 |
 | **加州 AB 2905** | 2025 年 1 月 1 日起实施 | 实时自然语音必须在自动拨号消息播放前披露 AI 生成语音 |
 | **得克萨斯州 TRAIGA** | 2026 年 1 月 1 日生效 | 政府机构和医疗服务提供者承担披露义务；声纹属于生物识别标识符 |
 | **陪伴聊天机器人法规** | 加州（SB 243）、纽约、新罕布什尔和夏威夷已立法；另八州法规于 2027 年生效（康涅狄格、俄勒冈、华盛顿于 1 月 1 日） | 若语音产品属于陪伴代理，须遵守 AI 披露和未成年人保护要求 |
@@ -299,7 +299,7 @@ STT 与平台选择会约束合规方案，因此不仅要检查最终文本，�
 
 ## 真实成熟度（Honest Maturity）
 
-2026 年 10 月已经做得较好的是：处理附和与打断的双工轮次交接、优于静音阈值的音频轮次检测、带口头进度的异步工具、直连模型供应商的 SIP，以及低到让平台费在许多账单中超过模型费的原始音频价格。
+2026 年 11 月已经做得较好的是：处理附和与打断的双工轮次交接、优于静音阈值的音频轮次检测、带口头进度的异步工具、直连模型供应商的 SIP，以及低到让平台费在许多账单中超过模型费的原始音频价格。
 
 仍然困难的是准确捕获姓名、ID 和日期；有状态多步骤任务（APEX-Voice 上没有系统的 Pass@1 超过 25%）；主要欧洲语言之外的非英语质量；长通话的会话与连接限制；双工模型逐字朗读合规文本；以及音频提示注入。
 
@@ -336,6 +336,8 @@ STT 与平台选择会约束合规方案，因此不仅要检查最终文本，�
 - Artificial Analysis，[语音到语音排行榜](https://artificialanalysis.ai/speech-to-speech)
 - Twilio，[Media Streams WebSocket 消息](https://www.twilio.com/docs/voice/media-streams/websocket-messages)
 - FCC，[关于 AI 生成语音的 FCC 24-17 解释性裁决](https://docs.fcc.gov/public/attachments/FCC-24-17A1.pdf)
+- Federal Register，[FCC 26-67 撤销自动呼叫同意的最终规则](https://www.federalregister.gov/documents/2026/10/26/2026-21821/enhancing-the-ability-of-consumers-to-control-the-robocalls)（2026 年 10 月 26 日）及[配套提案](https://www.federalregister.gov/documents/2026/10/26/2026-21820/modernizing-the-ability-of-consumers-to-control-robocalls)
+- AWS，[Amazon Nova 2.5 Sonic 正式发布](https://aws.amazon.com/about-aws/whats-new/2026/10/amazon-nova-2.5-Sonic/)（2026 年 10 月 5 日）；xAI，[发布说明](https://docs.x.ai/docs/release-notes)
 - 欧盟委员会，[第 50 条透明度指南](https://digital-strategy.ec.europa.eu/en/library/guidelines-transparency-obligations-providers-and-deployers-ai-systems)及[AI 生成内容实践守则](https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content)
 - Cekura, [voice AI evaluation metrics](https://www.cekura.ai/blogs/voice-ai-evaluation-metrics)
 

@@ -5,7 +5,7 @@
 ## 目录（Table of Contents）
 
 - [为什么仅靠基准评测不够](#为什么仅靠基准评测不够)
-- [如何阅读供应商基准测试表](#供应商基准表解读-2026-年-10-月)
+- [如何阅读供应商基准测试表](#供应商基准表解读-2026-年-11-月)
 - [评估维度](#评估维度)
 - [推理校准与效率](#推理校准)
 - [内部基于 Elo 的评估](#内部基于-elo-的评估)
@@ -48,20 +48,22 @@ in my harness, finish my team's real tasks without supervision?"
 
 **经验法则（Rule of thumb）:** 先用 benchmark（基准评测）做初筛，再进行你自己的评估。
 
-### 供应商基准表解读（2026 年 10 月）
+### 供应商基准表解读（2026 年 11 月）
 
-任何分数都需要六个标签才有意义：**基准版本、harness、努力级别、执行者（排行榜或供应商）、兜底状态和指标**。当两个分数接近时，还应加入**每任务成本**。2026 年 9 月的发布说明了原因：
+任何分数都需要六个标签才有意义：**基准版本、harness、努力级别、执行者（排行榜或供应商）、兜底状态和指标**。当两个分数接近时，还应加入**每任务成本**。2026 年 9 月和 10 月的发布说明了原因：
 
 | 你会看到的说法 | 实际测量内容 |
 |--------------------|----------------------------|
-| “Opus 5.5 在 Terminal-Bench 4.0 上得分 66.4%” | Anthropic 以 xhigh 努力级别自行运行的结果（供应商报告，SE ±2.6）。tbench.ai 排行榜 9 月 21 日的更新早于 Opus 5.5；其最高条目是 GPT-6 Astra，为 58.18%（max） |
+| “Opus 5.5 在 Terminal-Bench 4.0 上得分 66.4%” | Anthropic 以 xhigh 努力级别自行运行的结果（供应商报告，SE ±2.6）。tbench.ai 排行榜 10 月 6 日新增的结果中，Opus 5.5 以 64.85%（max）居首，Sonnet 5.5 以 61.82%（max）居次，高于 GPT-6 Astra 和 GPT-6.1 Sol（均为 58.18%）。Anthropic 自己的测试则将 Claude 两款模型的排名反转（Sonnet 5.5 为 70.6%，Opus 5.5 为 66.4%） |
 | Terminal-Bench 4.0 上 “Astra 57.9%” 对比 “Astra 58.2%” | OpenAI 的数字采用 high 努力级别；58.18% 是排行榜采用 max 努力级别的运行结果 |
 | “Fable 5.1 55.8%” 对比 “Fable 5.1 57.9%” | Anthropic 自行运行的结果，对比排行榜 max 努力级别条目（57.88%）；xAI 在其 Grok 4.7 表格中引用了后者 |
 | “GPT-6 Astra 在 ARC-AGI-3 上得分 99.9%” | ARC Prize 的 Provider Adapter harness、high 努力级别，成本为 $18,817。其 Standard harness 在 max 努力级别得分为 62.7%，成本为 $26,098 |
 | “Opus 5.5 在 OSWorld 2.1 上得分 81.8%” | 部分得分指标、供应商运行。在官方排行榜的 v2.1 全量集（9 月 17 日）上，Opus 5 在 max 努力级别的二元得分为 44.33%、部分得分为 77.67%；该更新早于 Opus 5.5 |
 | 使用工具的 HLE：Astra 领先，还是 Opus 5.5 领先？ | 都是。HLE-Diamond（1,000 道清洗后的题目）中：Astra 为 82.9%、Opus 5.5 为 73.9%。Anthropic 的完整 HLE 表中：Opus 5.5 为 67.7%、Astra 为 57.2%。数据集与执行者改变了排序 |
 | “三个模型在 DeepSWE v1.1 上并列 74%” | 相同通过率下，每任务成本分别为 $2.36（Gemini 3.8 Flash，high）、$4.43（GPT-6 Astra，xhigh）和 $11.84（Claude Opus 5，max） |
-| “Opus 5.5 以 58 分领跑 AA Intelligence Index” | Index v4.3.2、max 努力级别、带安全防护兜底。v4.3（9 月 7 日发布）之前的分数采用不同量表，不能比较 |
+| “Opus 5.5 在 AA Intelligence Index 得分 58” | Index v5.0（10 月 27 日公布）、max 努力级别、启用安全防护兜底。它排名第二，低于开发者无法调用的 Gemini 4 Carbon（59 分）。v4.x 使用不同量表，不能比较，即使碰巧分数相同也不行 |
+| “Sonnet 5.5 得分 54”与“Sonnet 5.5 得分 41” | 两者都是 AA v5.0：max 努力级别为 54，high 为 41。只改变一个努力级别就相差 13 分；GPT-6.1 Terra 从 max 的 51 分降至默认 `medium` 的 38 分 |
+| “Haiku 5.5 在 OSWorld 2.1 得分 72.4%” | Anthropic 自行测试的离线子集，采用部分得分，属于供应商报告。它不是排行榜使用的二元指标，也不能与全量集得分比较 |
 
 由此得出的规则是：**只有相同 harness、相同努力级别、相同执行者的数字才可比较。** 供应商数字是对其最佳配置的声明，不是对你的配置的预测。[基准评测章节](../14-evaluation-and-observability/03-benchmarks-and-leaderboards.md#harness-与脚手架方差)会更深入地介绍 harness 差异。
 
@@ -115,7 +117,7 @@ Thinking 不再是开关，而是一个调节旋钮。Claude Opus 5.5 无法关�
 | **High** | 93% | 88% | 12.5s | 2,800 |
 | **Max** | 94% | 89% | 31s | 7,000 |
 
-默认值会在你未注意时变化：Opus 5.5 默认使用 `medium`，而 Opus 5 使用 `high`；GPT-6.1 Sol 默认使用 `medium`；Sonnet 5.5 在 API 中默认 `high`，但在 Claude Code 中默认 medium。请在评估和生产环境中都显式固定努力级别。max 努力级别的评估无法预测 medium 努力级别的部署表现。
+默认值会在你未注意时变化：Opus 5.5 和 Haiku 5.5 默认使用 `medium`，而 Opus 5 使用 `high`；GPT-6.1 Sol 和 GPT-6.1 Terra 默认使用 `medium`；Sonnet 5.5 在 API 中默认 `high`，但在 Claude Code 中默认 medium。请在评估和生产环境中都显式固定努力级别。max 努力级别的评估无法预测 medium 努力级别的部署表现。
 
 ### 推理校准
 
@@ -124,22 +126,22 @@ Thinking 不再是开关，而是一个调节旋钮。Claude Opus 5.5 无法关�
 
 **高层级细节：**  
 基于 **Logic Efficiency（逻辑效率）** 评估模型：`Accuracy / (Inference Tokens)`。  
-生产系统使用 **Model Arbitration（模型仲裁）**：一个小型、低成本模型（GPT-6 Luna、低 thinking 的 Gemini 3.8 Flash、Claude Haiku 4.5）对查询分类，并为主调用选择努力级别或模型。在无法关闭 thinking 的模型上，仲裁器的职责是选择 `low` 还是 `high`，这仍能避免简单查询产生 10 倍延迟和成本惩罚。
+生产系统使用 **Model Arbitration（模型仲裁）**：一个小型、低成本模型（GPT-6 Luna、提示词低于 100K token 的 Claude Haiku 5.5、低 thinking 的 Gemini 3.8 Flash）对查询分类，并为主调用选择努力级别或模型。在无法关闭 thinking 的模型上，仲裁器的职责是选择 `low` 还是 `high`，这仍能避免简单查询产生 10 倍延迟和成本惩罚。
 
 不要只衡量准确率，也要衡量**每任务 token 数**。模型在此处可相差数倍：Artificial Analysis 测得 GPT-6 Astra 在每个编码任务中使用的 token 约为 GPT-5.6 Sol 的三分之一；而 Muse Spark 1.3 比 1.2 更冗长，因此即使其每 token 价格未变，每任务成本仍然上升。
 
 ### 维度 4：上下文召回
 
-如今 1M token 窗口已成为标准配置（Claude 4.6 及以后版本、GPT-6 为 1.05M、Gemini 3.8 Flash 为 1,048,576），简单的“needle-in-a-haystack”已经不够。我们现在评估窗口内的 **Contextual Reasoning（上下文推理）**。
+如今 1M token 窗口已成为标准配置（Claude 4.6 及以后版本、GPT-6 为 1.05M、Gemini 3.8 Flash 和 Gemini 4 Argon 为 1,048,576），简单的“needle-in-a-haystack”已经不够。我们现在评估窗口内的 **Contextual Reasoning（上下文推理）**。
 
 | 指标 | 测量方式 | 目标 |
 |--------|-------------|--------|
 | **Window Recall（窗口召回）** | 在 90% 窗口深度下的事实召回率 | > 98% |
 | **Cross-Doc Reasoning（跨文档推理）** | 将 Doc A（pos 10k）与 Doc B（pos 900k）逻辑关联 | > 90% |
 | **Contextual Noise Resistance（上下文抗噪性）** | 当窗口中 90% 为无关“填充”时的准确率 | > 95% |
-| **Long-Output Coherence（长输出连贯性）** | 在生成的 64K-128K token 间保持一致性（Claude 5.x 和 GPT-6 模型当前输出上限为 128K，Gemini 3.8 Flash 为 65,536；Google 表示已宣布的 Gemini 4 Argon 将上限提升到 1M） | 因任务而定 |
+| **Long-Output Coherence（长输出连贯性）** | 在生成的 64K-128K token 间保持一致性（Claude 5.x 和 GPT-6 模型当前输出上限为 128K，Gemini 3.8 Flash 为 65,536；Gemini 4 Argon 默认也为 65,536，仅通过长解码续传协议可达到约 1M） | 因任务而定 |
 
-记录召回率时也要记录成本。在 OpenAI 模型上，超过 272K token 的提示会按长上下文费率计费整个请求，因此一个在 800K 处召回良好的模型，价格上仍可能输给 RAG。输出也是如此：1M token 的输出上限可让单次调用替代分块生成循环，但前提是你已测量该长度下的连贯性和成本。
+记录召回率时也要记录成本。OpenAI 模型的提示词超过 272K token 后，整个请求都按长上下文费率计费；Claude Haiku 5.5 的提示词超过 100K 后则按 5 倍计费。因此，在 800K 处召回良好的模型，价格上仍可能输给 RAG，便宜模型也可能在 101K 时不再便宜。输出也是如此：Argon 的长解码协议允许一次逻辑调用替代分块生成循环，但前提是你已测量该长度下的连贯性和成本。
 
 ---
 
@@ -338,7 +340,7 @@ Exact match: FAIL (but clearly correct)
 
 **问题：** 每个测试只跑一次会忽略模型随机性。
 
-**解决：** 在生产努力级别下，每个案例至少运行三次，并报告置信区间。temperature 已不再是大多数前沿模型的可用调节手段：Claude API 对 Opus 4.7 及以后版本的非默认采样值返回 400；Anthropic Python SDK 1.0 从 Messages 方法中移除了 `temperature`；Google 在 Gemini API 中弃用了它；GPT-6 Astra 不接受它。方差是需要测量的对象，而非可被调没的东西。
+**解决：** 在生产努力级别下，每个案例至少运行三次，并报告置信区间。temperature 已不再是大多数前沿模型的可用调节手段：Anthropic 新版 SDK 主版本（Python 2.0.0、TypeScript 1.0.0）默认使用的 Claude API 版本 `2026-10-21`，会对所有模型的 `temperature`、`top_p` 或 `top_k` 一律返回 400（旧版本仅对 Claude 4.7 及之后模型的非默认值报错）；Google 在 Gemini API 中弃用了 temperature；GPT-6 Astra 不接受它。方差是需要测量的对象，而非可被调没的东西。
 
 ### 陷阱 5：忽视成本
 
@@ -362,7 +364,7 @@ def quality_adjusted_cost(model_results):
 
 **问题：** 评估以 max 努力级别、在供应商 harness 中、启用了向另一模型兜底的安全防护下运行，或者针对的是同一 ID 下已发生变化的模型。
 
-**解决：** 让努力级别、harness、工具和兜底设置与生产环境一致；当供应商端发生变化时重新运行评估，而不只是模型 ID 改变时才重跑。OpenAI 曾在 2026 年 9 月 25 日修复 GPT-6 Sol 和 Luna 的图像理解 bug，未更改模型 ID，并建议客户重跑图像评估。DeepSeek 的旧 `deepseek-v4-flash` 名称现在提供的是 V4.1-Flash。
+**解决：** 让努力级别、harness、工具和兜底设置与生产环境一致；当供应商端发生变化时重新运行评估，而不只是模型 ID 改变时才重跑。OpenAI 曾在 2026 年 9 月 25 日修复 GPT-6 Sol 和 Luna 的图像理解 bug，未更改模型 ID，并建议客户重跑图像评估。DeepSeek 的旧 `deepseek-v4-flash` 名称现在提供的是 V4.1-Flash，`deepseek-flash` 于 10 月 17 日切换到 V4.1-Flash-1017 构建版本。Google 从 10 月 8 日起将 `gemini-3.7-flash` 请求路由至 Gemini 3.8 Flash，因此针对 3.7 Flash 的评估如今测量的是另一模型。
 
 ### 陷阱 7：评估感知
 
@@ -567,11 +569,12 @@ MMLU 在特定 use case 下有几个问题：
 - Artificial Analysis Intelligence Index 方法论: https://artificialanalysis.ai/methodology/intelligence-benchmarking
 - ARC Prize，GPT-6 Astra on ARC-AGI-3: https://arcprize.org/blog/astra
 - OSWorld 2.0 排行榜（XLANG）: https://osworld-v2.xlang.ai/
+- Terminal-Bench 4.0 排行榜: https://www.tbench.ai/leaderboard/terminal-bench/4.0
 - “Maintaining Benchmarks Against Increasingly Capable Agents”（arXiv 2609.34262）
 - “JEV vs. LLMs as Rubric Judges”（arXiv 2609.29769）
 - HELM: https://crfm.stanford.edu/helm/
 - LMSys Evaluation: https://github.com/lm-sys/FastChat/tree/main/fastchat/llm_judge
-- OpenAI Evals（开源框架；托管 Evals 平台将于 2026 年 10 月 31 日转为只读，并于 11 月 30 日关闭）: https://github.com/openai/evals
+- OpenAI Evals（开源框架；托管 Evals 平台将于 2026 年 11 月 30 日关闭）: https://github.com/openai/evals
 
 ---
 

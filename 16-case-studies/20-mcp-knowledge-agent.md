@@ -58,7 +58,7 @@ flowchart TB
 |-------|------|---------|
 | 身份 | Okta 加角色映射服务 | 每次调用的逐用户身份 |
 | 网关 | 内部 Envoy 加 OPA 策略 | 强制认证、按工具执行策略和限流 |
-| Agent 运行时 | Claude Sonnet 5.5 加严格工具 schema | 多步推理；不强制 `tool_choice`，因为最新版 Claude 会拒绝 |
+| Agent 运行时 | Claude Sonnet 5.5 加严格工具 schema | 多步推理；不强制 `tool_choice`，因为 Sonnet 5.5 会拒绝；不传采样参数，因为 Anthropic API 版本 `2026-10-21` 起所有模型均会拒绝 |
 | MCP 传输 | Snowflake、Confluence、Jira 和 Slack（官方远程服务器）使用 HTTP；只有遗留内部工具采用沙盒化 STDIO | 按服务器选择 |
 | OAuth Resource Server | 每个第一方 MCP 服务器都是带 audience 绑定的 RS | RFC 8707 |
 | 凭据代理 | 在 Vault 中保存逐用户第三方 token（Slack），每个 token 绑定签发方 | 防范 OAuth 混淆攻击 |
@@ -80,7 +80,7 @@ flowchart TB
 
 ### 1. 按租户作用域并结合 audience 绑定（RFC 8707）
 
-每个第一方 MCP 服务器都会验证 token 的 `aud` 声明是否与自身的规范 URI 匹配。token 签发方（Okta 加我们的角色映射服务）会用 `aud=https://snowflake-mcp.internal.example.com`、`scope=read:metrics` 以及逐用户身份声明来签发 JWT。发给 Snowflake 的 token 不能重放到 Confluence；audience 检查会在服务器端失败。[MCP 授权规范（2026-07-28 修订版）](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)要求采用这一模式，也要求客户端校验授权服务器的 RFC 9207 `iss` 参数。若没有 audience 绑定，遭入侵的 MCP 服务器就可以把 token 重放给同级服务器，这一点在 Adversa AI 的安全综述里有演示。
+每个第一方 MCP 服务器都会验证 token 的 `aud` 声明是否与自身的规范 URI 匹配。token 签发方（Okta 加我们的角色映射服务）会用 `aud=https://snowflake-mcp.internal.example.com`、`scope=read:metrics` 以及逐用户身份声明来签发 JWT。发给 Snowflake 的 token 不能重放到 Confluence；audience 检查会在服务器端失败。该检查必须显式启用：官方 TypeScript SDK 于 10 月新增的 audience 校验（CVE-2026-111771，`sdk` 1.32.0 和 `server` 2.3.0）通过 `expectedResource` 可选开启，因此所有基于该 SDK 的第一方服务器都会设置此项，契约测试也会证明错误 audience 的 token 返回 401。[MCP 授权规范（2026-07-28 修订版）](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization)要求采用这一模式，也要求客户端校验授权服务器的 RFC 9207 `iss` 参数。若没有 audience 绑定，遭入侵的 MCP 服务器就可以把 token 重放给同级服务器，这一点在 Adversa AI 的安全综述里有演示。
 
 ### 2. 默认使用基于 HTTP 的 MCP；仅遗留内部工具使用沙盒化 STDIO
 
@@ -123,7 +123,7 @@ HTTP 提供明确的网络信任边界及真正的 OAuth 强制执行，但前�
 
 ### 10. 在网关使用无状态修订版的路由请求头
 
-2026-07-28 修订版要求 Streamable HTTP POST 必须携带 `Mcp-Method` 和 `Mcp-Name` 请求头，因此 Envoy 加 OPA 网关无需解析 JSON-RPC 请求体就能按工具执行策略，例如规定哪些角色可调用 `jira.create_issue`。无状态服务器也使普通负载均衡器后的任意 Pod 都能处理任意请求。若服务器需要跨调用状态，就生成随机句柄，在服务器端与已认证用户绑定（`<user_id>:<handle>`），绝不将持有句柄本身视为身份证明，以封堵新安全指南指出的状态句柄劫持漏洞。
+2026-07-28 修订版要求 Streamable HTTP POST 必须携带 `Mcp-Method` 和 `Mcp-Name` 请求头，因此 Envoy 加 OPA 网关无需解析 JSON-RPC 请求体就能按工具执行策略，例如规定哪些角色可调用 `jira.create_issue`。无状态服务器也使普通负载均衡器后的任意 Pod 都能处理任意请求，但不表示一个进程内的服务器对象可以被所有客户端共享：团队的 TypeScript 服务器会为每个请求创建新的 server 和 transport，因为共享实例会把一个客户端的响应泄露给另一个客户端（CVE-2026-111770；只有升级至 `@modelcontextprotocol/server` 2.3.0 并同时修改代码才能修复）。若服务器需要跨调用状态，就生成随机句柄，在服务器端与已认证用户绑定（`<user_id>:<handle>`），绝不将持有句柄本身视为身份证明，以封堵新安全指南指出的状态句柄劫持漏洞。
 
 ## 示例查询序列
 
@@ -182,7 +182,7 @@ sequenceDiagram
 
 ### F7: MCP 服务器或 SDK 升级不兼容
 
-上游 MCP 服务器升级了 schema；代理规划步骤使用了新 schema；生产环境里的旧 MCP 客户端包装器因此失效。协议自身也在迁移中：2025-11-25 有状态客户端与 2026-07-28 无状态客户端并存，`pip install mcp` 现在会解析到 2.x SDK，其中 `FastMCP` 已改为 `MCPServer`。缓解：按代理版本锁定 schema；显式锁定 SDK 版本；在 CI 中运行覆盖两个协议时期的 MCP 服务器兼容性测试；对新服务器版本分阶段发布。
+上游 MCP 服务器升级了 schema；代理规划步骤使用了新 schema；生产环境里的旧 MCP 客户端包装器因此失效。协议自身也在迁移中：2025-11-25 有状态客户端与 2026-07-28 无状态客户端并存，`pip install mcp` 现在会解析到 2.x SDK，其中 `FastMCP` 已改为 `MCPServer`。后续规范修订计划于 2027 年 3 月 30 日发布（SEP-3398 规定一般在每年 3 月和 9 月的最后一个星期二发布，SDK beta 约提前 1.5 个月），因此团队应根据 SDK beta 安排兼容性工作，而不是等正式发布后再反应。依赖扩展前还应检查其成熟度：企业认证已为 Stable，Tasks、Skills 和 Server Cards 仍为 Beta，可能继续发生不兼容变更。缓解：按代理版本锁定 schema；显式锁定 SDK 版本；在 CI 中运行覆盖两个协议时期的 MCP 服务器兼容性测试；对新服务器版本分阶段发布。
 
 ### F8: 被攻陷的内部 MCP 服务器
 
@@ -207,6 +207,7 @@ sequenceDiagram
 | 审计日志完整性 | 每日 100% 链有效 |
 | token 重放尝试阻断 | 100% |
 | token 验证契约测试（格式错误、过期、错误 audience 或 issuer） | 每次部署均 `100%` 拒绝 |
+| 跨客户端隔离测试（两个并发身份，响应绝不串线） | 每次部署 `100%` 通过 |
 | 每用户失控消费事件 | 每季度少于 1 次 |
 | 用户感知答案质量 | 高于 75% thumbs-up |
 
@@ -242,13 +243,14 @@ sequenceDiagram
 
 ### STDIO MCP 服务器迁移计划
 
-Snowflake、Confluence、Jira 和 Slack 如今都运行在 HTTP MCP 服务器上（Slack 使用其官方远程服务器）。剩余 STDIO 是一小批遗留内部工具，按上文方式沙盒化，每个都有迁移工单；新内部服务器从第一天起就按 `2026-07-28` 修订版构建为原生 HTTP、无状态服务器。SDK 方面也需要迁移：仍使用 v`1` TypeScript 或 Python SDK 的客户端与服务器，需要升级到 9 月的 OAuth 混淆攻击修复版本（TypeScript `1.31.0`、Python `1.30.0` 或 `2.2.0` 系列）；Python 版本还新增 `4 MiB` 请求体上限和空闲有状态会话回收。
+Snowflake、Confluence、Jira 和 Slack 如今都运行在 HTTP MCP 服务器上（Slack 使用其官方远程服务器）。剩余 STDIO 是一小批遗留内部工具，按上文方式沙盒化，每个都有迁移工单；新内部服务器从第一天起就按 `2026-07-28` 修订版构建为原生 HTTP、无状态服务器。SDK 方面也需要迁移：仍使用 v`1` TypeScript 或 Python SDK 的客户端与服务器，需要升级到 9 月的 OAuth 混淆攻击修复版本（TypeScript `1.31.0`、Python `1.30.0` 或 `2.2.0` 系列）；Python 版本还新增 `4 MiB` 请求体上限和空闲有状态会话回收。10 月又增加两项 TypeScript SDK 迁移要求：`server` 2.3.0 修复共享 server 与 transport 泄漏（还必须重构为每请求或会话一个实例），以及默认关闭、需通过 `expectedResource` 显式启用的 audience 检查。
 
 ## 优秀面试候选人通常涵盖的内容
 
 - 他们会点名 MCP、OAuth 2.1，以及 RFC 8707，并说明跨多个 server 时 audience binding（受众绑定）为何重要。
-- 他们能区分 STDIO 与 HTTP MCP，说明 HTTP 为何成为默认方案，也了解 HTTP 自身的失效模式（本地服务器上的 DNS rebinding、只检查 token 是否存在而不验证有效性的做法）。
+- 他们能区分 STDIO 与 HTTP MCP，说明 HTTP 为何成为默认方案，也了解 HTTP 自身的失效模式（本地服务器上的 DNS rebinding、只检查 token 是否存在而不验证有效性的做法、默认关闭的 audience 检查）。
 - 他们能区分第一方服务器（网关签发、绑定 audience 的 token）与第三方服务器（供应商自己的授权服务器、由凭据代理保存的 issuer 绑定凭据），并解释 OAuth 混淆攻击。
+- 他们知道无状态协议不意味着可让多个客户端共享同一个 server 对象（CVE-2026-111770），也知道某些安全修复需要改代码或配置，而不只是升级版本。
 - 他们构建纵深防御：工具参数过滤、工具结果可信度标记、能力门控（capability gating）、审计链这四层；并说明每一层为何重要。
 - 他们会明确讲解 IPI（indirect prompt injection，间接提示注入）并引用 CaMeL 或类似的能力门控模式。
 - 他们会评估运营成本，并定义包含安全信号（红队通过率、审计完整性、token 契约测试）的 SLO（服务级目标），而不仅是延迟与可用性。
@@ -262,6 +264,8 @@ Snowflake、Confluence、Jira 和 Slack 如今都运行在 HTTP MCP 服务器上
 - IETF, [OAuth 2.1 draft](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1)
 - MCP TypeScript SDK，[OAuth 授权服务器混淆攻击公告（GHSA-6qxp-vccf-f47h）](https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-6qxp-vccf-f47h)
 - MCP Python SDK，[OAuth 混淆攻击公告（GHSA-qx49-fqc8-xw99）](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-qx49-fqc8-xw99)
+- MCP TypeScript SDK，[共享 server 与 transport 公告，CVE-2026-111770（GHSA-jm63-cq47-j5jp）](https://github.com/advisories/GHSA-jm63-cq47-j5jp)
+- MCP，[SEP-3398：版本发布周期更新](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/3398-release-cycle-updates.md)
 - [GitHub 安全公告数据库：已审核的 MCP 公告](https://github.com/advisories?query=type%3Areviewed+mcp)
 - Slack，[MCP 服务器文档](https://docs.slack.dev/ai/mcp-server)
 - Adversa AI, [2026 MCP Security Roundup](https://adversa.ai/blog/mcp-security)

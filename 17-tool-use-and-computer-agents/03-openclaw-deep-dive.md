@@ -32,7 +32,7 @@ OpenClaw 是：
 - **消息原生**：接入你已使用的聊天应用（WhatsApp、Telegram、Slack、Discord、Signal、iMessage、Teams 等 20 多个平台）
 - **LLM 无关**：支持 Claude、GPT、Gemini、Muse Spark、DeepSeek 或本地模型（近期版本新增 GPT-6.1 Sol、GPT-6 Astra、Fable 5.1 和 Muse Spark 1.3）
 - **可通过技能扩展**：约 50 个内置技能（内置插件还提供更多技能）、公开注册表 ClawHub，以及便于编写自定义技能的格式
-- **开源**：采用 MIT 许可；截至 2026 年 10 月 1 日约有 39.1 万 GitHub stars 和 8.2 万 forks
+- **开源**：采用 MIT 许可；2026 年 11 月初约有 39.4 万 GitHub stars 和 8.3 万 forks
 - **基金会治理**：由独立的 501(c)(3) OpenClaw Foundation 管理，该基金会雇用核心团队并签署版本；没有付费档、托管服务或代币。README 称 OpenAI“是捐助者，不是所有者”（Amazon、Red Hat、NVIDIA 和 GitHub 等也提供捐助或基础设施支持）
 - **两条发布线**：按日历标版本的构建（2026 年 9 月 30 日发布 2026.9.7）以及仅面向 Gateway、项目视作 LTS 的扩展稳定构建（10 月 2 日发布 2026.8.35）。生产网关应固定到扩展稳定线
 
@@ -343,9 +343,9 @@ OpenClaw 从 `~/.openclaw/openclaw.json` 读取配置（JSON5 格式——允许
 
 | Provider | 最适合 | 取舍 |
 |----------|----------|------------|
-| Anthropic (Claude) | 复杂推理、编程和长上下文任务（100 万 token 上下文不加价） | 成本较高，质量最佳：Opus 5.5 每百万 token 标价 $4/$20，Fable 5.1 为 $10/$50；Opus 5.5 无法关闭思考 |
-| OpenAI（GPT-6 系列） | 通用任务；GPT-6 Luna（$0.10/$0.50）用于低成本路由，GPT-6 Sol 或 GPT-6.1 Sol（$2/$10）作为主力 | 输入超过 27.2 万 token 的请求整体按长上下文价格计费 |
-| Google (Gemini) | 注重预算的测试与较宽松免费档；Gemini 3.8 Flash 到 2026 年 12 月 31 日的入门价为 $0.75/$3.75 | 2027 年 1 月 1 日价格翻倍至 $1.50/$7.50；Flash 档推理落后于顶尖 Claude 与 GPT 模型（AA Intelligence Index v4.3：41 分，Opus 5.5 为 58 分） |
+| Anthropic (Claude) | 复杂推理、编程和长上下文任务（Sonnet 5.5 和 Opus 5.5 在 1M 内按统一费率计费）；Haiku 5.5（提示词不超过 100K token 时每 1M $0.10/$0.50）用于低成本工具和路由调用 | 顶级模型成本较高：Opus 5.5 每 1M 标价 $4/$20，Fable 5.1 为 $10/$50；Opus 5.5 无法关闭思考。Haiku 5.5 的提示词超过 100K token（含缓存读写）后，整个请求按 $0.50/$2.50 计费，长历史智能体容易在不知不觉中跨过该门槛 |
+| OpenAI（GPT-6 系列） | 通用任务；GPT-6 Luna（$0.10/$0.50）用于低成本路由，GPT-6.1 Terra（10 月 26 日，$1/$5）居中，GPT-6 Sol 或 GPT-6.1 Sol（$2/$10）作为主力 | 输入超过 272K token 的请求整体按长上下文价格计费 |
+| Google (Gemini) | 注重预算的测试与较宽松免费档；Gemini 3.8 Flash 到 2026 年 12 月 31 日的入门价为 $0.75/$3.75；Gemini 4 Argon（10 月 13 日正式发布）用于困难任务，2026 年 11 月 30 日前为 $2/$10 | Flash 于 2027 年 1 月 1 日翻倍至 $1.50/$7.50，Argon 于 2026 年 12 月 1 日翻倍至 $4/$20；Argon 仅支持隐式缓存，在 Artificial Analysis Intelligence Index v5.0 得分 50，Opus 5.5 为 58 |
 | DeepSeek | 最便宜的托管选择：V4.1-Flash（`deepseek-flash`）高峰时每百万 token $0.30/$1.20，非高峰时减半；V4-Pro 高峰价仍为 $1.32/$3.96；100 万 token 上下文，适合高吞吐且缓存友好的负载 | 工作日 UTC 01:00–04:00 与 06:00–10:00 为高峰时段，价格翻倍；旧模型名可能实际指向新模型，应固定并验证；MIT 权重也可自托管 |
 | Local (Ollama) | 对隐私要求极高、离线使用 | 需要强大的硬件，质量较低 |
 
@@ -491,7 +491,7 @@ OpenClaw 的安全模型假设一种“个人助理”威胁模型：一个受�
 
 **回环地址是第一道防线**：宿主机安装会把 Gateway 绑定到回环地址，网络可达性承担了很大一部分安全防护。若配置不当的反向代理把全部请求转发到 localhost，所有外部调用者看起来都会来自回环地址，Gateway 对本地连接授予的权限也就暴露到互联网。容器镜像绑定在对外接口上，依赖生成的 Gateway 令牌。远程部署应始终启用 Gateway 认证；项目支持的是每个 Gateway 一个可信操作者，而不是彼此敌对的租户。
 
-**技能供应链**：社区技能目录曾出现恶意软件包。安装第三方技能前务必审查，并按内容而非仅按引用固定版本：Plugin4Shell（AIR Security，2026 年 9 月）表明，代理安装固定到提交 SHA 的插件时仍可能检出攻击者代码——仓库所有者可创建一个以 SHA 命名的分支并将其设为默认分支，而代理没有核验实际检出的提交。MCP 技能扩展（`io.modelcontextprotocol/skills`，2026 年 9 月 13 日定稿）也采用相同思路：用 SHA-256 文件清单审批，任一文件修改、增加或删除都会撤销审批。不可信技能应在沙箱中运行。
+**技能供应链**：社区技能目录曾出现恶意软件包。安装第三方技能前务必审查，并按内容而非仅按引用固定版本：Plugin4Shell（AIR Security，2026 年 9 月）表明，代理安装固定到提交 SHA 的插件时仍可能检出攻击者代码——仓库所有者可创建一个以 SHA 命名的分支并将其设为默认分支，而代理没有核验实际检出的提交。MCP 技能扩展（`io.modelcontextprotocol/skills`；SEP 于 2026 年 9 月 13 日定稿，在新扩展生命周期下为 Beta，并于 10 月 23 日随 TypeScript SDK 2.4.0 发布）也采用相同思路：用 SHA-256 文件清单审批，任一文件修改、增加或删除都会撤销审批。不可信技能应在沙箱中运行。
 
 ### 加固检查清单
 
@@ -658,7 +658,7 @@ server {
 - **限制上下文窗口**：100K 个 token 足以应对大多数任务
 - **开启新对话**：长历史会累积数百条消息；定期重启
 - **禁用未使用的技能**：每个已加载技能都会占用上下文预算
-- **保持前缀可缓存**：把 SOUL.md、AGENTS.md 和技能描述放在前面，并在各轮之间保持稳定。大多数 Claude 模型的缓存读取费用是普通输入的 0.1 倍（Opus 5.5 为 0.05 倍，Fable 5.1 为 0.025 倍）；OpenAI GPT-5.6 和 GPT-6 模型也为 0.1 倍（GPT-6.1 Sol 为 0.05 倍）。热缓存前缀成本很低，冷缓存则按完整输入价计费。
+- **保持前缀可缓存**：把 SOUL.md、AGENTS.md 和技能描述放在前面，并在各轮之间保持稳定。大多数 Claude 模型的缓存读取费用是普通输入的 0.1 倍（Opus 5.5 和 Sonnet 5.5 为 0.05 倍，Fable 5.1 为 0.025 倍）；OpenAI GPT-5.6 和 GPT-6 模型也为 0.1 倍（GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05 倍）。热缓存前缀成本很低，冷缓存则按完整输入价计费。
 
 ### 技能优化
 
@@ -765,7 +765,7 @@ Developer (phone)
 
 到 2026 年 4 月之前，利用 Claude Pro 和 Max 订阅驱动 OpenClaw 曾被视为控制成本的办法：用户可接入已有个人套餐，而不按 API 价格付费。从 2026 年 4 月 4 日起，Anthropic 不再允许第三方运行框架（如 OpenClaw）使用订阅用量额度；它们只能继续通过按 API 费率计费的按量额外用量运行。Anthropic 将此举归因于容量压力，指出一些第三方工具绕过了提示缓存。对重度代理工作负载，有效价格增长数倍；媒体估算这类用量原先的订阅折扣相对 API 价格达到五倍或更多。
 
-承诺的回调方案至今未定。5 月 13 日，Anthropic 宣布将于 6 月 15 日推出每月 Agent SDK 额度：Pro 为 20 美元、Max 5x 为 100 美元、Max 20x 为 200 美元，覆盖 Agent SDK、`claude -p`、Claude Code GitHub Actions 以及通过 Agent SDK 认证的第三方应用；只有开启额外用量时，超出额度的部分才按 API 费率计费。然而 6 月 15 日当天，Anthropic 暂停了计划。其帮助中心（最后更新于 6 月 16 日）表示，Agent SDK、`claude -p` 和第三方应用的用量仍计入订阅额度。OpenClaw 自己的 Anthropic 提供商文档也称额度在 Anthropic 修订期间不可用。实际使用中，OpenClaw 通过 Claude Code 自身凭据访问 Pro 或 Max 套餐，方式是 Claude CLI 后端或 `claude setup-token` 令牌，其用量计入套餐限额；针对共享的生产自动化，OpenClaw 文档建议使用按量计费的 Anthropic API 密钥。
+承诺的回调方案至今未定。5 月 13 日，Anthropic 宣布将于 6 月 15 日推出每月 Agent SDK 额度：Pro 为 20 美元、Max 5x 为 100 美元、Max 20x 为 200 美元，覆盖 Agent SDK、`claude -p`、Claude Code GitHub Actions 以及通过 Agent SDK 认证的第三方应用；只有开启额外用量时，超出额度的部分才按 API 费率计费。然而 6 月 15 日当天，Anthropic 暂停了计划，其帮助中心仍表示 Agent SDK、`claude -p` 和第三方应用的用量计入订阅额度。同一文章 10 月 7 日的通知增加了另一机制：Max、Ultra 和 Team 套餐现在包含每月 API 额度，当这些工具使用套餐关联的 Claude Console 组织的 API 密钥运行时适用；直接使用套餐登录不会改变这一点。OpenClaw 自己的 Anthropic 提供商文档也称额度在 Anthropic 修订期间不可用。实际使用中，OpenClaw 通过 Claude Code 自身凭据访问 Pro 或 Max 套餐，方式是 Claude CLI 后端或 `claude setup-token` 令牌，其用量计入套餐限额；针对共享的生产自动化，OpenClaw 文档建议使用按量计费的 Anthropic API 密钥。
 
 ### 事件时间线
 
@@ -778,6 +778,7 @@ gantt
     订阅不再覆盖第三方运行框架 :milestone, a1, 2026-04-04, 0d
     宣布 Agent SDK 额度        :milestone, a2, 2026-05-13, 0d
     额度计划在启动当日暂停      :milestone, a3, 2026-06-15, 0d
+    Max、Ultra 和 Team 增加每月 API 额度 :milestone, a4, 2026-10-07, 0d
 ```
 
 ### 从架构上看意味着什么
@@ -802,7 +803,7 @@ gantt
 **来源：**
 - [Axios：Anthropic 封锁 OpenClaw 第三方 Agent](https://www.axios.com/2026/04/06/anthropic-openclaw-subscription-openai)
 - [VentureBeat：Agent SDK 额度公告（2026 年 5 月 13 日）](https://venturebeat.com/technology/anthropic-reinstates-openclaw-and-third-party-agent-usage-on-claude-subscriptions-with-a-catch)
-- [Claude 帮助中心：在 Claude 套餐中使用 Claude Agent SDK（2026 年 6 月 15 日暂停通知）](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+- [Claude 帮助中心：在 Claude 套餐中使用 Claude Agent SDK（2026 年 6 月 15 日暂停通知；2026 年 10 月 7 日 API 额度通知）](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
 - [OpenClaw 文档：Anthropic 提供商](https://docs.openclaw.ai/providers/anthropic)
 
 ---
@@ -818,7 +819,7 @@ gantt
 | **记忆** | 每个助手跨会话 | 多级（会话、持久化、技能） | 用户编写的 CLAUDE.md 加 Claude 按仓库自动写入的记忆（本地会话默认启用） | 仅会话 |
 | **技能/插件** | 约 50 个内置技能及插件技能；ClawHub 注册表 | 自学习技能系统 | MCP 工具、技能、插件 | 技能（例如浏览器和应用测试的 QA 技能） |
 | **自托管** | 是（必需） | 是（必需） | 本地运行；模型由 Anthropic 或云提供商托管；Team 和 Enterprise 支持自托管运行器 | 是 |
-| **GitHub 星标（2026 年 10 月）** | 约 391K | 约 251K | 约 149K（issues 与插件仓库；核心不开源） | 约 68K |
+| **GitHub 星标（2026 年 11 月）** | 约 394K | 约 260K | 约 154K（issues 与插件仓库；核心不开源） | 约 69K |
 | **最适合** | 多渠道个人 AI 助手 | 随使用不断学习的个人代理 | 软件开发 | 使用低成本模型编程 |
 | **最薄弱** | 可预测性、企业使用 | 平台覆盖范围 | 非编程任务 | 成熟度（重写版推出仅数月） |
 

@@ -102,7 +102,7 @@ Similarity = cosine(doc_embedding, query_embedding)
 - 无法预计算：对 n 个文档推理为 O(n)
 - 用于 reranking，不用于检索
 
-当前的 reranker 可接收 32K token 输入，因此候选内容可以是长章节或短文档，而非仅限 512 token 的段落：Cohere Rerank 4（Fast 和 Pro）、Voyage rerank-3 和 rerank-3-lite（2026 年 9 月 30 日，分别为每 1M token $0.05 和 $0.02），以及 Qwen3-Reranker-8B、Qwen3-VL-Reranker 等开放权重选项（Apache 2.0，多模态）。参见 [Reranking Strategies](../06-retrieval-systems/06-reranking-strategies.md)。
+当前的 reranker 可接收 32K token 输入，因此候选内容可以是长章节或短文档，而非仅限 512 token 的段落：Cohere Rerank 5（Pro 每 1M token $0.05、Fast $0.02）、Voyage rerank-3 和 rerank-3-lite（价格相同），以及 Qwen3-Reranker-8B、Qwen3-VL-Reranker 等开放权重选项（Apache 2.0，多模态）。参见 [Reranking Strategies](../06-retrieval-systems/06-reranking-strategies.md)。
 
 ---
 
@@ -364,7 +364,7 @@ results = model.search(query="What is RAG?", k=10)
 | 4-bit 旋转量化（RaBitQ、TurboQuant、RQ） | 0.5 byte/dim | 8x | 重排后较小（厂商声明） | Qdrant Turbo4（选择启用）、Weaviate 4-bit RQ（预览）、LanceDB RaBitQ |
 | **Binary** | **1 bit/dim** | **32x** | ~5-10% | 模型输出（Cohere、Voyage）、大多数向量数据库 |
 
-**旋转为何有效：** 随机旋转或 Hadamard 旋转会将每个向量的能量均匀分散到各维度，使统一的逐维量化器不再把 bit 浪费在少数异常维度上。这使每维 1 至 4 bit 变得可用。截至 2026 年 10 月，这些模式均为选择启用或预览，并非默认：Qdrant 在 1.18 加入 Hadamard 旋转的 TurboQuant，并在 1.19 加入选择启用的 4-bit Turbo4 存储类型；Weaviate 在 1.39 预览 4-bit Rotational Quantization（7.84 倍压缩）；LanceDB 报告多 bit RaBitQ 无需 refine 步骤即可达到 96% recall（厂商声明）。Elasticsearch 是例外：自 9.1 起，BBQ（约每维 1 bit）已是 384 维及以上 float `dense_vector` 字段的默认选项；在许可证包含该功能时，DiskBBQ（`bbq_disk`）自 9.4 起默认启用；9.5 新增对称 1-bit OSQ scorer。
+**旋转为何有效：** 随机旋转或 Hadamard 旋转会将每个向量的能量均匀分散到各维度，使统一的逐维量化器不再把 bit 浪费在少数异常维度上。这使每维 1 至 4 bit 变得可用。截至 2026 年 10 月，这些模式均为选择启用或预览，并非默认：Qdrant 在 1.18 加入 Hadamard 旋转的 TurboQuant，在 1.19 加入选择启用的 4-bit Turbo4 存储类型，并在 1.20（10 月 22 日）加入 `turbo8` 和 `turbo16` 数据类型；Weaviate 在 1.39 预览 4-bit Rotational Quantization（7.84 倍压缩）；LanceDB 报告多 bit RaBitQ 无需 refine 步骤即可达到 96% recall（厂商声明）。Elasticsearch 是例外：自 9.1 起，BBQ（约每维 1 bit）已是 384 维及以上 float `dense_vector` 字段的默认选项；在许可证包含该功能时，DiskBBQ（`bbq_disk`）自 9.4 起默认启用；9.5 新增对称 1-bit OSQ scorer。
 
 **Binary Quantization 模式**（适用于任意低 bit 方案）：
 1. 使用 Binary embeddings 检索前 1000 条（极致速度）。

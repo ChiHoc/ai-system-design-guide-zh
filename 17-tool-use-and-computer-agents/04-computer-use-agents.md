@@ -59,8 +59,8 @@ User Request                    User Request
 | 提供商 | 产品 | 方法 | 关键优势 |
 |----------|-------|----------|--------------|
 | Anthropic | `computer_toolset_20260801`（2026 年 8 月 19 日在 Claude API 正式发布）和 `browser_toolset_20260801` | 客户托管的工具集：桌面用像素，浏览器用无障碍树元素引用 | 一个 API 覆盖桌面与浏览器，支持批量动作 |
-| OpenAI | Agents API computer use（托管浏览器于 2026 年 9 月 29 日加入，公开测试）、ChatGPT agent、dots | 托管 Codex 运行框架上的 OpenAI 浏览器；独立云端计算机上的持久化代理 | 按网站来源审批；凭据不进入模型输入 |
-| Google | 主线 Flash 模型上的 Gemini API computer use（推荐 `gemini-3.8-flash`）；Gemini Enterprise Computer Use 沙箱（2026 年 9 月 9 日正式发布） | 在标准化的 0–999 坐标网格上操作浏览器、Android 和桌面 | 内置返回 `require_confirmation` 的安全服务；VPC 隔离的托管沙箱 |
+| OpenAI | Agents API computer use（托管浏览器于 2026 年 9 月 29 日加入，公开测试）、Responses API 的 `computer_use`（GPT-6.1 Terra，2026 年 10 月 26 日，每 1M $1/$5）、ChatGPT agent、dots | 托管 Codex 运行框架上的 OpenAI 浏览器；Responses API 上由客户端托管的工具；独立云端计算机上的持久化代理 | 按网站来源审批；凭据不进入模型输入 |
+| Google | Gemini API computer use（2026 年 10 月 30 日正式发布；推荐 `gemini-3.8-flash`，能力最强的选项为 `gemini-4-argon`）；Gemini Enterprise Computer Use 沙箱（2026 年 9 月 9 日正式发布） | 在标准化的 0–999 坐标网格上操作浏览器、Android 和桌面 | 内置返回 `require_confirmation` 的安全服务；VPC 隔离的托管沙箱 |
 | Microsoft | GitHub Copilot computer use（2026 年 10 月 1 日公开预览）、Copilot Autopilot（私人预览）、UFO 研究框架 | 结合可访问的应用内容与视觉信息操作桌面应用 | 按应用批准权限；代理在客户租户内有独立身份 |
 | Amazon | Nova Act | 专用浏览器模型 | 电子商务工作流 |
 | Meta | Muse（2026 年 9 月 8 日） | 在专用云端 VM 中运行浏览器的消费级代理 | 零售与连接器合作伙伴 |
@@ -132,7 +132,7 @@ User Request                    User Request
 
 ## Claude 计算机使用：工具和 API
 
-Anthropic 将计算机操作作为客户端工具提供：客户托管环境并执行动作，Claude 决定做什么。2026 年 8 月 19 日，它在 Claude API 正式发布（Google Cloud 为 8 月 20 日），从单个工具变为一个 `tools` 条目展开多个成员工具的**工具集**；在 Amazon Bedrock、Claude Platform on AWS 和 Microsoft Foundry 上仍为测试版。支持 Fable 5/5.1、Mythos 5/5.1、Opus 5/5.5、Sonnet 5/5.5 和 Opus 4.8。
+Anthropic 将计算机操作作为客户端工具提供：客户托管环境并执行动作，Claude 决定做什么。2026 年 8 月 19 日，它在 Claude API 正式发布（Google Cloud 为 8 月 20 日），从单个工具变为一个 `tools` 条目展开多个成员工具的**工具集**；在 Amazon Bedrock、Claude Platform on AWS 和 Microsoft Foundry 上仍为测试版。支持 Fable 5/5.1、Mythos 5/5.1、Opus 5/5.5、Sonnet 5/5.5、Haiku 5.5 和 Opus 4.8。
 
 ### 工具
 
@@ -185,7 +185,7 @@ Claude 返回的 `tool_use` 块以成员名作为 `name`，并带有 `"toolset_n
 下一条用户消息须为每次调用返回一个 `tool_result`，并同样带上 `"toolset_name": "computer"`（缺少该字段会被拒绝）。只有 `screenshot` 和 `zoom` 需要图片，其余动作返回简短的 `OK` 即可。一批调用须按顺序执行；如果一项失败，后续每项都应返回 `is_error: true` 和文本 `Not executed: an earlier computer action in this turn failed.`。
 
 **从测试版工具迁移时要注意：**
-- 在 Claude API 和 Google Cloud 上，Opus 5.5、Sonnet 5.5 对旧的 `computer_20251124` 工具返回 HTTP 400；Amazon Bedrock 对两款模型仍接受它。两种形式不能放在同一次请求里。
+- 在 Claude API 和 Google Cloud 上，5.5 模型（Opus、Sonnet 和 Haiku）对旧的 `computer_20251124` 工具返回 HTTP 400；Amazon Bedrock 对三款模型仍接受它。两种形式不能放在同一次请求里。
 - 动作从 `input.action` 移到了块的 `name`；旧执行器需要改写，而不只是替换类型名。
 - `display_width_px`、`display_height_px` 和 `display_number` 会被拒绝。坐标对应客户返回的截图像素；API 不代为缩图，因此截图应预先符合模型图片限制：Opus 4.7 及之后的工具集模型长边不超过 2576 像素，更早模型不超过 1568 像素。
 - 以 `claude-sonnet-4-20250514` 或 `claude-3-7-sonnet-20250219` 为目标的示例引用了已退役模型；它们使用的 `computer_20250124` 版本只支持 Claude Sonnet 4.5、Haiku 4.5 和更早模型。
@@ -367,10 +367,11 @@ Total per model turn:    ~2.5-5.5s  (a batch of several actions shares one turn)
 
 | 模型 | 每百万 token 标价（输入 / 输出 / 缓存读取） | 每动作，热缓存 | 每动作，无缓存 |
 |------|----------------------------------------------|----------------|----------------|
-| Claude Sonnet 5.5 | $2 / $10 / $0.20 | 约 $0.01 | 约 $0.06 |
+| Claude Haiku 5.5（提示词不超过 100K token） | $0.10 / $0.50 / $0.01 | 约 $0.001 | 约 $0.003 |
+| Claude Sonnet 5.5 | $2 / $10 / $0.10 | 约 $0.01 | 约 $0.06 |
 | Claude Opus 5.5 | $4 / $20 / $0.20 | 约 $0.02 | 约 $0.11 |
 
-一个 20 步工作流使用 Sonnet 5.5 约 $0.25–1.15，使用 Opus 5.5 约 $0.40–2.30，主要取决于缓存命中率。作比较，GPT-6 Astra 每百万 token 标价 $10/$50（缓存输入 $1），是 Opus 5.5 标价的 2.5 倍；Gemini 3.8 Flash 到 2026 年 12 月 31 日的入门价为 $0.75/$3.75（2027 年 1 月 1 日起为 $1.50/$7.50）。各供应商图片 token 计数不同，应使用自己的截图测量每动作成本，而非直接套用上述估算。
+一个 20 步工作流使用 Sonnet 5.5 约 $0.20–1.15，使用 Opus 5.5 约 $0.40–2.30，主要取决于缓存命中率。Haiku 5.5 又便宜一个数量级，但该价格仅适用于整个提示词（含缓存读写）不超过 100,000 token。长会话越过该界限后，每个请求按 $0.50/$2.50 计费，因此应提前裁剪 Haiku 历史并权衡能力差距：Anthropic 报告 Haiku 5.5 在其 OSWorld 2.1 离线子集上达到 72.4%（部分完成分数，供应商自报）。作比较，GPT-6 Astra 每百万 token 标价 $10/$50（缓存输入 $1），是 Opus 5.5 标价的 2.5 倍；GPT-6.1 Terra 为 $1/$5（缓存 $0.05，超过 272K 输入后整个请求按 $2/$7.50 计费）；Gemini 3.8 Flash 到 2026 年 12 月 31 日的入门价为 $0.75/$3.75（2027 年 1 月 1 日起为 $1.50/$7.50）。各供应商图片 token 计数不同，应使用自己的截图测量每动作成本，而非直接套用上述估算。
 
 推理强度是另一个成本旋钮：Opus 5.5 默认 `medium`，Sonnet 5.5 默认 `high`，思考 token 按输出计费。
 
@@ -381,7 +382,7 @@ Total per model turn:    ~2.5-5.5s  (a batch of several actions shares one turn)
 - **提示缓存**：保持系统提示和工具列表稳定，以便历史读取命中缓存。
 - **选择性截图（Selective screenshots）**：只在不确定的操作后截图；输入文本后跳过截图。
 - **降低分辨率**：用 1024x768 代替 1920x1080 来降低 token 成本，各边保持不超过 2000 像素，因为单次请求含超过 20 张图片时会采用更严格的单边限制。
-- **服务端裁剪**：使用 API 的服务端工具结果清理（上下文编辑）移除旧截图，而不是在客户端改写历史。对 Fable 5.1、Opus 5.5 和 Sonnet 5.5，客户端删除早期截图会改变后续每个思考块绑定的前缀。2026 年 8 月 31 日或之后创建的账户（以及选择加入的旧账户）会因此收到 400；使用 `thinking-binding-controls-2026-08-01` 测试版头和 `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` 时，则会丢弃这些思考块。
+- **服务端裁剪**：使用 API 的服务端工具结果清理（上下文编辑）移除旧截图，而不是在客户端改写历史。对 Fable 5.1、Opus 5.5、Sonnet 5.5 和 Haiku 5.5，客户端删除早期截图会改变后续每个思考块绑定的前缀。2026 年 8 月 31 日或之后创建的账户（以及选择加入的旧账户）会因此收到 400；使用 `thinking-binding-controls-2026-08-01` 测试版头和 `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` 时，则会丢弃这些思考块。
 - **提前终止（Early termination）**：教会模型在目标验证完成后立即发出完成信号。
 
 ---
@@ -396,8 +397,8 @@ Total per model turn:    ~2.5-5.5s  (a batch of several actions shares one turn)
 | OSWorld 2.0 / 2.1（XLANG Lab，2026 年 6 月，arXiv 2606.29537） | 当前长流程任务标尺 | 108 个任务，覆盖 31 个自托管网站和桌面应用；熟练人类每任务中位耗时约 1.6 小时；每任务约 27 个评分检查点；500 步预算。**二元完成率为主要指标**，部分完成分数另行报告 |
 
 当前数字：
-- **官方排行榜**（XLANG，更新于 2026 年 9 月 17 日）：Claude Opus 5 在最高推理强度、批量工具下，于 v2.1 全量集得到 44.33% 二元完成率和 77.67% 部分完成分数。小时级任务的二元完成率仍低于 50%。
-- **供应商自报，仅部分完成分数**：Anthropic 报告 Opus 5.5 在“OSWorld 2.1”上达到 81.8%，未给出二元完成率；其自测 Opus 5 为 74.0%，与排行榜任何一行均不一致。OpenAI 报告 GPT-6 Astra 在其离线 v2026.08.08 集上为 72.6%，GPT-5.6 Sol 为 65.7%。
+- **官方排行榜**（XLANG，2026 年 9 月 17 日更新）：Claude Opus 5 在最高推理强度、批量工具下，于 v2.1 全量集得到 44.33% 二元完成率和 77.67% 部分完成分数。小时级任务的二元完成率当时仍低于 50%。
+- **供应商自报，仅部分完成分数**：Anthropic 报告 Opus 5.5 在“OSWorld 2.1”上达到 81.8%、Sonnet 5.5 达到 80.1%，未给出二元完成率；其自测 Opus 5 为 74.0%，与排行榜任何一行均不一致。Haiku 5.5 发布时（10 月 7 日）报告在更小的“OSWorld 2.1（离线子集）”上达到 72.4%，不应与大模型发布数据直接比较。OpenAI 报告 GPT-6 Astra 在其离线 v2026.08.08 集上为 72.6%，GPT-5.6 Sol 为 65.7%。
 - **论文基线**（2026 年 6 月）：Claude Opus 4.8 在最高思考强度下二元完成率为 20.6%，部分完成分数为 54.8%。
 
 Snorkel AI 对 OSWorld 2.0 运行的分析指出四类失败模式，各自对应可实施的控制：代理很少主动澄清缺失信息（提供澄清工具）；误读陌生应用（添加应用专用说明）；过早提交或不愿回退（提交前增加验证步骤）；在约 300 步的轨迹中丢失进度（把任务状态存放在上下文窗口外）。
@@ -431,6 +432,8 @@ Snorkel AI 对 OSWorld 2.0 运行的分析指出四类失败模式，各自对�
 | **可达内网** | 代理访问回环地址、云元数据或私有服务 | 网络层域名允许列表阻断回环、链路本地和私有地址段；只允许 http/https |
 
 Gemini 安全服务也提供了现成的确认风险分类：金融交易、敏感数据修改、通信工具、账户创建、数据修改、用户同意管理，以及法律条款和协议。
+
+将计算机操作代理路由到更便宜的模型会改变其注入暴露面，而不仅是成本。Anthropic 的 Haiku 5.5 系统卡报告 Gray Swan 提示注入在 15 次尝试内总体成功率为 7.1%，GUI 计算机操作为 24.4%（供应商自报）。GUI 是最弱的界面，因此计算机操作工作负载的模型路由变更应触发安全审查，而不仅是成本审查。
 
 核心规则：**除非处于完全沙箱化的容器中，否则不要在生产工作站上运行计算机操作代理，也不要让其接触真实凭据**。完整的纵深防御设计见[安全与治理](07-safety-and-governance.md)。
 
@@ -550,7 +553,7 @@ CMD Xvfb :1 -screen 0 1280x800x24 & sleep 1 && mutter & tint2 & \
 
 并行运行多个沙箱，每个顺序处理理赔。按每份约 2 分钟计算，一个沙箱在 8 小时内约可处理 240 份，三个沙箱足以覆盖稳定流量；我会部署 5–10 个，为重试、门户慢页面和月底峰值留出余量。重试三次仍失败的理赔进入死信队列，由人工审核。
 
-按 Sonnet 5.5 标价，20 次动作、每次约 $0.01–0.06（热缓存与冷缓存）估算，每份理赔约 $0.25–1.15，500 份每天约 $125–575。保持提示前缀稳定、让历史读取命中缓存是最大的成本杠杆；即使区间上端，也可能低于被替代的人工录入成本。
+按 Sonnet 5.5 标价，20 次动作、每次约 $0.01–0.06（热缓存与冷缓存）估算，每份理赔约 $0.20–1.15，500 份每天约 $100–575。保持提示前缀稳定、让历史读取命中缓存是最大的成本杠杆；即使区间上端，也可能低于被替代的人工录入成本。
 
 ### 问：比较计算机使用智能体与 Selenium 在 Web 自动化中的差异。你会在什么情况下选择各自？
 
@@ -566,7 +569,7 @@ Selenium 直接与 DOM 交互 -- 它快速、确定性强且成本低。但当�
 ### 问：供应商说其计算机操作模型在 OSWorld 上达到 81.8%。如何据此制定生产容量计划？
 
 **优秀回答：**
-先弄清数字的口径。是哪版基准？OSWorld-Verified 已在 85% 左右饱和，参考价值有限；OSWorld 2.x 衡量小时级任务。是哪种指标？81.8% 是 Anthropic 自报的 Opus 5.5 在 OSWorld 2.1 上的部分完成分数，可能比二元完成率高 30 个百分点以上；官方排行榜 v2.1 全量集的最高二元完成率为 44.33%（Opus 5、最高推理强度、批量工具）。还要问推理强度、运行框架以及谁执行评估：供应商自测与排行榜结果不一致，Anthropic 自测的 Opus 5 分数 74.0% 也对不上任何排行榜行。
+先弄清数字的口径。是哪版基准？OSWorld-Verified 已在 85% 左右饱和，参考价值有限；OSWorld 2.x 衡量小时级任务。是哪种指标？81.8% 是 Anthropic 自报的 Opus 5.5 在 OSWorld 2.1 上的部分完成分数，可能比二元完成率高 30 个百分点以上；官方排行榜 v2.1 全量集在 2026 年 9 月 17 日更新时的最高二元完成率为 44.33%（Opus 5、最高推理强度、批量工具）。还要问推理强度、运行框架以及谁执行评估：供应商自测与排行榜结果不一致，Anthropic 自测的 Opus 5 分数 74.0% 也对不上任何排行榜行。
 
 随后应忽略标题数字，在自身应用上评估 50–100 个真实任务，以独立检查衡量二元完成率，同时记录每个完成任务耗费的分钟数和金额。如果二元完成率约 45%，上线规划应采用人工介入系统而非自主系统：人工升级队列最初要能覆盖超过一半的任务量，由代理做准备，再由人工完成或批准。
 
@@ -579,7 +582,8 @@ Selenium 直接与 DOM 交互 -- 它快速、确定性强且成本低。但当�
 - Anthropic。`computer_toolset_20260801` 计算机操作 API 文档（2026）
 - Anthropic。`browser_toolset_20260801` 浏览器操作 API 文档（2026）
 - Anthropic。Bash Tool 和 Text Editor Tool API 文档
-- Google。Gemini API computer use 文档（2026）
+- Google。Gemini API computer use 文档及变更日志（2026 年 10 月 30 日正式发布）
+- Anthropic。Claude Haiku 5.5 发布文章和系统卡（2026 年 10 月）
 - OpenAI。《Introducing the Agents API》（2026 年 9 月）
 - E2B。《面向 AI Agent（智能体）的沙盒化云环境》 (2025)
 - XLANG Lab 等。《OSWorld 2.0》（arXiv 2606.29537，2026 年 6 月）及 osworld-v2.xlang.ai 官方排行榜

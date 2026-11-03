@@ -43,7 +43,7 @@ def should_use_api(requirements: dict) -> bool:
         return True
     if requirements["team_ml_expertise"] == "low":
         return True
-    
+
     # Strong signals for self-hosted
     if requirements["data_residency"] == "strict":
         return False
@@ -51,7 +51,7 @@ def should_use_api(requirements: dict) -> bool:
         return False
     if requirements["query_volume"] > 10_000_000_per_month:
         return False
-    
+
     # Default to API for simplicity
     return True
 ```
@@ -68,7 +68,7 @@ def should_use_api(requirements: dict) -> bool:
 | Ollama | 低 | 良好 | 开发、小规模 |
 | llama.cpp | 低 | 良好 | CPU 推理、边缘端 |
 
-**固定并及时修补推理引擎。** 服务引擎已成为 CVE 密集型依赖。vLLM 在 2026 年 8 月 11 日至 9 月 28 日间发布了 20 多条安全公告：包括即使设置 `trust_remote_code=False` 仍会执行恶意仓库处理器代码的模型加载 RCE（CVE-2026-90553），以及一次未认证请求即可令所有租户引擎崩溃的问题（CVE-2026-93592），两者均在 0.28.0 修复；建议至少使用 vLLM 0.30.0。SGLang 的严重漏洞 CVE-2026-7301、7302、7304 影响至 0.5.12，尚无已记录的修复版本，因此应固定在 0.5.13 或更新版本、核对安全公告，并将 ZMQ socket 限制在 Pod 内。
+**固定并及时修补推理引擎。** 服务引擎已成为 CVE 密集型依赖。vLLM 在 2026 年 8 月 11 日至 9 月 28 日间发布了 20 多条安全公告：包括即使设置 `trust_remote_code=False` 仍会执行恶意仓库处理器代码的模型加载 RCE（CVE-2026-90553），以及一次未认证请求即可令所有租户引擎崩溃的问题（CVE-2026-93592），两者均在 0.28.0 修复；10 月又新增一批公告，包括图像解码可能触及 Ghostscript 的漏洞（CVE-2026-115915）。建议至少使用 vLLM 0.32.0，并先检查其破坏性默认值变更（默认关闭 CORS、要求 Python 3.11、将 `max_tokens` 作为上限）。SGLang 严重漏洞中仍有项目未记录修复版本；10 月新增的两项包括 CVE-2026-111391（描述列出受影响版本直至当前的 0.5.22）和 CVE-2026-93034，因此应运行 0.5.22、保持 `DUMPER_SERVER_PORT` 未设置，并将其 ZMQ、dist-init 和调试端点限制在 Pod 内。Ollama 仅用于开发者机器，版本使用 0.35.0 或更高版本以修复可能导致 root 代码执行的 `/api/pull` 路径穿越漏洞（CVE-2026-103663）；无论如何都不要暴露该端点。版本和功能详情见[推理服务基础设施](../04-inference-optimization/06-serving-infrastructure.md)；安全视角见[LLM 安全](../12-security-and-access/01-llm-security.md#保护-ai-技术栈本身)。
 
 **镜像保存所服务的模型权重。** NVIDIA 于 2026 年 9 月 3 日确认将以 $12.93B 收购 Hugging Face，尚未公布交割日期。无论交易最终如何，使用经过审查的内部镜像仓库都能消除供应链与可用性依赖，也能降低恶意模型仓库攻击风险。
 
@@ -118,20 +118,20 @@ class ModelRouter:
             "vision": GPT6Sol()
         }
         self.classifier = QueryClassifier()
-    
+
     async def route(self, request: Request) -> Response:
         # Classify request type
         request_type = self.classifier.classify(request)
-        
+
         # Route to appropriate model
         model = self.models[request_type]
-        
+
         # Execute with fallback
         try:
             return await model.generate(request)
         except RateLimitError:
             return await self.fallback(request, request_type)
-    
+
     async def fallback(self, request: Request, original_type: str) -> Response:
         # Define fallback order
         fallbacks = {
@@ -139,13 +139,13 @@ class ModelRouter:
             "complex": ["simple"],
             "code": ["complex"]
         }
-        
+
         for fallback_type in fallbacks.get(original_type, []):
             try:
                 return await self.models[fallback_type].generate(request)
             except Exception:
                 continue
-        
+
         raise ServiceUnavailableError("All models unavailable")
 ```
 
@@ -222,7 +222,7 @@ class AsyncLLMProcessor:
     def __init__(self):
         self.queue = RedisQueue("llm_requests")
         self.results = RedisResults("llm_results")
-    
+
     async def submit(self, request: Request) -> str:
         request_id = generate_id()
         await self.queue.enqueue({
@@ -230,10 +230,10 @@ class AsyncLLMProcessor:
             "request": request.to_dict()
         })
         return request_id
-    
+
     async def get_result(self, request_id: str, timeout: int = 300) -> Response:
         return await self.results.wait_for(request_id, timeout)
-    
+
     # Worker process
     async def worker_loop(self):
         while True:
@@ -253,15 +253,26 @@ class AsyncLLMProcessor:
 
 ```python
 class CostTracker:
-    # USD per 1M tokens, standard-tier list prices as of October 2026.
+    # USD per 1M tokens, standard-tier list prices as of November 2026.
     # Load these from config in production: rates, cache multipliers and tiers change often.
     PRICING = {
         "claude-opus-5-5": {"input": 4.00, "cached_input": 0.20, "output": 20.00},
-        "claude-sonnet-5-5": {"input": 2.00, "cached_input": 0.20, "output": 10.00},
+        "claude-sonnet-5-5": {"input": 2.00, "cached_input": 0.10, "output": 10.00},
+        "claude-haiku-5-5": {"input": 0.10, "cached_input": 0.01, "output": 0.50},
         "gpt-6-sol": {"input": 2.00, "cached_input": 0.20, "output": 10.00},
+        "gpt-6.1-terra": {"input": 1.00, "cached_input": 0.05, "output": 5.00},
         "gpt-6-luna": {"input": 0.10, "cached_input": 0.01, "output": 0.50},
     }
-    
+
+    # Whole-request repricing once the prompt (cached tokens included) passes a
+    # threshold: (threshold, input and cache multiplier, output multiplier).
+    LONG_CONTEXT = {
+        "claude-haiku-5-5": (100_000, 5.0, 5.0),  # $0.50 / $2.50 above 100K
+        "gpt-6-sol": (272_000, 2.0, 1.5),         # $4 / $15 above 272K
+        "gpt-6.1-terra": (272_000, 2.0, 1.5),     # $2 / $7.50 above 272K
+        "gpt-6-luna": (272_000, 2.0, 1.5),        # $0.20 / $0.75 above 272K
+    }
+
     def calculate_cost(
         self,
         model: str,
@@ -270,15 +281,19 @@ class CostTracker:
         cached_tokens: int = 0
     ) -> float:
         # Expects disjoint counts from normalize_usage, never a raw provider total.
-        # Omitted for brevity: cache-write premiums, service-tier multipliers, and
-        # long-context rates (OpenAI bills the whole request higher above 272K input)
+        # Omitted for brevity: cache-write premiums and service-tier multipliers.
         pricing = self.PRICING[model]
-        input_cost = (
+        in_mult, out_mult = 1.0, 1.0
+        if model in self.LONG_CONTEXT:
+            threshold, lc_in, lc_out = self.LONG_CONTEXT[model]
+            if uncached_tokens + cached_tokens > threshold:
+                in_mult, out_mult = lc_in, lc_out
+        input_cost = in_mult * (
             uncached_tokens * pricing["input"] + cached_tokens * pricing["cached_input"]
         ) / 1_000_000
-        output_cost = (output_tokens / 1_000_000) * pricing["output"]
+        output_cost = out_mult * (output_tokens / 1_000_000) * pricing["output"]
         return input_cost + output_cost
-    
+
     @staticmethod
     def normalize_usage(provider: str, usage: dict) -> dict:
         # Providers disagree on whether cached tokens sit inside the input count;
@@ -310,13 +325,13 @@ class CostTracker:
             tokens["output"],
             tokens["cached"]
         )
-        
+
         self.metrics.record(
             "llm_cost",
             cost,
             tags={"model": model, "request_id": request_id}
         )
-        
+
         return cost
 ```
 
@@ -338,18 +353,18 @@ class BudgetManager:
     def __init__(self, daily_budget: float, alert_threshold: float = 0.8):
         self.daily_budget = daily_budget
         self.alert_threshold = alert_threshold
-    
+
     async def check_and_alert(self):
         today_cost = await self.get_today_cost()
         utilization = today_cost / self.daily_budget
-        
+
         if utilization >= 1.0:
             await self.alert("CRITICAL: Daily budget exceeded", today_cost)
             # Consider enabling cost controls
             await self.enable_rate_limiting()
         elif utilization >= self.alert_threshold:
             await self.alert("WARNING: Approaching daily budget", today_cost)
-    
+
     async def enable_rate_limiting(self):
         # Reduce throughput to stay within budget
         self.rate_limiter.set_rate(
@@ -370,20 +385,20 @@ LLM_METRICS = {
     # Latency
     "ttft_seconds": "Time to first token",
     "total_latency_seconds": "Total request time",
-    
+
     # Throughput
     "requests_per_second": "Request rate",
     "tokens_per_second": "Token generation rate",
-    
+
     # Resources
     "gpu_utilization": "GPU compute usage",
     "gpu_memory_utilization": "GPU memory usage",
     "kv_cache_utilization": "KV cache usage",
-    
+
     # Quality (sampled)
     "quality_score": "LLM-as-judge score",
     "faithfulness_score": "RAG faithfulness",
-    
+
     # Errors
     "error_rate": "Failed requests percentage",
     "rate_limit_hits": "Rate limit rejections",
@@ -391,7 +406,7 @@ LLM_METRICS = {
 
     # Caching
     "cache_hit_rate": "Share of input tokens read from the prompt cache",
-    
+
     # Cost
     "cost_per_request": "Average cost per request",
     "daily_cost": "Total daily spend"
@@ -406,27 +421,34 @@ alerts:
     condition: error_rate > 0.05
     for: 5m
     severity: critical
-    
+
   - name: high_latency
     condition: p99_latency > 10s
     for: 5m
     severity: warning
-    
+
   - name: cost_spike
     condition: hourly_cost > 2 * avg_hourly_cost
     for: 1h
     severity: warning
-    
+
   - name: quality_degradation
     condition: avg_quality_score < 3.5
     for: 30m
     severity: warning
-    
+
   - name: gpu_memory_pressure
     condition: gpu_memory_utilization > 0.95
     for: 5m
     severity: warning
+
+  - name: generation_probe_failing
+    condition: synthetic_generation_success_rate < 1.0
+    for: 2m
+    severity: critical
 ```
+
+最后一条告警最容易被团队漏掉。引擎的 `/health` 端点只能证明 HTTP 进程还活着，不能证明它还能生成内容：vLLM 在 0.31.0 修复的一条安全公告（GHSA-4xqp-c3mv-qff7）指出，一个请求就能杀死引擎的输入线程，此时 `/health` 仍返回 200，但所有生成请求都会挂起。应以较短间隔、硬超时，对每个副本执行合成的少量 token 生成；将结果接入 readiness，让负载均衡器摘除挂起的副本，并在重复失败时重启。
 
 ---
 
@@ -443,14 +465,14 @@ class MultiProviderClient:
             GoogleClient()
         ]
         self.primary = 0
-    
+
     async def generate(self, request: Request) -> Response:
         # Try primary provider first
         try:
             return await self.providers[self.primary].generate(request)
         except (RateLimitError, ServiceError) as e:
             return await self.failover(request, e)
-    
+
     async def failover(self, request: Request, original_error: Exception) -> Response:
         for i, provider in enumerate(self.providers):
             if i == self.primary:
@@ -462,7 +484,7 @@ class MultiProviderClient:
                 return response
             except Exception:
                 continue
-        
+
         raise AllProvidersUnavailable("All LLM providers failed")
 ```
 
@@ -474,11 +496,11 @@ class MultiProviderClient:
 
 | 风险 | 2026 年案例 | 控制措施 |
 |------|-------------|----------|
-| 同一模型在不同平台上的退役时间不同 | Claude Sonnet 4 于 6 月 15 日退出 Claude API，但在 Bedrock 上到 10 月 14 日才结束生命周期；Claude Opus 4.1 于 8 月 5 日退出 Claude API，但在 Bedrock 上可运行至 2027 年 1 月 8 日，且 10 月 8 日起扩展使用价格上调 | 模型注册表按（模型、平台）索引，而不是只按模型 |
+| 同一模型在不同平台上的退役时间不同 | Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役，而 Bedrock 已于 10 月 8 日将其移至 Legacy，生命周期结束日期为 2027 年 4 月 8 日；Claude Opus 4.1 于 8 月 5 日退出 Claude API，但在 Bedrock 上可运行至 2027 年 1 月 8 日，且 10 月 8 日起扩展使用价格上调 | 模型注册表按（模型、平台）索引，而不是只按模型 |
 | 闲置备用模型失去访问权限 | Bedrock 的 Legacy 模型不再向新客户开放；现有客户闲置 15 天后也可能失去访问权限 | 按计划演练灾备和季节性模型，不要只在事故期间使用 |
-| 通知窗口很短 | 2026 年 9 月 7 日起发布的 Bedrock 模型，Legacy 通知期为 6 个月或 45 天；Anthropic 为 60 天；OpenAI 对 GA 模型声明 6 个月、专用变体 3 个月、preview 最短 2 周，但已在 10 月 1 日退役 `gpt-5.4-cyber`，只提前通知 20 天 | 按模型记录通知类别；不要依赖承诺的最短期限，随时准备好经认证的回退模型 |
+| 通知窗口很短 | 2026 年 9 月 7 日起发布的 Bedrock 模型，Legacy 通知期为 6 个月或 45 天；Anthropic 为 60 天；OpenAI 对 GA 模型声明 6 个月，但 10 月 14 日通知称 GPT-4o、GPT-4o mini、GPT-4.1、GPT-4.1 mini 的快照及其微调版本将在约 3 个月后（2027 年 1 月 14 日）关闭；`gpt-5.4-cyber` 于 10 月 1 日退役时也只提前通知 20 天 | 按模型记录通知类别；不要依赖承诺的最短期限，随时准备好经认证的回退模型 |
 | 开放权重模型托管方停止提供模型 | Groq 于 8 月 16 日宣布免费和开发者层将停止提供 Llama 3.3 70B 与 Llama 3.1 8B，并提前通知 60 天 | 开放权重模型至少部署在两家托管方 |
-| 别名被重新路由 | DeepSeek 于 9 月 10 日宣布 `deepseek-v4-pro` 将从 9 月 14 日起路由到 V4.1-Flash，随后于一天后撤回计划 | 固定带日期的快照；当响应中的模型 ID 变化时告警 |
+| 别名被重新路由 | 自 10 月 8 日起，Google 将 `gemini-3.7-flash` 请求路由到 `gemini-3.8-flash`，将 `gemini-3.5-flash` 请求路由到 `gemini-3.6-flash`；请求字符串保持不变，背后的模型却发生了变化。DeepSeek 曾于 9 月宣布 `deepseek-v4-pro` 将路由到 V4.1-Flash，随后又撤销计划 | 固定带日期的快照；当响应中的模型 ID 变化时告警 |
 
 ### 优雅降级
 
@@ -487,7 +509,7 @@ class GracefulDegradation:
     def __init__(self):
         self.cache = ResponseCache()
         self.fallback_responses = FallbackResponses()
-    
+
     async def handle_outage(self, request: Request) -> Response:
         # Level 1: Try cache
         cached = await self.cache.get_similar(request.query)
@@ -496,7 +518,7 @@ class GracefulDegradation:
                 content=cached.response,
                 metadata={"source": "cache", "degraded": True}
             )
-        
+
         # Level 2: Try fallback responses
         fallback = self.fallback_responses.get(request.intent)
         if fallback:
@@ -504,7 +526,7 @@ class GracefulDegradation:
                 content=fallback,
                 metadata={"source": "fallback", "degraded": True}
             )
-        
+
         # Level 3: Graceful error
         return Response(
             content="I am currently experiencing issues. Please try again later or contact support.",
@@ -520,7 +542,7 @@ class GracefulDegradation:
 
 ### NVIDIA：Vera Rubin NVL72 与 Blackwell Ultra
 
-**Vera Rubin NVL72** 是新的旗舰产品。NVIDIA 于 2026 年 5 月 31 日宣布开始全面量产；根据 8 月 26 日的财报，CoreWeave、Google Cloud、Microsoft Azure、OCI 和 Nebius 已在运行 Rubin 机架（[NVIDIA Vera Rubin NVL72](https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/)）。**B300**（“Blackwell Ultra”）于 2025 年 3 月公布，合作伙伴系统自 2025 年下半年起推出（[NVIDIA 新闻稿](https://nvidianews.nvidia.com/news/nvidia-blackwell-ultra-ai-factory-platform-paves-way-for-age-of-ai-reasoning)）；NVIDIA 称，在截至 2025 年 10 月 26 日的季度中，它是覆盖所有客户类别的领先架构（[Q3 FY2026 CFO 评论](https://s201.q4cdn.com/141608511/files/doc_financials/2026/Q326/Q3FY26-CFO-Commentary.pdf)）。如今 B300 已成为大规模部署的主力。
+**Vera Rubin NVL72** 是新的旗舰产品。NVIDIA 于 2026 年 5 月 31 日宣布开始全面量产；根据 8 月 26 日的财报，CoreWeave、Google Cloud、Microsoft Azure、OCI 和 Nebius 已在运行 Rubin 机架（[NVIDIA Vera Rubin NVL72](https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/)）；10 月 27 日，Oracle Cloud Infrastructure 宣布 Vera Rubin NVL72 和 Vera CPU 实例正式商用（[NVIDIA 和 Oracle](https://nvidianews.nvidia.com/news/nvidia-and-oracle-expand-nvidia-vera-rubin-to-multi-gigawatt-scale-and-bring-nvidia-vera-cpu-to-oracle-cloud-infrastructure)）。**B300**（“Blackwell Ultra”）于 2025 年 3 月公布，合作伙伴系统自 2025 年下半年起推出（[NVIDIA 新闻稿](https://nvidianews.nvidia.com/news/nvidia-blackwell-ultra-ai-factory-platform-paves-way-for-age-of-ai-reasoning)）；NVIDIA 称，在截至 2025 年 10 月 26 日的季度中，它是覆盖所有客户类别的领先架构（[Q3 FY2026 CFO 评论](https://s201.q4cdn.com/141608511/files/doc_financials/2026/Q326/Q3FY26-CFO-Commentary.pdf)）。如今 B300 已成为大规模部署的主力。
 
 | 规格 | Vera Rubin NVL72 | B300 / GB300 NVL72 |
 |------|------------------|---------------------|
@@ -529,13 +551,13 @@ class GracefulDegradation:
 | 每机架 HBM 总量 | 20.7 TB，约 1,400 TB/s | 约 20 TB，最高 576 TB/s |
 | 每机架 NVLink 总带宽 | 216 TB/s | 约 130 TB/s |
 | 峰值 FP4/机架 | NVFP4 推理 3,600 PFLOPS（每 GPU 50） | 稀疏 1,440 PFLOPS、稠密 1,080 PFLOPS（稠密每 GPU 约 15） |
-| 状态 | 自 2026 年 5 月 31 日起全面量产；首批云平台已上线 | 2025 年下半年开始出货；NVIDIA 称其在 2025 年 10 月季度为领先架构 |
+| 状态 | 自 2026 年 5 月 31 日起全面量产；自 2026 年 10 月 27 日起在 OCI 正式商用 | 2025 年下半年开始出货；NVIDIA 称其在 2025 年 10 月季度为领先架构 |
 
 每 GPU 的 HBM 容量相同，但带宽大幅提升：Rubin 的优势主要体现在解码密集型和长上下文服务，而不是每 GPU 可容纳的模型规模。
 
 NVIDIA 的战略定位是“AI 工厂”：NVL72 作为 NVLink 域内连贯的推理与训练单元中的最小构建块销售，而非单独的显卡。对于前沿模型训练以及最大型推理模型，NVL72 级机架（当前为 GB300，随着产能爬坡转向 Rubin）是默认选择。
 
-解读成本数据时，必须结合运行点。NVIDIA 声称，Rubin 每百万 token 的成本是 GB200 NVL72 的十分之一（厂商数据）。SemiAnalysis 对 DeepSeek V4 Pro 的 AgentX 基准显示，结果取决于 SLO 和资产持有方式：按自有设备成本、每用户 170 token/s 运行时，吞吐量约为 GB300 的 67 倍；若按三年租赁成本并以 80 token/s 的 P90 目标运行，则只比 GB300 多处理约 62% 的 token（分析方数据）。应根据自己的 SLO 在吞吐量与交互性 Pareto 曲线上比较加速器，不要只看 batch-1 数据。
+解读成本数据时，必须结合运行点。NVIDIA 声称，Rubin 每百万 token 的成本是 GB200 NVL72 的十分之一（厂商数据）。SemiAnalysis 对 DeepSeek V4 Pro 的 AgentX 基准显示，结果取决于 SLO 和资产持有方式：按自有设备成本、每用户 170 token/s 运行时，吞吐量约为 GB300 的 67 倍；若按三年租赁成本并以 80 token/s 的 P90 目标运行，则只比 GB300 多处理约 62% 的 token（分析方数据）。首批独立测量更为审慎：Artificial Analysis 的 AA-AgentPerf 智能体基准（10 月 15 日）显示，Rubin 的每兆瓦峰值吞吐量仅为 GB300 的 **1.14 至 1.45 倍**，具体取决于模型（DeepSeek V4 Pro 为 1.14 倍，DeepSeek V4.1 Flash 为 1.45 倍）；显著领先只出现在较高的单用户速度下。应把任何大幅领先视为曲线上的一个点。根据自己的 SLO，在吞吐量与交互性的 Pareto 曲线上比较加速器，不要只看 batch-1 数据。
 
 权衡没有改变：绝对性能最高、绝对价格最高、软件锁定最深。CUDA、NCCL 和 TensorRT-LLM 都以 NVIDIA 为中心；围绕它们构建架构，就意味着作出了供应商承诺。
 
@@ -616,7 +638,7 @@ Cerebras 于 2026 年 5 月 13 日将 IPO 定价为 **$185/股**，募资 **$5.5
 
 这次 IPO 在结构上很重要，因为它改变了融资逻辑：现在已经存在非 NVIDIA 推理供应商的公开市场路径，这使下一批进入者更容易融资。
 
-晶圆级芯片也不再是极低延迟推理的唯一选择。OpenAI 向部分客户预览基于 Cerebras 的 GPT-5.6 Sol Ultrafast，最高每秒生成 750 个 token；NVIDIA 称 GPT-6 Astra Ultrafast 运行于 Blackwell。在 Artificial Analysis 的测试中，NVIDIA LPX 以 100K 上下文为 Gemma 4 31B 生成约 3,400 token/s，Cerebras 为 882 token/s。Cerebras 于 2026 年 8 月 18 日发布 CS-4，每套系统含 3 个 WSE-3 Turbo 处理器，计划在 Q3 开始交付；CS-5 已公布于 2027 年推出。规划前应核实实际交付情况；“单用户最快 token 速度”是竞争激烈且单独定价的层级。
+晶圆级芯片也不再是极低延迟推理的唯一选择。OpenAI 曾向部分客户预览基于 Cerebras 的 GPT-5.6 Sol Ultrafast，最高每秒生成 750 个 token；NVIDIA 称 GPT-6 Astra Ultrafast 运行于 Blackwell（GPT-6.1 Sol Ultrafast 此后已向所有 API 用户开放）。在 Artificial Analysis 的测试中，NVIDIA LPX 以 100K 上下文为 Gemma 4 31B 生成约 3,400 token/s，Cerebras 为 882 token/s。Cerebras 于 2026 年 8 月 18 日发布 CS-4，每套系统含 3 个 WSE-3 Turbo 处理器，计划在 Q3 开始交付；CS-5 已公布于 2027 年推出。规划前应核实实际交付情况；“单用户最快 token 速度”是竞争激烈且单独定价的层级。
 
 ### Tenstorrent Galaxy Blackhole
 
@@ -650,7 +672,7 @@ Cerebras 于 2026 年 5 月 13 日将 IPO 定价为 **$185/股**，募资 **$5.5
 
 **公告中的吉瓦数不等于可交付的吉瓦数。** Jefferies 估计美国数据中心 2026 年部署约 16–18 GW，2027 年实际容量上限约为 20 GW 出头，受先进封装与电力约束。Micron 表示 HBM 和 DRAM 需求到 2028 年前都将超过供应，内存而非逻辑芯片限制加速器供货，也推高了主机 DRAM KV offload 的成本。
 
-租赁价格也体现了供需压力。Silicon Data 的 B200 指数在 9 月初年内上涨 27.6%，截至 2026 年 10 月 1 日为每 GPU 小时 $5.86（H100 为 $2.77）。同期每 token API 价格仍在下降：GPT-6 Sol 于 9 月 22 日发布，价格为每百万 token $2/$10；GPT-5.6 Sol 标价为 $5/$30。因此，对租 GPU 的团队而言，2026 年自托管的盈亏平衡点向 API 移动。多供应商和多区域容量合同比过去更重要。
+租赁价格也体现了供需压力。Silicon Data 的 B200 指数在 9 月初年内上涨 27.6%，10 月初为每 GPU 小时 $5.86，2026 年 11 月 1 日升至 $6.50，一个月上涨约 11%（11 月 1 日其他产品读数：B300 为 $7.56、H200 为 $3.46、H100 为 $2.93）。同期每 token API 价格仍在下降：GPT-6 Sol 于 9 月 22 日发布，价格为每百万 token $2/$10；GPT-5.6 Sol 标价为 $5/$30；10 月又推出了每百万 token $0.10/$0.50 的 Claude Haiku 5.5 和 $1/$5 的 GPT-6.1 Terra。因此，对租 GPU 的团队而言，2026 年自托管的盈亏平衡点向 API 移动。多供应商和多区域容量合同比过去更重要。
 
 ### 三层机队策略
 
@@ -686,7 +708,7 @@ flowchart TD
 
 - 规划时要把**每个加速器的内存**与 FLOPS 同等对待。MoE 服务的瓶颈在于专家驻留。
 - 将 **CUDA 锁定**视为真实成本。ROCm 7.x 对大多数生产级服务来说已经足够好。Neuron 对 Anthropic 以及任何愿意承担移植工作的团队来说已经足够好。开放 RISC-V 对成本敏感型推理来说已经足够好。
-- 现在，超大规模云厂商的选择会像反过来那样驱动芯片选择。AWS = Trainium + Cerebras + 一部分 NVIDIA。Microsoft = NVIDIA + Maia。Google = TPU + 一部分 NVIDIA。Oracle = 大规模 NVIDIA。
+- 现在，超大规模云厂商的选择会像反过来那样驱动芯片选择。AWS = Trainium + Cerebras + 一部分 NVIDIA。Microsoft = NVIDIA + Maia。Google = TPU + 一部分 NVIDIA。Oracle = 大规模 NVIDIA（Vera Rubin NVL72 自 10 月 27 日起正式商用）。
 - **API 每 token 价格持续下降**：a16z 的 [LLMflation 分析](https://a16z.com/llmflation-llm-inference-cost/)估计，2024 年能力不变时价格约每年下降 10 倍；但 2026 年 GPU 小时租价上涨。9 月 7 日，B200 的 12 个月租期为每 GPU 小时 $5.39，3 个月租期为 $5.73（Silicon Data）。长期租期如今更便宜，与过去等待现货降价的经验相反。
 
 ---
@@ -706,7 +728,7 @@ flowchart TD
 - 用于异步工作负载的基于队列的处理
 
 **在这个规模下，成本优化至关重要：**
-- 把 60-70% 的简单查询路由到 GPT-6 Luna 或 Claude Haiku 4.5
+- 把 60-70% 的简单查询路由到 GPT-6 Luna，或 Claude Haiku 5.5（将提示控制在 100K token 价格门槛以内）
 - 实施语义缓存（目标命中率 30%+）
 - 对非紧急请求使用批处理 API（50% 折扣）
 - 在这个量级下，自托管会变得具有成本竞争力
@@ -750,7 +772,7 @@ flowchart TD
 - 对峰值流量和专用模型使用 API
 - 将 API 作为自建故障时的兜底方案
 
-自建的隐性成本包括：GPU 采购/租赁、运维工程时间、模型更新、监控基础设施。基础设施至少要投入 1-2 名专职工程师。”
+自建的隐性成本包括：GPU 采购/租赁、运维工程时间、模型更新、监控基础设施，以及修补如今每隔几周就会发布安全公告的推理服务引擎。基础设施至少要投入 1-2 名专职工程师。2026 年市场走势也不利于租赁方：GPU 小时价格上涨，而小型 API 模型降至每百万 token $0.10/$0.50（GPT-6 Luna、Claude Haiku 5.5），低于大多数自托管开放权重服务在路由和分类场景下的成本。如今自托管的理由更多是数据控制、延迟或定制需求，而不是价格。”
 
 ---
 
@@ -761,7 +783,7 @@ flowchart TD
 “我不会从供应商宣传的每秒 token 数开始，因为那通常是生产环境中没人能达到的 batch-1 数字。我会：
 
 1. **重放自己的流量形态。** Agent 工作负载是多轮、长上下文且前缀密集的，因此我会重放 trace，或使用 SemiAnalysis AgentX 这类 agent 基准，而不是合成单轮负载。
-2. **绘制 Pareto 曲线**，比较总吞吐量与每用户交互延迟，并在自己的 SLO 上读取结果。同一 Rubin 与 GB300 对比中，按自有设备成本计算，170 token/s/用户时每 TCO 吞吐量约高 67 倍；按三年租赁计算，在 80 token/s 的 P90 目标下只多约 1.6 倍（分析方数据）。运行点决定结论。
+2. **绘制 Pareto 曲线**，比较总吞吐量与每用户交互延迟，并在自己的 SLO 上读取结果。同一 Rubin 与 GB300 对比中，按自有设备成本计算，170 token/s/用户时每 TCO 吞吐量约高 67 倍；按三年租赁计算，在 80 token/s 的 P90 目标下只多约 1.6 倍（分析方数据）；Artificial Analysis 的独立 AA-AgentPerf 测试测得每兆瓦峰值吞吐量仅为 1.14 至 1.45 倍。结论取决于运行点和成本口径。
 3. **先检查内存：**根据并发量计算权重加 KV cache、MoE 专家驻留需求，以及拆分部署时预填充池与解码池间的 KV 传输成本（70B BF16 模型每 10K token 提示词约 3 GB）。
 4. **核算软件路径。** 内核成熟度会改变结果：NVIDIA 自己的 Dynamo 配置中，一个模型在 Marlin 内核上运行 BF16 比 NVFP4 快 80%。我会使用实际计划部署的引擎版本测试。
 5. **评估供货与锁定：**交付日期、租赁价格曲线、第二来源选择，以及需要投入多少 CUDA 专用代码。
@@ -779,7 +801,9 @@ flowchart TD
 - NVIDIA Groq 3 LPX: https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai
 - SemiAnalysis，Vera Rubin NVL72 agent 推理: https://newsletter.semianalysis.com/p/vera-rubin-nvl72-agentic-inference
 - Amazon Bedrock 模型生命周期: https://docs.aws.amazon.com/bedrock/latest/userguide/model-lifecycle.html
-- Silicon Data B200 租赁指数: https://www.silicondata.com/products/silicon-index/b200
+- Artificial Analysis，Vera Rubin NVL72 的 AA-AgentPerf 结果：https://artificialanalysis.ai/articles/vera-rubin-nvl72-agentperf
+- vLLM 公告 GHSA-4xqp-c3mv-qff7（`/health` 健康但引擎挂起）：https://github.com/vllm-project/vllm/security/advisories/GHSA-4xqp-c3mv-qff7
+- Silicon Data 租赁指数：https://www.silicondata.com/products/silicon-index/b200（另见 /b300、/h200、/h100）
 - OpenAI 定价: https://developers.openai.com/api/docs/pricing
 - Anthropic 定价: https://platform.claude.com/docs/en/about-claude/pricing
 

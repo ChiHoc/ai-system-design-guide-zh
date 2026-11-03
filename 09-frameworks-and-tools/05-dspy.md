@@ -2,7 +2,7 @@
 
 **DSPy** 已成为将提示视为可优化参数的行业参考。它代表了从“提示工程”（试错）到 **提示编译**（自动化优化）的范式转变。已发表的结果显示，它在某些任务上相较手工调优提示有显著提升，但提升幅度完全取决于度量和数据；在承诺具体数字前，应先用自己的评估集测量。
 
-2026 年的第二次转变，是从优化 **提示** 走向优化 **程序结构**：GEPA（反思式提示演化，DSPy 3.0）使优化由执行轨迹驱动；Flex（DSPy 3.3.0，2026 年 8 月 3 日）借此搜索模块如何组合，而不仅是指令文本。当前版本为 DSPy 3.4.0（2026 年 9 月 25 日）。
+2026 年的第二次转变，是从优化 **提示** 走向优化 **程序结构**：GEPA（反思式提示演化，DSPy 3.0）使优化由执行轨迹驱动；Flex（DSPy 3.3.0，2026 年 8 月 3 日）借此搜索模块如何组合，而不仅是指令文本。当前版本为 DSPy 3.4.1（2026 年 10 月 12 日）。
 
 ## 目录
 
@@ -101,6 +101,7 @@ DSPy 和其他框架一样变化迅速，因此要锁定版本：
 | 3.3.0 | 2026 年 8 月 3 日 | Flex 结构优化；支持原生工具调用的 **ReActV2**；开始引入有类型、与提供方无关的 LM 边界；NumPy 变为可选依赖 |
 | 3.3.1 | 2026 年 8 月 21 日 | GEPA 0.1.4；强化 `PythonInterpreter`；兼容 MCP Python SDK v2 |
 | 3.4.0 | 2026 年 9 月 25 日 | 支持自定义 HTTP 提供方的原生 LM 引擎。**破坏性变更**：移除了 3.3 中的实验性有类型 LM API。另有异步 ReActV2、`LocalInterpreter`（供可信代码使用的持久化 CPython，与 RLM 和 Flex 配合）、ReAnchor，以及可与 TypeSafe 的 Jev 决策模型集成的实验性有类型决策输出（`Noul`、`Choice`、`Score`） |
+| 3.4.1 | 2026 年 10 月 12 日 | GEPA 的结构化 `InstructionProposer` 成为默认指令生成器，因此即使使用相同随机种子，优化结果也可能不同；`dspy.RLM` 可在 REPL 内创建 DSPy 子智能体；支持 Python 3.15；修复了 3.4.0 的导入崩溃 |
 
 另有两项弃用需要规划：OpenAI 风格的 `messages=` 调用现在会产生警告，计划在 3.5 移除；自定义 `BaseLM.forward` 集成在 3.5 之前也会持续产生弃用警告。
 
@@ -116,7 +117,7 @@ DSPy 和其他框架一样变化迅速，因此要锁定版本：
 ### Q：在生产环境中使用 DSPy 的最大缺点是什么？
 
 **强回答：**
-**编译延迟和成本**。要编译一个复杂的 DSPy 流水线，你可能需要运行 100-500 次 LLM 调用来测试不同的提示变体，而且要为每个目标模型重复这一过程。这是一项显著的前期成本。不过，对于 Staff 级工程师来说，这是一个 **权衡**：你在开发/编译时间上付出更多，以换取针对受控度量 **经过测量的可靠性** 和更低的 **运行时失败率**。这并无保证：编译后的程序好坏取决于评估集。另一个挑战是学习曲线；它要求你像机器学习研究员而不是传统开发者那样思考。第三个挑战是框架更迭：3.4 移除了不到八周前 3.3 才引入的实验性 API，因此要锁定版本，并在升级时重新运行评估套件。
+**编译延迟和成本**。要编译一个复杂的 DSPy 流水线，你可能需要运行 100-500 次 LLM 调用来测试不同的提示变体，而且要为每个目标模型重复这一过程。这是一项显著的前期成本。不过，对于 Staff 级工程师来说，这是一个 **权衡**：你在开发/编译时间上付出更多，以换取针对受控度量 **经过测量的可靠性** 和更低的 **运行时失败率**。这并无保证：编译后的程序好坏取决于评估集。另一个挑战是学习曲线；它要求你像机器学习研究员而不是传统开发者那样思考。第三个挑战是框架更迭：3.4 移除了不到八周前 3.3 才引入的实验性 API，3.4.1 补丁还更改了 GEPA 默认指令生成器，因此相同随机种子不能复现 3.4.0 的结果。要锁定版本，将版本信息随每个编译产物保存，并在升级时重新运行评估套件。
 
 ### Q：什么时候会使用 GEPA 或 Flex，而不是 MIPROv2？
 
@@ -129,7 +130,7 @@ MIPROv2 针对固定流水线搜索指令和示例，需要足够多的 rollout 
 - Khattab 等人. “DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines”（arXiv 2310.03714，2023 年 10 月）：https://arxiv.org/abs/2310.03714
 - Opsahl-Ong 等人. “Optimizing Instructions and Demonstrations for Multi-Stage Language Model Programs”（arXiv 2406.11695，2024 年 6 月；MIPRO 论文）：https://arxiv.org/abs/2406.11695
 - Agrawal 等人. “GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning”（arXiv 2507.19457，2025 年 7 月）：https://arxiv.org/abs/2507.19457
-- DSPy 3.4.0 发布说明（2026 年 9 月 25 日）：https://github.com/stanfordnlp/dspy/releases
+- DSPy 发布说明（3.4.0，2026 年 9 月 25 日；3.4.1，2026 年 10 月 12 日）：https://github.com/stanfordnlp/dspy/releases
 - DSPy.“Output Refinement: BestOfN and Refine”：https://dspy.ai/tutorials/output_refinement/best-of-n-and-refine/
 
 ---

@@ -1,6 +1,6 @@
 # 语义内核（Semantic Kernel）
 
-**Semantic Kernel（SK）** 是微软面向企业级 AI 编排的引擎，也是现有 **Azure/Microsoft** 和 **C#/.NET** AI 代码最常使用的框架。其后续发展重心已转向由原班团队构建的 **Microsoft Agent Framework（MAF）**，它是 AutoGen 和 SK 的继任者。MAF 1.0 已于 2026 年 4 月 2 日在 .NET 和 Python 上正式发布，提供长期支持，且大约每周更新一次（Python 1.19.0 于 9 月 18 日发布，.NET 1.23.0 于 2026 年 10 月 1 日发布）。SK 仍在更新（`semantic-kernel` 1.44.1 于 2026 年 8 月 6 日发布），微软也提供了从 SK 迁移到 MAF 的指南。
+**Semantic Kernel（SK）** 是微软面向企业级 AI 编排的引擎，也是现有 **Azure/Microsoft** 和 **C#/.NET** AI 代码最常使用的框架。其后续发展重心已转向由原班团队构建的 **Microsoft Agent Framework（MAF）**，它是 AutoGen 和 SK 的继任者。MAF 1.0 已于 2026 年 4 月 2 日在 .NET 和 Python 上正式发布，提供长期支持，且大约每周更新一次（Python 1.24.0 和 .NET 1.27.0 于 2026 年 10 月 30 日发布）。SK 仍在更新（Python `semantic-kernel` 1.46.0 于 10 月 28 日发布，.NET 1.81.0 于 2026 年 10 月 6 日发布），微软也提供了从 SK 迁移到 MAF 的指南。
 
 **实践准则**：维护现有 SK 代码，新智能体项目从 MAF 起步。下文的概念（Kernel 函数、插件、连接器、函数调用）会直接延续到 MAF。
 

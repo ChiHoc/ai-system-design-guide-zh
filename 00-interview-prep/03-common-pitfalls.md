@@ -61,7 +61,7 @@
 
 - Intent classification: Fine-tuned BERT-class encoder or GPT-6 Luna
 - Simple responses: GPT-6 Luna, Gemini 3.8 Flash, DeepSeek V4.1-Flash,
-  or Claude Haiku 4.5
+  or Claude Haiku 5.5 (short prompts; it reprices above 100K tokens)
 - Complex reasoning: Claude Sonnet 5.5 or GPT-6.1 Sol
 - Code generation: Claude Sonnet 5.5 or GPT-6.1 Sol, with Claude Opus 5.5
   for the hardest cases (Fable 5.1 or GPT-6 Astra only where evals
@@ -171,8 +171,10 @@ LLM 提供方会发生宕机。Anthropic 状态页在 2026 年 8 月 16 日至 9
    (a second model from the same vendor usually shares the outage)
    - OpenAI → Anthropic → local model
    - Abstract the interface, but keep per-model request shapes:
-     the newest Claude models reject forced tool_choice and
-     non-default temperature, and GPT-6 Astra rejects temperature,
+     Opus 5.5, Sonnet 5.5, and Fable/Mythos 5.1 reject forced
+     tool_choice (Haiku 5.5 accepts it but skips thinking), Claude
+     API version 2026-10-21 rejects any temperature on every model,
+     and GPT-6 Astra rejects temperature,
      so replaying one request body across providers returns 400s
    - Keep a tested prompt per fallback model
 
@@ -243,23 +245,25 @@ avoids the lost-in-the-middle problem documented in Liu et al."
 **需要掌握：**
 - 计费按 token 计算，输入与输出常常分开计价
 - 输出 token 成本通常为输入 token 的 3-6 倍；当前 Claude、GPT-6 和 Gemini Flash 的标价中，5 倍是常态
-- 长提示词可能使整次请求重新定价：OpenAI 的输入一旦超过 272K token，全部内容都会按长上下文费率计费；xAI 在 200K 及以上时将所有 token 价格翻倍；Anthropic（Claude 4.6 及更高版本）则在 1M token 内保持固定费率
+- 长提示词可能使整次请求重新定价：OpenAI 的输入一旦超过 272K token，全部内容都会按长上下文费率计费；xAI 在 200K 及以上时将所有 token 价格翻倍；Claude Haiku 5.5 的提示词超过 100K token（含缓存读写）后整个请求按 5 倍计费，而 Claude Opus 5.5 和 Sonnet 5.5 在 1M 内保持固定费率
 - 思考 token 按输出计费，且不同模型的默认 effort 不同（API 中 Claude Opus 5.5 为 `medium`，Sonnet 5.5 为 `high`），因此应按路由显式设置 effort
 - 流式输出通常不改变计费
 
-**快速参考（截至 2026 年 10 月 1 日的标准档价格；标有说明者为介绍期价格；仅 9 月就有多项变动，引用前请查看[定价章节](../02-model-landscape/03-pricing-and-costs.md)）：**
+**快速参考（截至 2026 年 11 月 2 日的标准档价格；标有说明者为介绍期价格；仅 10 月就有多项变动，引用前请查看[定价章节](../02-model-landscape/03-pricing-and-costs.md)）：**
 
 | 模型 | 输入/100万 token | 输出/100万 token | 注意事项 |
 |-------|----------|-----------|-----------|
 | Claude Fable 5.1 | $10 | $50 | 保留 30 天；零数据保留仅可经 Anthropic 授权获得 |
 | GPT-6 Astra | $10 | $50 | 输入超过 272K 时，整次请求按 $20 / $75 计费 |
 | Claude Opus 5.5 | $4 | $20 | Anthropic 的默认起点；缓存读取 $0.20（0.05 倍） |
-| Claude Sonnet 5.5 | $2 | $10 | 1M 上下文内价格固定 |
+| Claude Sonnet 5.5 | $2 | $10 | 1M 上下文内价格固定；自 10 月 7 日起缓存读取 $0.10（0.05 倍） |
 | GPT-6.1 Sol | $2 | $10 | 缓存读取 $0.10（0.05 倍）；超过 272K 时为 $4 / $15 |
+| Gemini 4 Argon | $2 | $10 | 截至 2026 年 11 月 30 日；12 月 1 日起 $4 / $20，因此按 $4 / $20 预算。仅隐式缓存 |
 | Grok 4.7 | $2 | $6 | 200K 及以上的提示词，所有 token 按 $4 / $12 计费 |
-| Claude Haiku 4.5 | $1 | $5 | 唯一当前 Haiku；Foundry 将于 2026 年 11 月 15 日停止提供，需备好经测试的替代方案 |
+| GPT-6.1 Terra | $1 | $5 | 输入超过 272K 后整个请求按 $2 / $7.50 计费 |
 | Gemini 3.8 Flash | $0.75 | $3.75 | 介绍期至 2026 年 12 月 31 日；2027 年 1 月 1 日起为 $1.50 / $7.50 |
 | DeepSeek V4.1-Flash | $0.30 | $1.20 | 高峰费率；非高峰和周末减半 |
+| Claude Haiku 5.5 | $0.10 | $0.50 | 提示词不超过 100K token；超过后整个请求按 $0.50 / $2.50 计费，缓存读写也计入。拒绝 `temperature` 和 assistant prefill |
 | GPT-6 Luna | $0.10 | $0.50 | 超过 272K 时为 $0.20 / $0.75 |
 
 **成本计算示例：**
@@ -277,12 +281,12 @@ Daily cost = 10K × (2K × $2/1M + 500 × $10/1M)
 **缓存杠杆（通常是区分候选人的关键）：**
 ```
 Same workload, but 1.5K of the 2K input is a shared prefix
-(system prompt + tool schemas) served from cache at 10% of
-the input price:
+(system prompt + tool schemas) served from cache at 5% of
+the input price (Sonnet 5.5's cache read, $0.10/1M since October 7):
 
-Daily cost = 10K × (0.5K × $2/1M + 1.5K × $0.20/1M + 500 × $10/1M)
-          = 10K × ($0.001 + $0.0003 + $0.005)
-          = $63/day = ~$1.9K/month   (30% saved by prompt shape alone)
+Daily cost = 10K × (0.5K × $2/1M + 1.5K × $0.10/1M + 500 × $10/1M)
+          = 10K × ($0.001 + $0.00015 + $0.005)
+          = $61.50/day = ~$1.85K/month   (about 32% saved by prompt shape alone)
 
 Cache writes cost 1.25x ($2.50/1M for a 5-minute entry), but at ~7
 requests a minute the prefix stays warm, so writes are noise.
@@ -292,7 +296,7 @@ at the front of the prompt and the dynamic content at the end, so
 the prefix stays byte-identical across requests and the cache hits.
 ```
 
-缓存读取折扣不再固定为 10%。大多数 Claude 模型以及 OpenAI 的 GPT-5.6 及更高版本按 0.1 倍计费；Claude Opus 5.5 和 GPT-6.1 Sol 为 0.05 倍；Claude Fable 5.1 为 0.025 倍。写入溢价和 TTL 也各不相同：OpenAI（GPT-5.6 及更高版本）对固定 30 分钟 TTL 的写入收取 1.25 倍费用；Anthropic 提供 5 分钟或 1 小时条目，分别为 1.25 倍或 2 倍。在高度依赖缓存的智能体工作负载中，这些乘数可能比标称输入价格更重要。
+缓存读取折扣不再固定为 10%。大多数 Claude 模型（包括 Haiku 5.5）以及 OpenAI 的 GPT-5.6 及更高版本按 0.1 倍计费；Claude Opus 5.5、Claude Sonnet 5.5、GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05 倍；Claude Fable 5.1 为 0.025 倍。写入溢价和 TTL 也各不相同：OpenAI（GPT-5.6 及更高版本）对 30 分钟条目收取 1.25 倍，自 2026 年 10 月 20 日起对 12 小时条目收取 2.5 倍；Anthropic 的 5 分钟或 1 小时条目分别为 1.25 倍或 2 倍，Gemini 4 Argon 仅支持隐式缓存。在高度依赖缓存的智能体工作负载中，这些乘数可能比标称输入价格更重要。
 
 ---
 

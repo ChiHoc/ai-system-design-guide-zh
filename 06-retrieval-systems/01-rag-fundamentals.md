@@ -79,8 +79,8 @@ flowchart TD
 前沿模型的上下文窗口稳定在约 **1M token**：Claude Opus 5.5、Sonnet 5.5 和 Fable 5.1 均为 1M，GPT-6 系列为 1.05M，Gemini 3.8 Flash 的输入上限为 1,048,576 token。Gemini 1.5 时代的 2M 窗口并未成为常态。2026 年的变化不在窗口大小，而在于**重复读取的价格**。
 
 - **上下文内 RAG（ICR）**：对于小型、稳定的语料库，跳过向量数据库，把全部内容放进可缓存的提示词前缀。
-- **提示词缓存**可降低重复读取 token 的费用，但折扣因模型而异：多数模型的缓存读取按输入价格的 0.1x 计费，Claude Opus 5.5 和 GPT-6.1 Sol 为 0.05x，Claude Fable 5.1 为 0.025x（每 1M token 为 $0.25，标价为 $10）。缓存写入仍需付费：OpenAI GPT-5.6 及更新模型（固定 30 分钟 TTL）和 Anthropic 的 5 分钟 TTL 为 1.25x，Anthropic 的 1 小时 TTL 为 2x。
-- **长上下文价格陡增点**：OpenAI 在输入超过 272K token 后对**整个请求**按长上下文费率计费（输入和缓存 2x，输出 1.5x；GPT-6 Sol 从 $2/$10 变为 $4/$15）；xAI 的 Grok 提示词达到 200K 后，所有 token 价格翻倍；Gemini 3.1 Pro Preview 超过 200K 后，从 $2/$12 升到 $4/$18。Anthropic Claude 4.6 及更新模型直到 1M 都维持不变。因此，GPT-6 Sol 上 273K token 的提示词成本约为 272K 的两倍，应将上下文控制在阈值以内，或改用检索。
+- **提示词缓存**可降低重复读取 token 的费用，但折扣因模型而异：多数模型的缓存读取按输入价格的 0.1x 计费，Claude Opus 5.5、Claude Sonnet 5.5（2026 年 10 月 7 日从 0.1x 下调）、GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05x，Claude Fable 5.1 为 0.025x（每 1M token 为 $0.25，标价为 $10）。缓存写入仍需付费：OpenAI GPT-5.6 及更新模型的 30 分钟缓存、Anthropic 的 5 分钟 TTL 为 1.25x，Anthropic 的 1 小时 TTL 为 2x，OpenAI 于 2026 年 10 月 20 日增加的 12 小时选项为 2.5x。只有语料库被频繁重读，较长 TTL 才能摊平更贵的写入成本。
+- **长上下文价格陡增点**：OpenAI 在输入超过 272K token 后对**整个请求**按长上下文费率计费（输入和缓存 2x，输出 1.5x；GPT-6 Sol 从 $2/$10 变为 $4/$15）；xAI 的 Grok 提示词达到 200K 后，所有 token 价格翻倍；Gemini 3.1 Pro Preview 超过 200K 后，从 $2/$12 升到 $4/$18。Anthropic Claude 4.6 及更新模型直到 1M 都维持不变，但 Claude Haiku 5.5 例外：提示词超过 100K token 后，整个请求从 $0.10/$0.50 按 $0.50/$2.50 计费，缓存读写也计入长度。因此，GPT-6 Sol 上 273K token 的提示词成本约为 272K 的两倍，而 Haiku 5.5 上 101K token 的成本约为 100K 的五倍，应将上下文控制在阈值以内，或改用检索。
 
 ### 盈亏平衡点已改变
 
@@ -92,10 +92,10 @@ N x cache_read_multiplier = k        =>        N_break_even = k / multiplier
 
 假设检索上下文为 5K token（与[生产规模 RAG](14-production-rag-at-scale.md#缓存读取的成本临界点)的假设相同）：
 
-| 缓存读取倍率 | 模型示例（2026 年 10 月标价） | 缓存语料库的盈亏平衡点 |
+| 缓存读取倍率 | 模型示例（2026 年 11 月标价） | 缓存语料库的盈亏平衡点 |
 |---|---|---|
-| 0.1x | Sonnet 5.5、GPT-6 Sol 等多数模型 | ~50K token |
-| 0.05x | Opus 5.5、GPT-6.1 Sol | ~100K token |
+| 0.1x | Haiku 5.5、GPT-6 Sol 等多数模型 | ~50K token |
+| 0.05x | Opus 5.5、Sonnet 5.5、GPT-6.1 Sol、GPT-6.1 Terra | ~100K token |
 | 0.025x | Fable 5.1 | ~200K token |
 
 如果检索上下文翻倍（10K token 的文本块），各档盈亏平衡点也随之翻倍。

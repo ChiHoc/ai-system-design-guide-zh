@@ -256,7 +256,7 @@ QUERY:  query token vectors ──► FDE ──► ANN top-k candidates
 | 引擎 | 多向量支持 | 状态 |
 |--------|----------------------|--------|
 | **Milvus 3.0** | 磁盘上的 EmbList 与面向嵌入列表的 DiskANN 索引，支持 MUVERA 和 LEMUR 加速 | 2026 年 7 月 29 日正式发布（3.0.2 于 9 月 20 日发布） |
-| **Weaviate** | 原生多向量嵌入（1.29+）；自 1.31（2025）起可选用 HNSW 上的 MUVERA 编码；磁盘型 HFresh 索引的 MUVERA 支持则是 1.40 的新功能 | 多向量和 HNSW 上的 MUVERA 已发布；HFresh 的 MUVERA 路径仍在 1.40 候选版（2026 年 9 月 30 日为 rc.2），尚未正式发布 |
+| **Weaviate** | 原生多向量嵌入（1.29+）；自 1.31（2025）起可选用 HNSW 上的 MUVERA 编码；磁盘型 HFresh 索引的 MUVERA 支持则是 1.40 的新功能 | 多向量和 HNSW 上的 MUVERA 已发布；HFresh 的 MUVERA 路径随 1.40.0（2026 年 10 月 7 日）发布，说明中未标记为正式版或预览版，需核实其状态 |
 | **Qdrant** | 原生多向量字段，使用 MaxSim 打分 | 已发布；Qdrant 开放的 PubMed-Multi-Vector 数据集（83.7 亿个 BGE-M3 token 向量）用于比较稠密、稀疏与 ColBERT 检索 |
 | **Vespa** | 原生 ColBERT 张量排序 | 已发布 |
 

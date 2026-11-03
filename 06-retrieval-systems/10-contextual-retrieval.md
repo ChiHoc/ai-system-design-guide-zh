@@ -236,7 +236,7 @@ context and nothing else."""
 def contextualize_chunk(
     full_document: str,
     chunk: str,
-    model: str = "claude-haiku-4-5"  # small model: context strings are short and factual
+    model: str = "claude-haiku-5-5"  # small model: context strings are short and factual
 ) -> str:
     """Generate context for a single chunk."""
     response = client.messages.create(
@@ -250,8 +250,8 @@ def contextualize_chunk(
             )
         }]
     )
-    # Read the text block, not content[0]: on models with thinking on
-    # (Sonnet 5.5, Opus 5.5), a thinking block comes first.
+    # Read the text block, not content[0]: on models that think by default
+    # (Haiku 5.5, Sonnet 5.5, Opus 5.5), a thinking block can come first.
     context = next(b.text for b in response.content if b.type == "text")
     return f"{context}\n\n{chunk}"
 
@@ -273,7 +273,7 @@ def process_document(document: str, chunks: List[str]) -> List[str]:
 def contextualize_with_caching(
     full_document: str,
     chunks: List[str],
-    model: str = "claude-haiku-4-5"
+    model: str = "claude-haiku-5-5"
 ) -> List[str]:
     """
     Use prompt caching so the full document is only
@@ -318,7 +318,8 @@ def contextualize_with_caching(
 
 以下三个运维陷阱会抹掉这部分节省：
 - **交错处理与冷启动并发。** 默认缓存有效期为 5 分钟。同一文档的所有分块应在此窗口内处理；若队列把它们分散到数小时，每次调用都会成为缓存写入。先单独发出第一次调用，待其返回后再并发处理其余分块：并行的首次调用都会未命中缓存并支付写入费用。
-- **短文档。** 可缓存前缀的最小长度因模型而异：Claude Haiku 4.5 为 4,096 token，Claude Opus 5.5 和 Fable 5.1 为 512 token。3,000 token 的文档在 Haiku 4.5 上根本不会缓存；应检查 `usage.cache_read_input_tokens`，而不是想当然。
+- **短文档。** 可缓存前缀的最小长度因模型而异：Claude Haiku 5.5、Sonnet 5.5、Opus 5.5 和 Fable 5.1 为 512 token，而 Claude Haiku 4.5 为 4,096 token。3,000 token 的文档在 Haiku 4.5 上根本不会缓存；应检查 `usage.cache_read_input_tokens`，而不是想当然。
+- **Haiku 5.5 上的长文档。** 只有当整个提示（包括缓存文档）不超过 100K token 时，其 $0.10/$0.50 的价格才适用。超过后，整个请求按 $0.50/$2.50 计费，因此一个 150K token 的合同会让每次分块调用都涨到 5 倍。可将很长的文档拆成低于该阈值的章节，或按更高档位做预算（仍是 Haiku 4.5 标价的一半）。
 - **退役的模型 ID。** 带日期的模型 ID 会退役：`claude-sonnet-4-20250514` 于 2026 年 6 月 15 日退出 Claude API，导致硬编码它的流水线失效。应把模型 ID 放在配置中，并随每条生成的上下文字符串一同保存。
 
 ### 3 模式：上下文块头（轻量替代方案）
@@ -365,7 +366,7 @@ contextualized = add_chunk_headers(
 
 | 因素 | 块头（CCH） | LLM 上下文化 |
 |--------|--------------------|-----------------------|
-| **成本** | 免费（无 LLM 调用） | 使用缓存时，每 100 万文档 token 约 $0.50（GPT-6 Luna）至 $5（Claude Haiku 4.5） |
+| **成本** | 免费（无 LLM 调用） | 使用缓存时，每 100 万文档 token 约 $0.50（GPT-6 Luna 或 Claude Haiku 5.5，不含思考 token）至 $5（Claude Haiku 4.5） |
 | **质量** | 适合结构化文档 | 适用于所有文档，效果极佳 |
 | **速度** | 即时 | 每次调用 0.5-2 秒；吞吐量来自并发 |
 | **最适合** | Markdown、HTML、带清晰标题的 PDF | 非结构化文本、法律、医疗 |
@@ -376,19 +377,20 @@ contextualized = add_chunk_headers(
 
 ### 上下文化成本
 
-对于一个包含 10,000 个分块（每块 400 token）、来自 500 份文档（每份 8,000 token）的知识库，假设文档已缓存、每次调用另有约 500 个未缓存的提示 token 和 75 个输出 token，按 2026 年 10 月 1 日的标价估算：
+对于一个包含 10,000 个分块（每块 400 token）、来自 500 份文档（每份 8,000 token）的知识库，假设文档已缓存、每次调用另有约 500 个未缓存的提示 token 和 75 个输出 token，按 2026 年 11 月 2 日的标价估算：
 
 | 选项 | 每 100 万 token 价格（输入 / 缓存读取 / 输出） | 每块成本 | 总成本 | 备注 |
 |--------|--------------------------------------|----------------|------------|-------|
-| **GPT-6 Luna** | $0.10 / $0.01 / $0.50 | ~$0.0002 | ~$2 | OpenAI 自动缓存；缓存写入按 1.25 倍计费，固定有效期为 30 分钟 |
+| **GPT-6 Luna** | $0.10 / $0.01 / $0.50 | ~$0.0002 | ~$2 | OpenAI 自动缓存；30 分钟缓存写入按 1.25 倍计费，12 小时选项按 2.5 倍计费 |
+| **Claude Haiku 5.5** | $0.10 / $0.01 / $0.50（提示不超过 100K token） | ~$0.0002 | ~$2-3 + 思考费用 | 默认启用自适应思考（effort `medium`），应设为 low；相同文本的 token 数比 Haiku 4.5 多约 30%（成本接近 $3）；可缓存前缀最低 512 token |
 | **Claude Haiku 4.5** | $1 / $0.10 / $5 | ~$0.002 | ~$21 | 默认不启用思考；可缓存前缀至少需要 4,096 token |
-| **Claude Sonnet 5.5** | $2 / $0.20 / $10 | ~$0.004 | ~$43 + 思考费用 | 默认启用思考；此任务可传入 `thinking: {type: "between_tools"}` 或使用低 effort |
+| **Claude Sonnet 5.5** | $2 / $0.10 / $10 | ~$0.003 | ~$36 + 思考费用 | 默认启用思考；此任务可传入 `thinking: {type: "between_tools"}` 或使用低 effort |
 | **Claude Opus 5.5** | $4 / $0.20 / $20 | ~$0.007 | ~$70 + 思考费用 | 无法关闭思考；对这项任务而言过于昂贵 |
 | **voyage-context-4**（无需 LLM 调用） | 嵌入 $0.12 | ~$0.00005 | ~$0.50 | 替代嵌入步骤；只改善稠密检索（见下文） |
 
 **最佳实践**：使用小模型做上下文化。上下文字符串简短且事实性强，前沿模型只会增加成本；在最新 Claude 模型上还会增加思考 token（默认启用，且 Opus 5.5 无法关闭），却没有可测量的质量提升。结合提示缓存；可以等待的回填任务则通过 Batch API 运行（Anthropic 和 OpenAI 均按标价的 50% 计费）。
 
-Haiku 4.5 仍是唯一的 Haiku；截至 2026 年 10 月 1 日，虽已预告 Haiku 5.5 将在“未来几周”推出，但尚未发布。Haiku 4.5 将于 2026 年 11 月 15 日在 Microsoft Foundry 退役。在 Claude API 上，它尚无弃用通知，Anthropic 会至少提前 60 天通知。应把上下文化模型视为可替换依赖。
+Claude Haiku 5.5（2026 年 10 月 7 日正式发布）是 Claude 上这项任务的默认选择：提示不超过 100K token 时，价格是 Haiku 4.5 的十分之一，与 GPT-6 Luna 相同。但它不能直接替换旧模型。`temperature`、`top_p`、`top_k`、`budget_tokens` 和 assistant prefill 都会返回 400；分词器变化会改变原有 token 预算，上下文字符串也会不同，因此在重新生成整个语料上下文前，应重新运行检索黄金测试集。Haiku 4.5 在 Claude API 上仍为 Active，尚无弃用通知（Anthropic 至少提前 60 天通知，因而不会早于约 2027 年 1 月）；Microsoft Foundry 列出的退役日期仍为 2026 年 11 月 15 日。应把上下文化模型视为可替换依赖，并将模型 ID 与每条上下文字符串一同保存。
 
 ### 何时使用上下文检索
 
@@ -490,7 +492,7 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 │                           │                                         │
 │                      Top 25 chunks                                  │
 │                           │                                         │
-│                      Reranker (Cohere Rerank 4, Voyage rerank-3,    │
+│                      Reranker (Cohere Rerank 5, Voyage rerank-3,    │
 │                      or a self-hosted cross-encoder)                │
 │                           │                                         │
 │                      Top 5 chunks                                   │
@@ -528,10 +530,10 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 
 **强答案：**
 四种策略：
-1. **模型选择**：使用小型、快速模型（如 Claude Haiku 4.5 或 GPT-6 Luna）进行上下文化。输出是简短的事实性文本，不是创意写作。前沿模型只会增加成本而不会带来质量提升；最新 Claude Opus 和 Sonnet 模型还会产生无法完全关闭的思考 token。
+1. **模型选择**：使用小型、快速模型（如 Claude Haiku 5.5 或 GPT-6 Luna，两者价格均为 $0.10 / $0.50）进行上下文化。输出是简短的事实性文本，不是创意写作。前沿模型只会增加成本而不会带来质量提升；最新 Claude Opus 和 Sonnet 模型还会产生无法完全关闭的思考 token；即使使用 Haiku 5.5，也应设置低 effort。文档应控制在 Haiku 5.5 的 100K token 价格阈值内，或拆分处理。
 2. **提示缓存**：在所有块的上下文化调用之间缓存完整文档文本，并集中调度同一文档的分块，使调用落在缓存有效期内。对于一个 10,000 token 的文档、30 个分块，这可将文档输入成本降低约 85%。
 3. **分层策略**：不是每份文档都需要 LLM 上下文化。对于结构良好的文档（如 Markdown、带标题的 HTML），使用确定性的上下文块头（前置文档标题 + 章节层级），这是免费的。将 LLM 上下文化留给非结构化或含糊的文档。
-4. **把上下文交给嵌入模型**：voyage-context-4 等上下文分块嵌入模型（每 100 万 token $0.12）无需逐块调用 LLM，即可生成感知文档上下文的分块向量。对于约 50,000 篇、每篇 8,000 token 的文档（共 4 亿 token），成本约 $50，而使用 Haiku 4.5 和缓存约需 $2,000。但它只帮助稠密检索，因此我会为 BM25 配上分块头，并在黄金测试集中仍有遗漏的文档上保留 LLM 上下文化。
+4. **把上下文交给嵌入模型**：voyage-context-4 等上下文分块嵌入模型（每 100 万 token $0.12）无需逐块调用 LLM，即可生成感知文档上下文的分块向量。对于约 50,000 篇、每篇 8,000 token 的文档（共 4 亿 token），成本约 $50；使用 Haiku 5.5 或 Luna 并配合缓存约需 $200 至 $300（使用 Haiku 4.5 则约 $2,000）。差距已缩小，因此选择更多取决于黄金测试集上的质量，而非价格。它只帮助稠密检索，因此我会为 BM25 配上分块头，并在黄金测试集中仍有遗漏的文档上保留 LLM 上下文化。
 
 ### 问：上下文检索与 HyDE 在提升检索质量方面有何不同？
 

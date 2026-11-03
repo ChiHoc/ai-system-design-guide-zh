@@ -61,7 +61,7 @@ LLM 推理不是单一操作；它由两个不同的计算阶段组成。
 
 批次大小会让吞吐量与单用户速度相互制约，因此单一数字无法说明运行点。厂商宣传的“每秒 token 数”通常是批次大小为 1 时的最高速度，客户在负载下很少见到。应在自己的 SLO 和具有代表性的流量上，比较系统的**吞吐量与交互速度曲线**。
 
-运行点的影响很大：SemiAnalysis 的 InferenceX AgentX 场景（智能体、多轮、高前缀复用）报告，在按自有设备成本计算、DeepSeek V4 Pro 每用户 170 tok/s 时，Vera Rubin NVL72 的单位 TCO 吞吐量约为 GB300 的 **67 倍**；但在更贴近现实的每用户 80 tok/s P90、按 3 年租赁价格计算时，其总 token 量仅比 GB300 NVL72 **高 62%**。硬件和模型相同，仅运行点与成本模型不同，宣传数字就相差 40 倍。MLPerf Inference v6.1（2026 年 9 月）因此也加入了智能体和端到端 RAG 测试。
+运行点的影响很大：SemiAnalysis 的 InferenceX AgentX 场景（智能体、多轮、高前缀复用）报告，在按自有设备成本计算、DeepSeek V4 Pro 每用户 170 tok/s 时，Vera Rubin NVL72 的单位 TCO 吞吐量约为 GB300 的 **67 倍**；但在更贴近现实的每用户 80 tok/s P90、按 3 年租赁价格计算时，其总 token 量仅比 GB300 NVL72 **高 62%**。硬件和模型相同，仅运行点与成本模型不同，宣传数字就相差 40 倍。首个独立测试进一步缩小了差距：Artificial Analysis 的 AA-AgentPerf（2026 年 10 月 15 日）测得，视模型而定，Rubin 的每兆瓦峰值吞吐量仅为 GB300 的 **1.14 至 1.45 倍**，只有在每用户速度较高时优势才更大。在接受任何加速器性能声明前，应索取完整曲线。MLPerf Inference v6.1（2026 年 9 月）因此也加入了智能体和端到端 RAG 测试。
 
 ---
 
@@ -94,7 +94,7 @@ LLM 推理不是单一操作；它由两个不同的计算阶段组成。
 ### 问：厂商宣传某加速器“每秒 3,000 token”。你如何评估？
 
 **强答案：**
-我会先问，这个数字是曲线上的哪一个点。批次大小为 1 时的单用户最高速度很难说明成本，因为成本取决于产品所需交互速度下的总吞吐量。因此，我会在自己的模型、上下文长度及前缀复用模式（智能体流量会高度复用长前缀）下，要求或测量完整的吞吐量与单用户速度曲线，读取满足 TTFT 和 ITL SLO 时的 goodput。随后按真实的租赁或自有设备价格换算为每百万 token 成本，而不是采用标称 TCO。差距可能极大：一项 2026 年基准显示，相同 Rubin 与 GB300 的对比，仅因运行点和购买或租赁方式不同，结果可从 67 倍变为 1.6 倍。我还会检查长上下文下的内存上限（依赖大量 SRAM 的设计可能严重限制批次大小）、是否启用推测解码，以及结果是来自 MLPerf、InferenceX 等独立测试，还是厂商自行搭建的环境。
+我会先问，这个数字是曲线上的哪一个点。批次大小为 1 时的单用户最高速度很难说明成本，因为成本取决于产品所需交互速度下的总吞吐量。因此，我会在自己的模型、上下文长度及前缀复用模式（智能体流量会高度复用长前缀）下，要求或测量完整的吞吐量与单用户速度曲线，读取满足 TTFT 和 ITL SLO 时的 goodput。随后按真实的租赁或自有设备价格换算为每百万 token 成本，而不是采用标称 TCO。差距可能极大：一项 2026 年分析师基准显示，相同 Rubin 与 GB300 的对比仅因运行点和购买或租赁方式不同，结果可从 67 倍变为 1.6 倍；Artificial Analysis 的首次独立测试测得峰值每兆瓦吞吐量仅为 1.14 至 1.45 倍。我还会检查长上下文下的内存上限（依赖大量 SRAM 的设计可能严重限制批次大小）、是否启用推测解码，以及结果是来自 MLPerf、InferenceX 等独立测试，还是厂商自行搭建的环境。
 
 ---
 
@@ -103,6 +103,7 @@ LLM 推理不是单一操作；它由两个不同的计算阶段组成。
 - NVIDIA. "Transformer Engine Documentation" (2024)
 - vLLM Blog. "Understanding LLM Inference Latency" (2023)
 - SemiAnalysis. ["Vera Rubin NVL72: agentic inference"](https://newsletter.semianalysis.com/p/vera-rubin-nvl72-agentic-inference) (2026)
+- Artificial Analysis. ["Vera Rubin NVL72 on AA-AgentPerf"](https://artificialanalysis.ai/articles/vera-rubin-nvl72-agentperf) (2026)
 - MLCommons. [MLPerf Inference v6.1 results](https://mlcommons.org/2026/09/mlperf-inference-v6-1-results/) (2026)
 
 ---

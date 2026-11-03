@@ -116,7 +116,7 @@ flowchart LR
 
 ## 混合专家（MoE）
 
-**开放权重前沿模型的默认架构（DeepSeek V4 和 V4.1、Kimi K3、GLM-5.3、Qwen3.8、MiMo-V2.6、腾讯 Hy4；更早还有 Llama 4 Maverick 和 Mixtral）。**Google 的 Gemini 技术报告和模型卡描述了稀疏 MoE Transformer；OpenAI 和 Anthropic 不公开其架构，因此任何关于 GPT 或 Claude 内部机制的说法都应视为推测。
+**开放权重前沿模型的默认架构（DeepSeek V4 和 V4.1、Kimi K3、GLM-5.3、Qwen3.8、MiMo-V2.6、腾讯 Hy4，以及 2026 年 10 月的 Mistral Large 4 和 Meta Muse Spark Open；更早还有 Llama 4 Maverick 和 Mixtral）。**Google 的 Gemini 技术报告和模型卡描述了稀疏 MoE Transformer；OpenAI 和 Anthropic 不公开其架构，因此任何关于 GPT 或 Claude 内部机制的说法都应视为推测。
 
 MoE 用多个“专家（expert）”和一个“路由器（router）”替代稠密前馈网络（FFN, Feed-Forward Network），由路由器决定某个 token 交给哪些专家处理。
 

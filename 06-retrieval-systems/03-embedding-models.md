@@ -35,7 +35,7 @@ Embedding（嵌入）模型将文本转换为高维向量。前沿已经从静�
 - **方式**：ColBERT 不再为每个 chunk 只存 1 个向量，而是为每个 token 存 1 个向量。
 - **交互**：在查询时，模型会比较查询中的每个 token 与文档中的每个 token（即 “MaxSim” 操作）。
 - **现状**：ColBERT v2（以及 ColPali、ColQwen2.5、ColNomic 等用于文档和 page-as-images（页面即图像）的后继模型）已通过 PLAID 索引实现大幅压缩，使其可用于生产环境。它在“needle in a haystack（大海捞针）”式技术查询中能取得更高精度。
-- **2026 年的服务路径**：通用引擎如今可直接索引多向量数据，通常借助固定维度的 MUVERA 编码：Milvus 3.0（EmbList 加 DiskANN，2026 年 7 月），以及 Weaviate（面向多向量集合的 MUVERA，并在 1.40 候选版扩展至磁盘支持的 HFresh 索引，尚未正式发布）。尝试晚交互已无需专用 ColBERT 服务端。参见[晚交互与 ColBERT](11-late-interaction-colbert.md)。
+- **2026 年的服务路径**：通用引擎如今可直接索引多向量数据，通常借助固定维度的 MUVERA 编码：Milvus 3.0（EmbList 加 DiskANN，2026 年 7 月），以及 Weaviate（面向多向量集合的 MUVERA，并在 1.40.0 中扩展至磁盘型 HFresh 索引；该版本于 2026 年 10 月 7 日发布，发布说明未注明 HFresh 是正式版还是预览版，依赖前请确认状态）。尝试晚交互已无需专用 ColBERT 服务端。参见[晚交互与 ColBERT](11-late-interaction-colbert.md)。
 
 ---
 
@@ -60,6 +60,7 @@ Embedding（嵌入）模型将文本转换为高维向量。前沿已经从静�
 | **Voyage 4**（`voyage-4-large` / `voyage-4` / `voyage-4-lite`） | Voyage AI（MongoDB） | 2026 年 1 月 15 日发布。不同规模模型共享同一空间；每 1M 为 $0.12 / $0.06 / $0.02；另有开放权重的 `voyage-4-nano` | 32K |
 | **voyage-code-4** | Voyage AI | 2026 年 8 月 13 日发布。用从拉取请求中挖掘的自然语言到代码配对训练，适用于从 bug 症状出发搜索的智能体；每 1M 为 $0.12 | 32K |
 | **voyage-multimodal-3.5** | Voyage AI | 2026 年 1 月 15 日发布。支持交错的文本、图像和视频；256 至 2,048 维；可输出 float、int8 和 binary | 32K |
+| **EmbeddingGemma 2** | Google（开放权重，Apache 2.0） | 2026 年 10 月。740M 参数（270M 文本、170M 视觉和 300M 音频编码器）；在同一个 768 维空间中支持文本、代码、图像、视频和音频，可按 Matryoshka 截断至 512、256 或 128 维（多模态数据上使用 128 维前请仔细验证）；MTEB 多语言 v2 得分 61.36，MTEB 代码得分 78.68（厂商报告；尚无 RTEB 分数） | 8K |
 | **Nemotron 3 Embed 8B / 1B** | NVIDIA（开放权重，OpenMDW-1.1） | 2026 年 7 月 16 日发布。8B：可截取的 4,096 维，RTEB 多语言榜以 78.5 排名第 1（供应商自报）；1B：2,048 维，另有 NVFP4 变体 | 32,768（8B） |
 | **Qwen3-Embedding-8B** | 开放权重 | 指令微调、擅长长文档；MTEB 多语言平均分 70.58，但榜首地位已有争议 | 32K |
 | **Llama-Embed-Nemotron-8B** | NVIDIA | 2025 年 10 月发布。多语言表现强、4,096 维；权重仅许可非商业及研究用途 | 32K |
@@ -92,7 +93,7 @@ Embedding（嵌入）模型将文本转换为高维向量。前沿已经从静�
 
 仅文本的 RAG 会悄悄丢弃图表、表格、示意图和版式信号，而这些往往正是答案所在。现代栈会把页面、截图和图像作为一等检索对象：
 
-- **统一视觉-文本嵌入**：Cohere Embed 5、voyage-multimodal-3.5 和 gemini-embedding-2 各自将图像与文本映射到同一向量空间，因此可以针对示意图查询“紧急切断阀在哪里？”。Cohere 报告称，在 ViDoRe V3 上，Embed 5 Pro 得分 85.8、Fast 得分 84.5、voyage-4-large 为 83.7、Gemini Embedding 2 为 83.2、text-embedding-3-large 为 75.5（供应商自报）。voyage-multimodal-3.5 和 gemini-embedding-2 还可在同一空间处理视频，后者也支持音频。
+- **统一视觉-文本嵌入**：Cohere Embed 5、voyage-multimodal-3.5 和 gemini-embedding-2 各自将图像与文本映射到同一向量空间，因此可以针对示意图查询“紧急切断阀在哪里？”。Cohere 报告称，在 ViDoRe V3 上，Embed 5 Pro 得分 85.8、Fast 得分 84.5、voyage-4-large 为 83.7、Gemini Embedding 2 为 83.2、text-embedding-3-large 为 75.5（供应商自报）。voyage-multimodal-3.5 和 gemini-embedding-2 还可在同一空间处理视频，后者也支持音频。EmbeddingGemma 2（2026 年 10 月）以 Apache 2.0 开放权重支持全部四种模态，因此无法将音频或视频发送至 API 的团队现在可以自行托管统一空间。它的 8K 上下文和 768 维低于托管模型；应使用自己的媒体数据做基准测试，不要默认其性能相当。
 - **Page-as-image with late interaction（页面即图像 + 晚交互）**：ColPali、ColQwen2.5 和 ColNomic 直接对每一页的渲染结果进行嵌入，跳过脆弱的 OCR，并保留视觉层级。
 - **CLIP-family models（CLIP 系列模型）**：对于图像占比高的目录类场景（电商、媒体）仍然有用，因为文本-图像对齐（text-image alignment）是核心信号。
 
@@ -131,6 +132,7 @@ Embedding 依赖训练时学到的语义空间。如果用户查询使用了一�
 - [Cohere. "Embed 5"（2026 年 9 月）](https://cohere.com/blog/embed-5)
 - [Voyage AI. "voyage-4"（2026 年 1 月）](https://blog.voyageai.com/2026/01/15/voyage-4/) 与 ["voyage-code-4"（2026 年 8 月）](https://blog.voyageai.com/2026/08/13/voyage-code-4/)
 - [NVIDIA. Nemotron 3 Embed 8B 模型卡](https://huggingface.co/nvidia/Nemotron-3-Embed-8B-BF16)
+- [Google. EmbeddingGemma 2 模型卡](https://huggingface.co/google/embeddinggemma-2)
 - ["The Embedder's Dilemma"（arXiv 2608.12875，2026 年 8 月）](https://arxiv.org/abs/2608.12875)
 
 ---
