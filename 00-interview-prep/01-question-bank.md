@@ -7926,7 +7926,7 @@ class History:      # newest messages within budget; a tool call and its results
 
 ---
 
-> **练习提示：**阅读一个问题后，关闭页面，在阅读参考答案前计时大声作答。如需包含实时追问和书面反馈的完整模拟流程，可在  或  预约 Om 的辅导。
+> **练习提示：**阅读一个问题后，关闭页面，在阅读参考答案前计时大声作答。如需包含实时追问和书面反馈的完整模拟流程，可在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 预约 Om 的辅导。
 - [高级问题 - 2026 年 9 月](#高阶问题-2026年9月) (Q129-Q135)
 - [语音 AI 问题](#语音-ai-问题) (Q136-Q147)
 - [高级问题 - 2026 年 10 月](#进阶问题-2026-年-10-月) (Q148-Q155) ⭐ *新增*
