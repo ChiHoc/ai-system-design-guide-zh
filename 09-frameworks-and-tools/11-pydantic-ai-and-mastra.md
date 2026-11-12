@@ -32,7 +32,7 @@ Pydantic AI 和 Mastra 都源于对框架锁定和无类型提示词拼接的不
 
 ### 当前状态
 
-[Pydantic AI](https://ai.pydantic.dev/) 于 2025 年 9 月发布 v1.0，在经过七个 beta 版本后于 **2026 年 6 月 23 日发布稳定版 v2.0.0**（v2 beta 从 v1.100.0 分支而来）；2026 年 10 月 31 日已达到 **2.64.0**，1.x 补丁版本仍在更新（1.107.9 于 10 月 21 日发布）（[PyPI 发布历史](https://pypi.org/project/pydantic-ai/#history)）。小版本每周发布数次，也可能改变行为：2.62.0（10 月 27 日）默认将托管 MCP 能力的工具名称加上服务名前缀（可通过 `tool_prefix` 配置），这会破坏依赖旧名称的允许列表和评估。该库由 Pydantic 背后的团队构建，该团队也运营 [Pydantic Logfire](https://pydantic.dev/logfire)。它以 MIT 许可证开源。
+[Pydantic AI](https://ai.pydantic.dev/) 于 2025 年 9 月发布 v1.0，在经过七个 beta 版本后于 **2026 年 6 月 23 日发布稳定版 v2.0.0**（v2 beta 从 v1.100.0 分支而来）；2026 年 11 月 4 日已达到 **2.66.0**，1.x 补丁版本仍在更新（同日发布 1.107.10）（[PyPI 发布历史](https://pypi.org/project/pydantic-ai/#history)）。应将 2.66.0 / 1.107.10 作为最低版本：它们修复了两个高危通告，GHSA-m5vj-8mcw-82qx（`web_fetch_tool` 的本地回退在应用内容限制前于事件循环中重新缩进 JSON，因此下载大小限制内的嵌套文档可能膨胀数百倍并阻塞事件循环）和 GHSA-mfx5-pc32-32m8（Pydantic AI Harness 的秘密脱敏中，`private_key` 模式存在指数级回溯；已在 `pydantic-ai-harness` 0.66.0 修复），以及包括 SSRF 云元数据阻止列表遗漏 Tencent Cloud 的 169.254.0.23 在内的中危问题。同日另一通告 GHSA-mgmv-r532-pg36（已在 2.60.0 修复）允许 MCP 服务器 URL 路径中的凭据通过 MCP Apps 事件传到聊天前端，因此应将 MCP 凭据放在 header 中，绝不放在 URL 中。进程内的抓取和脱敏辅助功能与其他工具一样属于攻击面。小版本每周发布数次，也可能改变行为：2.62.0（10 月 27 日）默认将托管 MCP 能力的工具名称加上服务名前缀（可通过 `tool_prefix` 配置），这会破坏依赖旧名称的允许列表和评估。该库由 Pydantic 背后的团队构建，该团队也运营 [Pydantic Logfire](https://pydantic.dev/logfire)。它以 MIT 许可证开源。
 
 V2 **以 harness 为中心**：*capability* 是可组合的单元，将工具、生命周期钩子、指令和模型设置打包；第一方 Pydantic AI Harness 库提供更多此类单元，包括用于保存和恢复的 `StepPersistence`。从 1.x 升级时需检查以下破坏性和行为变化：
 

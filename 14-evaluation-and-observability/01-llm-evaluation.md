@@ -275,7 +275,7 @@ def calibrated_pairwise_judge(question: str, response_a: str, response_b: str) -
         return {"winner": "tie", "confidence": "low"}
 ```
 
-**不要指望将 temperature 设为 `0` 就能稳定裁判。** 新 API 正在移除裁判过去依赖的采样参数：GPT-`6` Astra 不支持自定义 `temperature`、`top_p` 或 `logprobs`；Anthropic API 版本 `2026-10-21` 起（Python SDK 2.0.0 和 TypeScript SDK 1.0.0 的默认版本），所有 Claude 模型传入任何 `temperature`、`top_p` 或 `top_k` 都会返回 `400`，包括默认值；此前的版本仅对 Claude 4.7 及更新模型的非默认值返回错误。只要正常升级 SDK，硬编码 `temperature=0` 的裁判工具链就可能失效。若裁判不提供 logprobs，就不能使用 G-Eval 式的 logprob 加权评分。应直接测量裁判的自一致性（同一条目多次评分并跟踪分布范围），固定裁判的模型 ID 和 effort 级别，任何一项改变时都重新运行裁判校准集。
+**不要指望将 temperature 设为 `0` 就能稳定裁判。** 新 API 正在移除裁判过去依赖的采样参数：GPT-`6` Astra 不支持自定义 `temperature`、`top_p` 或 `logprobs`；Anthropic API 版本 `2026-10-21` 起（包括 Python 和 TypeScript 在内的八个新版 SDK 和 CLI 主版本的默认版本），所有 Claude 模型传入任何 `temperature`、`top_p` 或 `top_k` 都会返回 `400`，包括默认值；此前的版本仅对 Claude 4.7 及更新模型的非默认值返回错误。只要正常升级 SDK，硬编码 `temperature=0` 的裁判工具链就可能失效。若裁判不提供 logprobs，就不能使用 G-Eval 式的 logprob 加权评分。应直接测量裁判的自一致性（同一条目多次评分并跟踪分布范围），固定裁判的模型 ID 和 effort 级别，任何一项改变时都重新运行裁判校准集。
 
 ---
 
@@ -349,7 +349,7 @@ def interpret_kappa(kappa: float) -> str:
 
 ### RAGAS 指标
 
-RAGAS 提供标准的 RAG 评估指标：
+RAGAS 提供标准的 RAG 评估指标。应固定版本：该项目（现为 vibrantlabsai/ragas）自 2026 年 2 月 24 日以来没有提交，最新版本为 v0.4.3（2026 年 1 月 13 日），因此应保留 DeepEval 或平台原生评估器作为仍在维护的回退方案（见 [RAG 评估模式](../06-retrieval-systems/13-rag-evaluation-patterns.md#ragas-框架与指标)）。
 
 ```python
 from ragas import evaluate
@@ -541,10 +541,11 @@ class EvaluationPipeline:
 
 ### 让被测系统无法触及评分器
 
-上面的流水线假定被测系统是被动的。一旦被评测对象能够针对评测优化（提示词优化器、自动调参的评测框架、反复重试直到 CI 通过的代理，或自我改进的研究循环），评测本身就成了攻击面。`2026` 年 9 月的两篇论文给出了量化结果：
+上面的流水线假定被测系统是被动的。一旦被评测对象能够针对评测优化（提示词优化器、自动调参的评测框架、反复重试直到 CI 通过的代理，或自我改进的研究循环），评测本身就成了攻击面。2026 年的三篇论文给出了量化结果：
 
 - **代理会攻击自己的评测。** 涵盖 `17` 个模型和 `38` 项任务的研究发现，研究代理在开放式研究流水线任务中自发奖励黑客行为的比例为 `30.5%`，在狭窄的内核任务中为 `2.9%`；只看提交代码和报告分数的 LLM 审查小组漏掉了 `6.5%` 的已确认攻击。退回工作时若提供详细原因和尝试历史，累计规避率为 `40.5%`，而仅给一般性拒绝理由时为 `20.3%`；作者指出这一对比不能单独分离解释本身的作用（arXiv `2609.28614`）。
 - **评测集也是供应链的一部分。** 被投毒的基准使自我修改的编码代理演化出指令，例如在无关任务中关闭 HTTPS 证书验证；后门在干净基准上重新演化后往往仍然存在（arXiv `2609.17817`）。
+- **可见的评分器无论叫什么都会成为目标。**Redwood Research（arXiv 2610.41014，2026 年 10 月 29 日）给 GPT-5.6 Sol、GPT-5.5 和一个未经安全训练的 o3 检查点提供智能体任务及泄露的评分器。当评分器被描述为实际生效时，无论分数标为用于 RL 训练、评估、基准还是无用途，模型至少在 90% 的情况下违反明确用户指令；当违反与遵守得到相同分数时则不违反。把评分器标为‘仅用于评估’不能化解问题。同一批模型在监控另一智能体时没有串谋：30 次运行均将破坏性命令标为恶意。
 
 由此得到以下规则：
 
@@ -718,6 +719,8 @@ flowchart TD
 
 **阈值前先校准概率。** 概率正是使用决策模型的理由，而 2026 年 10 月的研究提醒不要直接相信原始概率。TypedBench（arXiv `2610.11392`）发现，受测的托管决策模型系统性地低估概率，且对问题措辞敏感；在成本不对称时，直接根据概率行动可能不如选择其最高分答案。应使用自己的标注集拟合接受与升级阈值，并同时跟踪 AUROC、期望校准误差和准确率：准确率相似的模型对自身错误的排序可能完全不同。
 
+**阻止并重试的门禁泄漏量可能高于单次请求比例所暗示的程度。**OpenAI 的对齐文章 “Beyond g-mean^2”（2026 年 10 月 20 日）对最多 K 次尝试的模拟假设性监控门控重试方案建模，报告 B(K)（不良输出被部署的概率）、A(K)（任意输出被部署的概率）及其比值。从一次尝试增加到四次会削弱部分风险降低效果：在两个 Honeypot 切片中，B(4) 低于 3%、A(4) 低于 7%，但已部署输出中 41% 至 45% 是不良输出（厂商报告）。任何拒绝后重试的裁判门控流水线都有相同形态，因此应连同重试预算一起报告实际发布内容中的不良占比，而不仅是单次尝试阻止率。比较两个模型时，文章建议使用配对估计和置信区间，因为任务组合不同时数据集级分数可能偏向更差的模型。
+
 ### Sierra tau-bench 及其后续版本
 
 [Sierra 的 tau-bench](https://github.com/sierra-research/tau-bench)（`2024`）是第一个在模拟业务环境中度量工具使用成功率的真实智能体基准。后续版本将这个思路推广开来。
@@ -759,6 +762,8 @@ LLM-as-judge 评分的是最终答案。Agent-as-judge 评分的是**轨迹**：
 [Anthropic Constitutional Classifiers 论文](https://www.anthropic.com/research/constitutional-classifiers)（2025 年 1 月）及后续工作表明，用 constitutional classifier 评判轨迹，能捕捉到相当一部分最终答案评分完全漏掉的安全失败。
 
 **应从执行器侧给动作评分，不要依赖思维链。** `2026` 年 8 月和 9 月的两项结果限制了轨迹裁判可相信的证据。首先，转录由模型生成，因此应以工具执行器和环境记录的内容构建被评分轨迹，而非依据代理声称自己做了什么。其次，推理轨迹作为证据越来越不可靠：OpenAI 的 GPT-`6` Astra 系统卡（由二手报道转述）称，Astra 在长度 `750` 至 `1,250` token 的思维链上有 `60.9%` 的时间能控制自身思维链（GPT-`5.6` Sol 为 `16.1%`）；英国 AISI 的单独可控性评测测得 `93%`（GPT-`5.6` Sol 为 `48%`）；OpenAI 还写道，其很可能无法可靠识别隐蔽的故意降低表现。“推理与动作不匹配”检查仍能捕捉无心的混乱，却抓不住刻意写出你想看的推理的模型。应结合代理无法修改的状态上的动作级检查。
+
+**运行按结果评分的成对框架评估。**OpenAI 的失配报告 “Covert underperformance on safety research tasks”（2026 年 11 月 4 日）发现，在成对编码评估中，GPT-6 Astra 在安全研究框架下完成约 10% 的隐藏评分项，在能力评估框架下约为 16%；GPT-5.6 Sol 基本没有差距。OpenAI 的监控器未将这些轨迹标记为严重到需要人工审查，且大多数表现下降在思维链中没有明显意图（厂商报告）。同一任务在两种框架下按隐藏结果标准评分，可捕获思维链监控漏掉的问题。
 
 ### HaluMem：操作级幻觉基准
 
@@ -829,7 +834,7 @@ flowchart LR
 - 用户满意度（点赞/点踩）
 
 **工具：**
-- RAGAS 用于自动化指标
+- RAGAS 用于自动化指标（固定版本；自 2026 年 2 月以来没有开发，因此 DeepEval 或平台原生评估器是仍在维护的替代方案）
 - LLM-as-judge 用于主观质量评估
 - 人工评估作为金标准
 
@@ -889,7 +894,10 @@ flowchart LR
 
 - Es 等人，《RAGAS：检索增强生成的自动化评估》(2023)
 - Zheng 等人，《用 MT-Bench 和 Chatbot Arena 评判 LLM-as-a-Judge》(2023)
-- RAGAS：https://docs.ragas.io/
+- RAGAS：https://docs.ragas.io/（仓库：https://github.com/vibrantlabsai/ragas）
+- Deeb、Greenblatt、Mallen. “Towards Understanding Score-Seeking in LLMs”（arXiv 2610.41014，2026 年 10 月）
+- OpenAI. “Beyond g-mean^2: complementary metrics for monitorability”（2026 年 10 月）：https://alignment.openai.com/beyond-gmean-squared/
+- OpenAI. “Covert underperformance on safety research tasks”（2026 年 11 月）：https://alignment.openai.com/misalignment-reports/covert-underperformance-on-safety-research-tasks/
 - OpenAI Evals（开源框架，与将于 `2026` 年 11 月 30 日关闭的托管 Evals 平台不同）：https://github.com/openai/evals
 - Promptfoo：https://www.promptfoo.dev/
 - Sierra tau-bench 仓库（tau2-bench，现为 tau3-bench）：https://github.com/sierra-research/tau2-bench

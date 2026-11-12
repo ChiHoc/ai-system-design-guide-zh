@@ -61,7 +61,7 @@ in my harness, finish my team's real tasks without supervision?"
 | “Opus 5.5 在 OSWorld 2.1 上得分 81.8%” | 部分得分指标、供应商运行。在官方排行榜的 v2.1 全量集（9 月 17 日）上，Opus 5 在 max 努力级别的二元得分为 44.33%、部分得分为 77.67%；该更新早于 Opus 5.5 |
 | 使用工具的 HLE：Astra 领先，还是 Opus 5.5 领先？ | 都是。HLE-Diamond（1,000 道清洗后的题目）中：Astra 为 82.9%、Opus 5.5 为 73.9%。Anthropic 的完整 HLE 表中：Opus 5.5 为 67.7%、Astra 为 57.2%。数据集与执行者改变了排序 |
 | “三个模型在 DeepSWE v1.1 上并列 74%” | 相同通过率下，每任务成本分别为 $2.36（Gemini 3.8 Flash，high）、$4.43（GPT-6 Astra，xhigh）和 $11.84（Claude Opus 5，max） |
-| “Opus 5.5 在 AA Intelligence Index 得分 58” | Index v5.0（10 月 27 日公布）、max 努力级别、启用安全防护兜底。它排名第二，低于开发者无法调用的 Gemini 4 Carbon（59 分）。v4.x 使用不同量表，不能比较，即使碰巧分数相同也不行 |
+| “Opus 5.5 在 AA Intelligence Index 得分 58”与“59” | 58 是 Index v5.0（10 月 27 日公布）、max 努力级别、启用安全防护兜底；59 是 v5.0.1（11 月 3 日），该版本用 CritPt v2 重新评估所有模型，开发者无法调用的 Gemini 4 Carbon 得 60。v4.x 使用不同量表，不能比较，即使碰巧分数相同也不行 |
 | “Sonnet 5.5 得分 54”与“Sonnet 5.5 得分 41” | 两者都是 AA v5.0：max 努力级别为 54，high 为 41。只改变一个努力级别就相差 13 分；GPT-6.1 Terra 从 max 的 51 分降至默认 `medium` 的 38 分 |
 | “Haiku 5.5 在 OSWorld 2.1 得分 72.4%” | Anthropic 自行测试的离线子集，采用部分得分，属于供应商报告。它不是排行榜使用的二元指标，也不能与全量集得分比较 |
 
@@ -340,7 +340,7 @@ Exact match: FAIL (but clearly correct)
 
 **问题：** 每个测试只跑一次会忽略模型随机性。
 
-**解决：** 在生产努力级别下，每个案例至少运行三次，并报告置信区间。temperature 已不再是大多数前沿模型的可用调节手段：Anthropic 新版 SDK 主版本（Python 2.0.0、TypeScript 1.0.0）默认使用的 Claude API 版本 `2026-10-21`，会对所有模型的 `temperature`、`top_p` 或 `top_k` 一律返回 400（旧版本仅对 Claude 4.7 及之后模型的非默认值报错）；Google 在 Gemini API 中弃用了 temperature；GPT-6 Astra 不接受它。方差是需要测量的对象，而非可被调没的东西。
+**解决：** 在生产努力级别下，每个案例至少运行三次，并报告置信区间。temperature 已不再是大多数前沿模型的可用调节手段：Anthropic 八个新版 SDK 和 CLI 主版本默认使用的 Claude API 版本 `2026-10-21`，会对所有模型的 `temperature`、`top_p` 或 `top_k` 一律返回 400（旧版本仅对 Claude 4.7 及之后模型的非默认值报错）；Google 在 Gemini API 中弃用了 temperature；GPT-6 Astra 不接受它。方差是需要测量的对象，而非可被调没的东西。
 
 ### 陷阱 5：忽视成本
 

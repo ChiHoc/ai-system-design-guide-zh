@@ -241,7 +241,7 @@ class InlineCompletion:
         return resp.choices[0].text
 ```
 
-**基础模型与许可证。** 候选包括 IBM Granite 4.2（3B 和 8B 稠密模型，Apache 2.0）等宽松许可的小模型；如果延迟预算允许，也可选 Qwen3.8-27B（Apache 2.0）。基准测试前先读许可证：Qwen3.8-Flash-Next 采用 Qwen Community License 1.0，无论营收多少，代码助手业务都需单独取得许可，而本产品正属此类。推理服务方面，推测解码已不止 Medusa：vLLM 支持 EAGLE-3、MTP、草稿模型和 DFlash；Inco AI 报告 DFlash 2 在 Qwen3.8-27B 上提速 2.7 至 3.4 倍（供应商报告数据）。
+**基础模型与许可证。** 候选包括 IBM Granite 4.2（3B 和 8B 稠密模型，Apache 2.0）等宽松许可的小模型；如果延迟预算允许，也可选 Qwen3.8-27B（Apache 2.0）。基准测试前先读许可证：Qwen3.8-Flash-Next 采用 Qwen Community License 1.0，无论营收多少，代码助手业务都需单独取得许可，而本产品正属此类。推理服务方面，推测解码已不止 Medusa（vLLM 在 2026 年 11 月的 v0.33.0 中彻底移除了 Medusa 和 MLP speculator，因此旧的 `medusa` 配置升级后会失败）：vLLM 支持 EAGLE-3、MTP、草稿模型和 DFlash；Inco AI 报告 DFlash 2 在 Qwen3.8-27B 上提速 2.7 至 3.4 倍（供应商报告数据）。
 
 ### 生成服务（代理式重构）
 

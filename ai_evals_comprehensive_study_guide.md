@@ -20,6 +20,8 @@
 
 **平台示例：** 本指南以 **Arize Phoenix**（免费、自托管，以 Elastic License 2.0 提供源码）和 **Langfuse**（开源，支持云端或自托管）为主要示例。方法论与平台无关，可按你使用的工具进行适配。
 
+> **通过 [AI Evals](https://www.aievals.co) 深入学习：** 作者的官方网站，为将这些方法付诸实践的工程师、产品经理和 QA 提供课程、免费内容、智能体套件和证书。
+
 ---
 
 ## 目录
@@ -283,8 +285,10 @@ Langfuse 提供 tracing（追踪）、evaluation（评估）、dataset（数据�
 #### 安装与配置
 
 ```bash
-pip install langfuse openai
+pip install "langfuse>=4,<5" openai  # samples here target SDK v4
 ```
+
+固定主版本。Langfuse 于 2026 年 10 月 14 日发布 Python SDK v5；直接运行 `pip install langfuse` 现会安装 v5（11 月 5 日为 5.2.0，需 Python 3.11 或更高版本）。v5 需要 Langfuse Cloud 或 v4.59.0 及以上的自托管服务端，并移除了若干 v4 调用，包括 `api.scores_v3.get_many_v3()`（现为 `api.scores.get_many()`）、`api.trace.get/list`、`api.legacy.*` 和 `set_current_trace_io()`；迁移方法见 [v4 至 v5 升级指南](https://langfuse.com/docs/observability/sdk/upgrade-path/python-v4-to-v5)。
 
 ```python
 # Set environment variables (or pass to constructor)
@@ -1183,7 +1187,7 @@ with ThreadPoolExecutor(max_workers=20) as executor:
     results = list(executor.map(run_judge, all_traces))
 ```
 
-**固定 judge，而不只是提示词。** 示例使用 `gpt-4o`，普通 OpenAI 版本设置 `temperature=0`，因为该模型仍接受采样参数。新模型越来越不接受：自 Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型的 `temperature`、`top_p` 或 `top_k` 即使是默认值也返回 400，该版本由 Python 2.0.0 和 TypeScript 1.0.0 SDK 默认发送（较早版本的 Claude 4.7 及之后模型已拒绝非默认值）；Google 于 2026 年 7 月 21 日在 Gemini API 弃用相同参数，GPT-6 Astra 不接受定制 `temperature`、`top_p` 或 logprobs。这些模型的可复现性来自固定精确模型 ID 和推理强度，每次 judge 运行都记录两者，任一变化后重新在测试集测量 TPR/TNR。Judge 模型也会按计划退役：`claude-sonnet-4-5-20250929` 于 2026 年 11 月 30 日退出 Claude API，Microsoft Foundry 列出 Claude Haiku 4.5 的日期为 11 月 15 日。示例中的 `gpt-4o` 也有期限：OpenAI 将于 2027 年 1 月 14 日关闭剩余的 GPT-4o 和 GPT-4o mini 快照（`gpt-4o-2024-08-06`、`gpt-4o-2024-11-20`、`gpt-4o-mini-2024-07-18`）及其微调模型，指定 `gpt-6-luna` 为替代。使用这些模型验证过的 judge 须在期限前对替代模型重新验证。
+**固定 judge，而不只是提示词。** 示例使用 `gpt-4o`，普通 OpenAI 版本设置 `temperature=0`，因为该模型仍接受采样参数。新模型越来越不接受：自 Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型的 `temperature`、`top_p` 或 `top_k` 即使是默认值也返回 400，该版本由八个新版 SDK 和 CLI 主版本（包括 Python 和 TypeScript）默认发送（较早版本的 Claude 4.7 及之后模型已拒绝非默认值）；Google 于 2026 年 7 月 21 日在 Gemini API 弃用相同参数，GPT-6 Astra 不接受定制 `temperature`、`top_p` 或 logprobs。这些模型的可复现性来自固定精确模型 ID 和推理强度，每次 judge 运行都记录两者，任一变化后重新在测试集测量 TPR/TNR。Judge 模型也会按计划退役：`claude-sonnet-4-5-20250929` 于 2026 年 11 月 30 日退出 Claude API，Microsoft Foundry 列出 Claude Haiku 4.5 的日期为 11 月 15 日。示例中的 `gpt-4o` 也有期限：OpenAI 将于 2027 年 1 月 14 日关闭剩余的 GPT-4o 和 GPT-4o mini 快照（`gpt-4o-2024-08-06`、`gpt-4o-2024-11-20`、`gpt-4o-mini-2024-07-18`）及其微调模型，指定 `gpt-6-luna` 为替代。使用这些模型验证过的 judge 须在期限前对替代模型重新验证。
 
 **示例结果：** 1000 条 traces 的原始通过率 = 84.4%
 
@@ -1784,7 +1788,7 @@ start = end - timedelta(days=7)
 
 # Fetch spans by name with the v2 observations API (SDK v4). The v1 trace
 # endpoints behind langfuse.api.trace.list()/get() are deprecated, and
-# Langfuse Cloud serves them only until November 16, 2026.
+# Langfuse Cloud serves them only until November 16, 2026; SDK v5 removed them.
 for state_name in STATES:
     cursor = None
     while True:
@@ -2470,7 +2474,7 @@ phoenix serve
 
 **Langfuse：**
 ```bash
-pip install langfuse openai
+pip install "langfuse>=4,<5" openai  # samples target v4; v5 removed some APIs
 # Sign up at cloud.langfuse.com or self-host
 ```
 
@@ -2682,7 +2686,7 @@ def check_for_degradation(current_rate, historical_avg, threshold=1.5):
 
 - **judgy** - 用于 LLM judges（大模型评审员）的统计偏差校正：[github.com/ai-evals-course/judgy](https://github.com/ai-evals-course/judgy)
 - **rank_bm25** - 用于 RAG 系统的 BM25 检索
-- **litellm** - 统一 LLM API 接口。绝不安装 1.82.7、1.82.8 或 1.107.0：三者均被入侵（恶意软件公告 GHSA-92x9-889m-jgmw），1.107.0 及其容器镜像于 2026 年 10 月 21 日被投毒。按哈希固定包，按摘要固定代理镜像。运行 LiteLLM 代理时，在所用版本线上运行 1.100.4、1.101.3、1.102.2、1.103.1 或更高版本（CVE-2026-114612，CVSS 9.9，自 1.91.0 起默认配置即可利用）；Enterprise 许可的代理需要 1.103.10、1.104.8、1.105.6 或 1.106.5（GHSA-w4c7-34wj-hqm8，CVSS 10.0）。保持 `allow_client_side_credentials=false`，防止调用方通过 `api_base` 重定向已存储的提供方密钥。见[保护网关](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)
+- **litellm** - 统一 LLM API 接口。绝不安装 1.82.7、1.82.8 或 1.107.0：三者均被入侵（恶意软件公告 GHSA-92x9-889m-jgmw），1.107.0 及其容器镜像于 2026 年 10 月 21 日被投毒。应使用 1.108.0（11 月 4 日）而非 1.107 系列，也不要将 `cosign verify` 通过视为安全证明：被投毒的 1.107.0 镜像带有 LiteLLM 旧签名密钥的有效签名，该密钥可能已泄露并于 10 月 23 日替换；应将验证策略重新固定到新密钥，并对照 LiteLLM 的受影响构建列表检查摘要。按哈希固定包，按摘要固定代理镜像。运行 LiteLLM 代理时，在所用版本线上运行 1.100.4、1.101.3、1.102.2、1.103.1 或更高版本（CVE-2026-114612，CVSS 9.9，自 1.91.0 起默认配置即可利用）；Enterprise 许可的代理需要 1.103.10、1.104.8、1.105.6 或 1.106.5（GHSA-w4c7-34wj-hqm8，CVSS 10.0）。保持 `allow_client_side_credentials=false`，防止调用方通过 `api_base` 重定向已存储的提供方密钥。见[保护网关](11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)
 
 ### 关键原则（回顾）
 
@@ -3220,7 +3224,7 @@ langfuse = get_client()
 end = datetime.now(timezone.utc)
 
 # v2 observations API (SDK v4). The v1 endpoints behind langfuse.api.trace.list()
-# and .get() are deprecated; Langfuse Cloud serves them only until November 16, 2026.
+# and .get() are deprecated (SDK v5 removed them); Langfuse Cloud serves them only until November 16, 2026.
 # Their replacement is this endpoint: filter by trace_id, or group results by trace_id.
 observations = langfuse.api.observations.get_many(
     trace_id="trace_id",
@@ -3416,6 +3420,10 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 
 ## 学习资源
 
+### 课程、免费内容与证书
+
+- **AI Evals**（本指南作者的官方网站）：[aievals.co](https://www.aievals.co)：课程、免费内容、智能体套件和证书
+
 ### 平台文档与学习中心
 
 - **Phoenix Docs**: [arize.com/docs/phoenix](https://arize.com/docs/phoenix)
@@ -3446,7 +3454,7 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 | **Arize Phoenix** | 可观测性与评测 | ELv2 | [GitHub](https://github.com/Arize-ai/phoenix) · [Docs](https://arize.com/docs/phoenix) |
 | **Promptfoo** | CLI/CI 评估、红队测试 | MIT（OpenAI 所有） | [GitHub](https://github.com/promptfoo/promptfoo) · [Docs](https://www.promptfoo.dev/docs/intro/) |
 | **Langfuse** | 自定义流水线与 tracing（追踪） | MIT | [GitHub](https://github.com/langfuse/langfuse) · [Docs](https://langfuse.com/docs) |
-| **RAGAS** | RAG 专用评测 | Apache 2.0 | [GitHub](https://github.com/explodinggradients/ragas) · [Docs](https://docs.ragas.io/) |
+| **RAGAS** | RAG 专用评测（自 2026 年 2 月 24 日起无提交；2026 年 1 月 13 日发布的 v0.4.3 为最新版，应固定版本） | Apache 2.0 | [GitHub](https://github.com/vibrantlabsai/ragas) · [Docs](https://docs.ragas.io/) |
 | **Comet Opik** | LLM tracing 与评测 | Apache 2.0 | [GitHub](https://github.com/comet-ml/opik) · [Site](https://www.comet.com/site/products/opik/) |
 | **judgy** | 统计偏差纠正 | Open | [GitHub](https://github.com/ai-evals-course/judgy) |
 | **Braintrust** | 实验与日志 | Partial | [Docs](https://www.braintrust.dev/docs) |
@@ -3470,6 +3478,7 @@ AI 评测不仅仅是“测试”——它是一套覆盖工程、产品管理�
 
 ### 联系我
 - Om Bharatiya: [@ombharatiya](https://twitter.com/ombharatiya)
+- 课程、免费内容、智能体套件和证书：[aievals.co](https://www.aievals.co)
 
 ### 参考致谢
 本指南建立在以下几位人士的工作与思想基础之上。他们的课程、博客和开源贡献使本指南成为可能：

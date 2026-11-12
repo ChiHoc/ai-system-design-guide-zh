@@ -26,7 +26,7 @@
 | **准入与故障转移（Admission & Failover）** | 在流打开前拒绝超出上下文或容量的请求；如果迟迟没有首个 token，就切换到另一后端（Envoy AI Gateway v1.1 的 `streamIdleTimeout`）。 |
 | **输出过滤（Output Filter）** | 对流式响应进行实时安全过滤与 PII（Personally Identifiable Information，个人可识别信息）清洗。 |
 
-网关还集中了你拥有的所有供应商凭据，因此成为首要攻击目标。仅 LiteLLM 在 2026 年就出现过未认证 RCE（CVE-2026-37004，CVSS 9.8）、通过已认证的 `api_base` 重定向把运营方存储的供应商密钥发送到攻击者主机的问题（CVE-2026-84377）、会泄露企业许可代理主密钥的未认证文件读取漏洞（GHSA-w4c7-34wj-hqm8，CVSS 10.0），以及 10 月 21 日使用被盗 CI 凭据发布的受污染 1.107.0 版本（包括 PyPI wheel 和容器镜像）。应像管理其他面向互联网的服务一样锁定并修补网关版本，对路由参数使用允许列表，而非直接接受客户端传入值。调用托管 API 时，故障转移必须跨供应商，因为供应商故障会同时影响其 API、聊天应用和编程智能体：OpenAI 在 2026 年 9 月 29 日的事故波及三者，持续约 5 小时 20 分钟；Anthropic 状态页在 8 月 16 日至 9 月 29 日间记录了至少 12 次重大或严重事故。网关设计详见[AI 网关章节](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md)。
+网关还集中了你拥有的所有供应商凭据，因此成为首要攻击目标。仅 LiteLLM 在 2026 年就出现过未认证 RCE（CVE-2026-37004，CVSS 9.8）、通过已认证的 `api_base` 重定向把运营方存储的供应商密钥发送到攻击者主机的问题（CVE-2026-84377）、会泄露企业许可代理主密钥的未认证文件读取漏洞（GHSA-w4c7-34wj-hqm8，CVSS 10.0），以及 10 月 21 日使用被盗 CI 凭据发布的受污染 1.107.0 版本（包括 PyPI wheel 和容器镜像）。受污染镜像甚至带有 LiteLLM 旧 cosign 密钥的有效签名，因此 `cosign verify` 显示成功并不能证明安全；LiteLLM 于 10 月 23 日轮换密钥，并建议用户使用 1.108.0（11 月 4 日）。应像管理其他面向互联网的服务一样锁定并修补网关版本，对路由参数使用允许列表，而非直接接受客户端传入值。调用托管 API 时，故障转移必须跨供应商，因为供应商故障会同时影响其 API、聊天应用和编程智能体：OpenAI 在 2026 年 9 月 29 日的事故波及三者，持续约 5 小时 20 分钟；Anthropic 状态页在 8 月 16 日至 9 月 29 日间记录了至少 12 次重大或严重事故。网关设计详见[AI 网关章节](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md)。
 
 ---
 
@@ -82,25 +82,26 @@ LLM 几乎总是通过 **Server-Sent Events（SSE）** 或 **WebSockets** 提供
 
 选择推理引擎已不再是“哪个最快”的问题。各主流引擎各有擅长的工作负载，大型集群还会在引擎之上部署编排层（Dynamo 或 llm-d）。应按工作负载选引擎，并锁定已修补的版本。
 
-| 组件 | 当前版本（截至 2026 年 11 月 2 日） | 值得关注的变化 |
+| 组件 | 当前版本（截至 2026 年 11 月 6 日） | 值得关注的变化 |
 |-----------|----------------------------------|---------------------------|
-| **vLLM** | v0.32.0（10 月 18 日）；约每两周发布一次 | 0.32 包含破坏性变更：默认 CORS 来源从 `*` 改为无（浏览器客户端需设置 `--allowed-origins`）、最低要求 Python 3.11、移除 cascade attention；`max_tokens` 现在是输出上限，不再从上下文窗口预留空间，因此需重新核对容量计算。另新增默认提供的 `POST /v1/systemone` 决策端点。Model Runner V2 自 v0.29 起为默认配置；另有 Fast Start 和向磁盘分层卸载 KV |
-| **SGLang** | v0.5.22（10 月 19 日） | 要求 Python 3.11；InstantTensor 加载器将模型加载速度提高约 10 倍（项目方报告）。v0.5.21（10 月 2 日）支持预填充与解码实例无需重启即可切换角色，默认将前缀缓存迁移到 Rust 核心，并新增 `/v1/decisions` 和 `/v1/score` |
-| **TensorRT-LLM** | 稳定版 v1.2.1（4 月 20 日）；v1.4.0rc2（10 月 28 日） | 自 1.0（2025 年 9 月）起默认使用 PyTorch 后端，无需为每个模型构建引擎；没有稳定版 v1.3，候选版本包含移除 AutoDeploy 集成等破坏性变更 |
-| **NVIDIA Dynamo** | v1.6.0（10 月 22 日） | 路由器入口支持可插拔流量控制；前端双向 TLS；Kubernetes 上的 LPX 组件；基于快照的引擎故障切换；移除 TensorRT-LLM AutoDeploy 后端（破坏性变更）。捆绑的 vLLM 0.31.0 和 SGLang 0.5.21 均低于[运维姿态](#运维姿态)中的安全最低版本 |
+| **vLLM** | v0.33.0（11 月 2 日）；约每两周发布一次 | 0.33 的破坏性变更：仅提供 CUDA 13.0 wheel 和镜像（取消 CUDA 12.9 构建；NVIDIA 称 CUDA 13.x 需要驱动 580 或更高版本）、PyTorch 2.14.0、默认 ROCm 构建改为 ROCm 10.0（ROCm 7.2 仍以 `-rocm72` 发布）、生成暂停时请求返回 HTTP 503、NIXL 连接器需要 NIXL 1.5+、移除旧 Ray compiled-graph 执行器、移除 Medusa 和 MLP speculator。支持的生成模型还默认提供兼容 OpenAI 的 `/v1/decisions` 端点，并增加转储卡住进程堆栈的 watchdog。0.32（10 月 18 日）包含破坏性变更：默认 CORS 来源从 `*` 改为无（浏览器客户端需设置 `--allowed-origins`）、最低要求 Python 3.11、移除 cascade attention；`max_tokens` 现在是输出上限，不再从上下文窗口预留空间，因此需重新核对容量计算。另新增默认提供的 `POST /v1/systemone` 决策端点。Model Runner V2 自 v0.29 起为默认配置；另有 Fast Start 和向磁盘分层卸载 KV |
+| **SGLang** | v0.5.23（11 月 2 日） | 10 月两项严重漏洞仍未修复（见下文）。新增可选 `SGLANG_ZMQ_ALLOWED_PEERS`（对端 IP 允许列表；留空允许所有对端）和 `SGLANG_ZMQ_SOURCE_IP`，移除不安全的 `weights_only=False` pickle 回退，因此旧 tar 格式 .pt 检查点不再加载。v0.5.22（10 月 19 日）要求 Python 3.11；InstantTensor 加载器将模型加载速度提高约 10x（项目方报告）。v0.5.21（10 月 2 日）支持预填充与解码实例无需重启即可切换角色，默认将前缀缓存迁移到 Rust 核心，并新增 `/v1/decisions` 和 `/v1/score` |
+| **TensorRT-LLM** | 稳定版 v1.2.1（4 月 20 日）；v1.4.0rc2（10 月 28 日） | 自 1.0（2025 年 9 月）起默认使用 PyTorch 后端，无需为每个模型构建引擎；没有稳定版 v1.3，候选版本包含移除 AutoDeploy 集成等破坏性变更。NVIDIA 10 月 27 日公告修复了 `KvCacheAwareRouter` tokenizer 加载中的代码执行缺陷和两个 SSRF 缺陷，均影响 1.3.0rc24，并在 1.3.0rc25 修复 |
+| **NVIDIA Dynamo** | v1.6.1（10 月 27 日） | 1.6.0（10 月 22 日）为路由器入口增加可插拔流量控制、前端双向 TLS、Kubernetes 上的 LPX 组件和基于快照的引擎故障切换，并移除 TensorRT-LLM AutoDeploy 后端（破坏性变更）。1.6.1 更新 CA 包和 Rust TLS 根证书（移除 emSign ECC Root CA - G3 根，因此仅连接至它的端点会出现 TLS 失败），并将镜像切换至 Pillow 13。捆绑引擎未变：vLLM 0.31.0、SGLang 0.5.21、TensorRT-LLM 1.3.0rc29；前两者低于[运维姿态](#运维姿态)中的安全最低版本。1.7.0 开发预发布版（11 月 2 日）增加仅 arm64 镜像的原生 Mistral Large 4 服务 |
 | **llm-d / GAIE** | llm-d v1.0.0（10 月 20 日）；GAIE v1.6.2（9 月 17 日） | 支持优先级和公平性的流量控制与负载卸载（配置迁至 `flowControl`）；路由器热备高可用；路由器配置 API 升至 v1；`DisaggregatedSet` 将预填充与解码副本作为一个整体管理，要求 LeaderWorkerSet v0.11.1 或更新版本（发布说明提醒，缺少该版本时几乎所有指南都会失效） |
 
 ### vLLM：默认开源引擎
 
-[vLLM](https://docs.vllm.ai/) 在“Llama / Mistral / Qwen / DeepSeek 配合连续批处理”的工作负载下仍是默认开源引擎：模型覆盖最广、最易运维，安全补丁通常也能在同周发布。与此同时，它的攻击面也最大。2026 年 8 月 11 日至 9 月 28 日间，它发布了 20 多项安全通告，10 月又新增一批。值得关注的漏洞包括：
+[vLLM](https://docs.vllm.ai/) 在“Llama / Mistral / Qwen / DeepSeek 配合连续批处理”的工作负载下仍是默认开源引擎：模型覆盖最广、最易运维，安全补丁通常也能在同周发布。与此同时，它的攻击面也最大。2026 年 8 月 11 日至 9 月 28 日间，它发布了 20 多项安全通告，10 月又新增一批，11 月 2 日再新增一项。值得关注的漏洞包括：
 
 - **CVE-2026-90553**（高危，已在 0.28.0 修复）：即使设置 `trust_remote_code=False`，模型处理器加载器仍会执行恶意模型仓库中的代码。
 - **CVE-2026-93592**（高危，已在 0.28.0 修复）：一条未经认证、向 `/v1/embeddings` 或 `/pooling` 提交负 token ID 的请求可污染 CUDA 上下文，导致引擎在重启前无法服务任何客户端。
 - **GHSA-935w-9g4m-p28p**（低危，已在 0.30.0 修复）：一条代码路径遗漏了每租户的 `cache_salt`，重新打开跨租户前缀缓存时序探测通道。
 - **GHSA-4xqp-c3mv-qff7**（中危，已在 0.31.0 修复）：向 `/inference/v1/generate` 发送一条 `max_tokens` 为 null 且 `min_tokens` 过大的请求，就能杀死引擎输入线程。进程仍在运行，`/health` 继续返回 200，但所有生成请求都会挂起，且没有组件重启引擎。
 - **CVE-2026-115915**（高危，CVSS 8.1，已在 0.32.0 修复）：图像加载器忽略声明的 MIME 类型，让 Pillow 根据字节内容自行选择解码器，因此标记为 PNG 的 EPS 文件会进入 Pillow 的 EPS 插件和 Ghostscript。在 Ghostscript 有漏洞的主机上，这可能导致命令执行。多模态共享内存处理器缓存中的 **CVE-2026-115912** 也已在 0.32.0 修复。
+- **GHSA-qrj2-j723-m6w8**（中危，CVSS 5.4，无 CVE，已在 0.33.0 修复）：特制仓库的 `speculators_config` 中 `verifier.name_or_path` 可让 vLLM 指向任意本地目录（支持绝对路径，无需 `trust_remote_code`），使未经认证的客户端可通过 `/detokenize` 读取该目录的 tokenizer 词表或查询私有检查点。只有服务不受自己控制的仓库时才会触发，而共享微调或模型托管平台恰好如此。
 
-更早的 2 月多模态 RCE（CVE-2026-22778，视频处理）已在 v0.14.1 修复。**基线：vLLM 0.32.0 或更新版本**，升级前先阅读破坏性默认值变更。普遍教训是：GPU 引擎属于故障共担域，因此输入应在到达设备前验证；应通过媒体格式允许列表而非信任解码器自动探测；所有路径都应为前缀缓存加入租户盐值；只加载可信仓库中的模型；健康检查应实际执行生成请求，因为存活端点可能在引擎无法服务时仍保持绿色。
+更早的 2 月多模态 RCE（CVE-2026-22778，视频处理）已在 v0.14.1 修复。**基线：vLLM 0.32.0 或更新版本，加载第三方仓库的主机使用 0.33.0**；先阅读破坏性默认值，因为旧机群使用 0.33.0 还需升级主机驱动（CUDA 13、驱动 580+），并在网关允许或阻止新增的默认启用路由（`/v1/decisions`）。普遍教训是：GPU 引擎属于故障共担域，因此输入应在到达设备前验证；应通过媒体格式允许列表而非信任解码器自动探测；所有路径都应为前缀缓存加入租户盐值；只加载可信仓库中的模型；健康检查应实际执行生成请求，因为存活端点可能在引擎无法服务时仍保持绿色。
 
 ### SGLang：共享前缀多、结构化输出多的负载
 
@@ -108,10 +109,10 @@ LLM 几乎总是通过 **Server-Sent Events（SSE）** 或 **WebSockets** 提供
 
 **安全姿态**：2026 年 3 月发生在多模态 ZMQ 代理和编码器并行解耦路径中的严重 RCE（CVE-2026-3059、CVE-2026-3060）已在 v0.5.10 修复。5 月的一批漏洞（CVE-2026-7301、7302、7304；严重：调度器套接字监听所有接口并使用 `pickle.loads`、路径穿越、通过自定义 logit 处理器调用 `dill.loads`）在安全通告数据库中列出了受影响版本直至 0.5.12，但未记录修补版本。10 月又出现两项严重漏洞，通告同样未记录修补版本：
 
-- **CVE-2026-111391**（CVSS v4 9.2）：未认证的 `/dumper/configure` 调试端点存在 `eval()` 注入；设置 `DUMPER_SERVER_PORT` 后该端点会开放。描述列出的受影响版本从 0.5.10 到当前的 0.5.22。
-- **CVE-2026-93034**（CVSS 9.8）：ZMQ 消息解码器使用 `pickle.loads`；当数据并行注意力使用非 loopback 的 `--dist-init-addr` 时，可被远程访问。设置 `SGLANG_USE_PICKLE_IPC=false` 无法修复此问题。
+- **CVE-2026-111391**（CVSS v4 9.2）：未认证的 `/dumper/configure` 调试端点存在 `eval()` 注入；设置 `DUMPER_SERVER_PORT` 后该端点会开放。描述列出的受影响版本从 0.5.10 到 0.5.22；v0.5.23（11 月 2 日）没有修复：`dumper.py` 与 0.5.22 字节级相同，仍将过滤字符串传给 `eval()`；修复 PR #45998 截至 11 月 6 日仍未合并。
+- **CVE-2026-93034**（CVSS 9.8）：ZMQ 消息解码器使用 `pickle.loads`；当数据并行注意力使用非 loopback 的 `--dist-init-addr` 时，可被远程访问。设置 `SGLANG_USE_PICKLE_IPC=false` 无法修复此问题，0.5.23 的解码器仍调用 `pickle.loads`；新增的 `SGLANG_ZMQ_ALLOWED_PEERS` 允许列表是必须设置的缓解措施，而非修复。
 
-因此目前没有干净的已发布版本，防护依赖配置而非升级：运行 0.5.22，不设置 `DUMPER_SERVER_PORT`，并通过网络策略将 `--dist-init-addr` 及所有内部 ZMQ 或 RPC 套接字限制在 loopback 或 pod 私有网络内；也不要为不可信调用方启用自定义 logit 处理器。满足这些条件后，SGLang 也可处理多模态流量；旧有“多模态流量不要放在 SGLang 上”的规则基于后来已经修复的 CVE。
+因此目前没有干净的已发布版本，防护依赖配置而非升级。公告未列出修复版本时，应阅读代码而不是盲信升级。运行 0.5.23，在每个多节点 DP-attention 节点上设置 `SGLANG_ZMQ_ALLOWED_PEERS`，升级前转换旧 tar 格式 .pt 检查点，不设置 `DUMPER_SERVER_PORT`，并通过网络策略将 `--dist-init-addr` 及所有内部 ZMQ 或 RPC 套接字限制在 loopback 或 pod 私有网络内；也不要为不可信调用方启用自定义 logit 处理器。满足这些条件后，SGLang 也可处理多模态流量；旧有“多模态流量不要放在 SGLang 上”的规则基于后来已经修复的 CVE。
 
 ### TensorRT-LLM：NVIDIA 硬件上的峰值吞吐
 
@@ -119,7 +120,7 @@ LLM 几乎总是通过 **Server-Sent Events（SSE）** 或 **WebSockets** 提供
 
 ### 引擎之上的编排：Dynamo 与 llm-d
 
-在集群规模下，影响成本的决策（请求发往哪个副本、何时解耦、如何扩缩容）位于引擎之上。**NVIDIA Dynamo** 根据 KV 缓存重叠度路由，提供可插拔的评分和选择策略、硬/软会话亲和性，索引 SGLang HiCache 和 vLLM 磁盘层的缓存事件，将短请求直接送往解码，并支持在传输层使用 TLS/mTLS；v1.6.0（10 月 22 日）开放路由入口供流量控制插件使用，并在 HTTP 前端加入双向 TLS。**llm-d** 在 Kubernetes Gateway API 体系中承担类似角色，并于 10 月 20 日发布 v1.0.0，加入负载卸载、路由器高可用和 `DisaggregatedSet` API。两者变化很快，需锁定版本并阅读弃用说明（Dynamo 的 KVBM、GAIE 已移除的 alpha API）。还要检查编排镜像内打包的引擎版本：Dynamo 1.6.0 包含 vLLM 0.31.0 和 SGLang 0.5.21，均低于安全修复最低版本。
+在集群规模下，影响成本的决策（请求发往哪个副本、何时解耦、如何扩缩容）位于引擎之上。**NVIDIA Dynamo** 根据 KV 缓存重叠度路由，提供可插拔的评分和选择策略、硬/软会话亲和性，索引 SGLang HiCache 和 vLLM 磁盘层的缓存事件，将短请求直接送往解码，并支持在传输层使用 TLS/mTLS；v1.6.0（10 月 22 日）开放路由入口供流量控制插件使用，并在 HTTP 前端加入双向 TLS；v1.6.1（10 月 27 日）是当前稳定版。**llm-d** 在 Kubernetes Gateway API 体系中承担类似角色，并于 10 月 20 日发布 v1.0.0，加入负载卸载、路由器高可用和 `DisaggregatedSet` API。两者变化很快，需锁定版本并阅读弃用说明（Dynamo 的 KVBM、GAIE 已移除的 alpha API）。还要检查编排镜像内打包的引擎版本：Dynamo 1.6.1 仍包含 vLLM 0.31.0 和 SGLang 0.5.21，因此 Dynamo 当前版本不代表引擎已打补丁。
 
 同一生态中还有一个精度选择的提醒：Dynamo 更新后的 Nemotron 3.5 Lightning 配方测得 BF16 在 Marlin 内核下比 NVFP4 快 80%，在 CuTeDSL 下快 12%。应按模型和内核后端分别测试精度方案；参见[量化深度解析](../03-training-and-adaptation/07-quantization-deep-dive.md)。
 
@@ -162,24 +163,24 @@ flowchart TD
     A[工作负载类型] --> B{高端低延迟档位？}
     B -->|是| L[Ultrafast 或 fast-mode API 档位，或跨芯片预填充与解码]
     B -->|否| C{多模态？}
-    C -->|是| D[vLLM 0.32 或更新版本]
+    C -->|是| D[vLLM 0.33 或更新版本]
     C -->|否| E{长共享前缀或结构化输出占比高？}
-    E -->|是| F[SGLang 0.5.22，锁定版本并限制 debug 与 ZMQ 端点]
+    E -->|是| F[SGLang 0.5.23，锁定 debug 与 ZMQ 端点]
     E -->|否| G{大规模集群中的大型 MoE 或长上下文？}
     G -->|是| H[在 Dynamo 或 llm-d 下运行 vLLM 或 SGLang，并解耦服务]
     G -->|否| I{仅 NVIDIA、一个旗舰模型、追求峰值吞吐？}
     I -->|是| J[TensorRT-LLM]
-    I -->|否| K[vLLM 0.32 或更新版本]
+    I -->|否| K[vLLM 0.33 或更新版本]
 ```
 
 更贴近团队真实部署的显式映射：
 
 | 工作负载 | 引擎选择（2026 年 11 月） | 原因 |
 |----------|---------------------------|-----|
-| 公共聊天机器人（混合流量，必须快速修补） | **vLLM 0.32+** | 最易运维，安全修复节奏最快 |
-| JSON 函数调用后端、具有长共享前缀的智能体循环 | **SGLang 0.5.22**（锁定版本，关闭 dumper，内部套接字仅在 pod 内） | RadixAttention 前缀复用和重叠执行的约束解码 |
+| 公共聊天机器人（混合流量，必须快速修补） | **vLLM 0.33+** | 最易运维，安全修复节奏最快 |
+| JSON 函数调用后端、具有长共享前缀的智能体循环 | **SGLang 0.5.23**（锁定版本，关闭 dumper，设置 ZMQ 对端允许列表，内部套接字仅在 pod 内） | RadixAttention 前缀复用和重叠执行的约束解码 |
 | 单模型低延迟（单一模型、单团队） | **TensorRT-LLM**，运行在 B300 或 Rubin 上 | NVIDIA 峰值吞吐，已无需付出构建引擎的成本 |
-| 多模态（图像/音频/视频输入） | **vLLM 0.32+** | 多模态模型覆盖最广；经过版本锁定与验证的 SGLang 也可使用 |
+| 多模态（图像/音频/视频输入） | **vLLM 0.33+** | 多模态模型覆盖最广；经过版本锁定与验证的 SGLang 也可使用 |
 | 推理模型（长 CoT，低并发） | **vLLM** 或 **SGLang**，使用模型发布方提供的 MTP 或 DSpark 草拟器 | 解码受限；结合自适应验证的推测解码是主要优化手段 |
 | 集群规模的 MoE（DeepSeek V4、Kimi K3、Llama 4 Maverick） | 在 **Dynamo** 或 **llm-d** 下运行解耦的 **vLLM** 或 **SGLang** | 专家并行、KV 感知路由、独立的预填充与解码池 |
 | 高端档位：低于 50ms 的 TTFT 和极高的单用户 tok/s | **API 加速档位**（Ultrafast、fast mode）或**跨芯片 P/D** | 对大模型，在合理批大小下仅靠 GPU 难以达到这些单用户速度 |
@@ -190,17 +191,19 @@ flowchart TD
 
 | 组件 | 最低版本 | 原因 |
 |-----------|-------|--------|
-| vLLM | 0.32.0 | 可触达 Ghostscript 的图像解码漏洞（CVE-2026-115915）和 CVE-2026-115912 在 0.32.0 修复；健康 `/health` 背后的生成挂起在 0.31.0 修复；此前的模型加载 RCE、引擎崩溃和前缀缓存探测漏洞也已修复 |
-| SGLang | 0.5.22，并采取缓解措施 | CVE-2026-111391 和 CVE-2026-93034（严重）没有已记录的修补版本：不设置 `DUMPER_SERVER_PORT`，并将 `--dist-init-addr`、ZMQ 和分布式初始化端点限制在共享网络之外 |
+| vLLM | 0.32.0；加载第三方仓库的主机使用 0.33.0 | GHSA-qrj2-j723-m6w8（特制仓库可读取任意本地目录的词表）在 0.33.0 修复；可触达 Ghostscript 的图像解码漏洞（CVE-2026-115915）和 CVE-2026-115912 在 0.32.0 修复；健康 `/health` 背后的生成挂起在 0.31.0 修复；此前的模型加载 RCE、引擎崩溃和前缀缓存探测漏洞也已修复 |
+| SGLang | 0.5.23，并采取缓解措施 | CVE-2026-111391 和 CVE-2026-93034（严重）没有已记录的修补版本，0.5.23 也未修复：设置 `SGLANG_ZMQ_ALLOWED_PEERS`，不设置 `DUMPER_SERVER_PORT`，并将 `--dist-init-addr`、ZMQ 和 RPC 端点限制在共享网络之外 |
+| TensorRT-LLM（使用 RC 系列时） | 1.3.0rc25 | CVE-2026-65119（CVSS 8.4，本地向量：`KvCacheAwareRouter` tokenizer 加载可能引入不可信代码）及两个 SSRF 缺陷 CVE-2026-65120 和 CVE-2026-24269（各为 CVSS 7.1）均存在于 1.3.0rc24；NVIDIA 的唯一补救方式是升级 |
 | Ollama（开发或边缘环境） | 0.35.0 | CVE-2026-103663（CVSS v4 9.4）：`/api/pull` 中的路径穿越可能植入二进制文件，并在重启时以 root 身份运行。绝不暴露 `/api/pull`；镜像中应只保留实际提供服务的模型 |
-| LiteLLM（如使用） | 对应发布线至少为 1.100.4、1.101.3、1.102.2 或 1.103.1；企业许可代理至少为 1.103.10、1.104.8、1.105.6 或 1.106.5 | CVE-2026-114612（CVSS 9.9，内部用户可提权为代理管理员，1.91.0 起默认可利用）及 GHSA-w4c7-34wj-hqm8（CVSS 10.0，企业许可代理主密钥泄露），此外还要修复之前通过 `api_base` 窃取密钥的问题。绝不安装遭入侵的 1.82.7、1.82.8 或 1.107.0（见[保护网关](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)）；从镜像按哈希安装，并按摘要拉取容器镜像 |
+| LiteLLM（如使用） | 对应发布线至少为 1.100.4、1.101.3、1.102.2 或 1.103.1；企业许可代理至少为 1.103.10、1.104.8、1.105.6 或 1.106.5 | CVE-2026-114612（CVSS 9.9，内部用户可提权为代理管理员，1.91.0 起默认可利用）及 GHSA-w4c7-34wj-hqm8（CVSS 10.0，企业许可代理主密钥泄露），此外还要修复之前通过 `api_base` 窃取密钥的问题。跳过 1.107 系列，使用 1.108.0（11 月 4 日）或事故后合法的 1.107 RC；绝不安装遭入侵的 1.82.7、1.82.8 或 1.107.0（见[保护网关](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)）；从镜像按哈希安装、按摘要拉取容器镜像，并将准入策略中的 cosign 密钥重新固定到 10 月 23 日轮换的新密钥 |
 
 - **按实际生成请求做健康检查，而非只做 ping。**存活端点只能证明 HTTP 服务还在，不能证明引擎能产出 token；vLLM 0.31.0 修复的一项漏洞中，所有生成请求都会挂起，而 `/health` 仍返回 200。应让 readiness probe 通过真实生成路径执行合成请求（生成少量 token 并设定严格超时），失败时重启，并在探测延迟上升时告警。
 - **假定单个请求可以让副本上的所有租户中断服务。**在网关验证 token ID、媒体和大小；当故障波及范围很重要时，用独立副本承载不可信租户，并监控引擎重启。
 - **在第二引擎上保留金丝雀（canary）实例。** 在 vLLM 上线主流量，同时在 SGLang 或 TensorRT-LLM 上以 1-5% 做 canary，监控质量或延迟偏差，这有助于发现引擎特定缺陷并加速迁移。
-- **把引擎视作部署清单的一部分。**一个模型不是“Llama 4 Maverick”，而是“在这套硬件上，以这套批处理配置、内核后端和推测解码方法运行于 vLLM v0.32.0 的 Llama 4 Maverick”。所有要素都应锁定，因为默认值会随版本变化：内核后端、批处理预算、模型运行器，以及 v0.32 中的 CORS 策略和 `max_tokens` 含义。
+- **把引擎视作部署清单的一部分。**一个模型不是“Llama 4 Maverick”，而是“在这套硬件上，以这套批处理配置、内核后端和推测解码方法运行于 vLLM v0.33.0 的 Llama 4 Maverick”。所有要素都应锁定，因为默认值会随版本变化：内核后端、批处理预算和模型运行器，v0.32 中的 CORS 策略和 `max_tokens` 含义，以及 v0.33 中的 CUDA 版本、可用推测方法和新增默认启用路由。
+- **信任存储变化时重建镜像。**2026 年 10 月 18 日 eMudhra 吊销了八个私钥薄弱的中间 CA；Mozilla 和 Chrome 不再信任这些中间证书，并着手移除 emSign ECC Root CA - G3 根证书。Go 1.27.3 和 1.26.10 只在使用新工具链重建的二进制文件中不信任这些中间证书；Python 技术栈通过 certifi 2026.10.18 或更高版本获取根证书移除；RHEL 和 UBI 容器在基础镜像更新后必须重建（详见 [LLM 安全](../12-security-and-access/01-llm-security.md#保护-ai-技术栈本身)）。反过来，Dynamo 1.6.1 等镜像更新可能使仅连接至被移除根证书的端点 TLS 失败，因此每次升级基础镜像后都应测试出站 TLS。
 - **在帕累托曲线上做基准测试。**在智能体流量上使用吞吐量与交互性曲线（SemiAnalysis InferenceX AgentX），并参考 MLPerf Inference v6.1；后者新增了端到端 RAG 和边缘智能体测试，并将推测解码扩展至 gpt-oss-120b Interactive 场景。参见[推理基础](01-inference-fundamentals.md#在帕累托曲线上测量-而非只看批次大小为-1)。
-- **关注安全通告（security advisory feeds）**，而不仅仅是发布说明（release notes）：[vLLM advisories](https://github.com/vllm-project/vllm/security/advisories)、[SGLang advisories](https://github.com/sgl-project/sglang/security/advisories)、[TensorRT-LLM CVE list](https://nvd.nist.gov/vuln/search/results?form_type=Basic&search_type=all&query=tensorrt-llm)。
+- **关注安全通告（security advisory feeds）**，而不仅仅是发布说明（release notes）：[vLLM advisories](https://github.com/vllm-project/vllm/security/advisories)、[SGLang advisories](https://github.com/sgl-project/sglang/security/advisories)、[TensorRT-LLM CVE list](https://nvd.nist.gov/vuln/search/results?form_type=Basic&search_type=all&query=tensorrt-llm)，以及 [NVIDIA 产品安全](https://github.com/NVIDIA/product-security)，NVIDIA 在那里而非仓库公告标签页发布 TensorRT-LLM 和 NeMo 公告。
 
 ---
 
@@ -234,8 +237,9 @@ GPU 推理引擎是故障共担域。在 CVE-2026-93592 中，一条未经认证
 - vLLM。[发布版本](https://github.com/vllm-project/vllm/releases)及[“解耦服务指南”](https://vllm.ai/blog/2026-09-29-disaggregated-serving-guide)（2026）
 - SGLang。[发布版本](https://github.com/sgl-project/sglang/releases)
 - llm-d。[v1.0.0 发布说明](https://github.com/llm-d/llm-d/releases/tag/v1.0.0)（2026）
+- vLLM。[v0.33.0 发布说明](https://github.com/vllm-project/vllm/releases/tag/v0.33.0rc3)和 [GHSA-qrj2-j723-m6w8](https://github.com/vllm-project/vllm/security/advisories/GHSA-qrj2-j723-m6w8)（2026）
 - vLLM。[GHSA-4xqp-c3mv-qff7](https://github.com/vllm-project/vllm/security/advisories/GHSA-4xqp-c3mv-qff7)（`/health` 健康但引擎挂起）及 [GHSA-h3rc-j82p-2c3h](https://github.com/vllm-project/vllm/security/advisories/GHSA-h3rc-j82p-2c3h)（CVE-2026-115915）
-- NVIDIA。[Dynamo v1.6.0 发布说明](https://github.com/ai-dynamo/dynamo/releases/tag/v1.6.0)及[“Groq 3 LPX 现已全面投产”](https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai)（2026）
+- NVIDIA。[Dynamo 发布说明](https://github.com/ai-dynamo/dynamo/releases)（v1.6.0 和 v1.6.1）、[TensorRT-LLM 安全公告](https://raw.githubusercontent.com/NVIDIA/product-security/main/2026/5883/5883.md)（2026 年 10 月 27 日）及[“Groq 3 LPX 现已全面投产”](https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai)（2026）
 - Kubernetes SIGs。[Gateway API Inference Extension v1.6.0](https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/tag/v1.6.0)
 - MLCommons。[MLPerf Inference v6.1 结果](https://mlcommons.org/2026/09/mlperf-inference-v6-1-results/)（2026）
 

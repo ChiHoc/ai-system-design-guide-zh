@@ -166,6 +166,8 @@
 
 **将自己拥有的状态与编排 API 分开。**OpenAI 于 2026 年 8 月 26 日关闭 Assistants API：threads、runs 和 run steps 现会报错；迁移关系分别是 Threads 对应 Conversations API、Runs 对应 Responses、Run steps 对应 Items。向量存储未受此次关闭影响，仍通过 Responses 的 `file_search` 工具工作，因此使用托管 RAG 的团队保留了索引，只需重写对话状态代码。应将记忆和会话状态放在自有接口之后，将厂商托管的 thread 对象视为该状态的缓存，而非权威记录。
 
+Anthropic 的消息线程测试版（2026 年 11 月 2 日，header `message-threads-2026-08-12`）从另一个角度说明了同一问题。创建请求在服务端保存对话、系统提示和工具，后续请求只发送新消息并指定 `previous_message_id`。但线程在最后一次请求 5 分钟后过期，最后使用后不超过一小时即被删除，不符合 ZDR 要求；续接可能返回 404 `thread_not_found`，此时客户端必须重发完整对话。系统提示和工具只能在创建请求中发送，`model`、`tool_choice`、`thinking` 和 `mcp_servers` 等固定字段每轮都必须匹配，否则 API 返回 400 `thread_fingerprint_mismatch`。线程本身不会改变价格，也不会缓存提示词（仍需要 `cache_control`），且不能在 Bedrock 或 Google 管理的 Vertex 上运行。运行框架因此应自行保留对话记录，把线程作为带宽优化，并从第一天起实现 404 后重放。
+
 **值得关注的新兴框架**：[Supermemory](https://supermemory.ai)、[Recallr](https://recallrai.com)、AWS [Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/memory-integrate-lang.html)、[Oracle AI Agent Memory](https://blogs.oracle.com/developers/oracle-ai-agent-memory-a-governed-unified-memory-core-for-enterprise-ai-agents)。
 
 ---
@@ -336,7 +338,7 @@ episodic memory 会在三种命名模式下变成负债。第一，**索引过�
 
 架构上有五层隔离：
 
-1. **存储层物理隔离**：按租户分别建 collection 或 shard，而不是带元数据过滤的共享索引。那种带 tenant-id 的共享索引模式在 bug 下会 fail open（失效时默认放行）。
+1. **存储层物理隔离**：按租户分别建 collection 或 shard，而不是带元数据过滤的共享索引。那种带 tenant-id 的共享索引模式在 bug 下会 fail open（失效时默认放行），编码缺陷也不例外：LangGraph 的 Postgres 和 SQLite 存储用“.”连接命名空间标签，使 `("tenant.bob",)` 与 `("tenant", "bob")` 冲突，控制标签的调用方可读取或删除其他命名空间的条目（CVE-2026-115883，2026 年 10 月 21 日；见 [LangGraph 持久化](../09-frameworks-and-tools/02-langgraph-orchestration.md#持久化与检查点)）。租户键应由已验证身份派生，绝不使用调用方提供的标签。
 2. **通过 service-account 范围强制执行**：应用代码不能绕开租户范围；数据库角色看不到其他租户。
 3. **每个租户单独的 KV-cache 前缀**：防止缓存的 prompt 在租户之间泄漏。
 4. **按租户划分的加密密钥**：即使 bug 把跨命名空间字节返回了，也无法读取。

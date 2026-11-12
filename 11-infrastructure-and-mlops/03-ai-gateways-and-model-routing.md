@@ -58,6 +58,8 @@ AI 网关（也称 LLM 网关、LLM 代理或 LLM 路由器）是**你的应用�
 
 实践中有三点很重要。**语义路由**是通过嵌入相似度来选路由，不调用 LLM；生产里常见的模式是一个两阶段混合方案：用语义方式处理有把握的大多数，把模糊尾部交给 LLM-as-router（vLLM Semantic Router 自 2026 年 9 月 27 日起为 v0.4.0，是一个开源实现）。新出现的中间层是**决策模型**：它们返回带概率的类型化答案（谓词、选项或分数），而不是文本；既有托管方案（OpenAI Decisions API，仅按输入计费），也可通过 vLLM 和 SGLang 使用开放模型。详情见 [Research Radar 主题 16](../RESEARCH-RADAR.md#_16-决策模型-带概率的类型化答案)。应基于自己的流量校准阈值，因为早期论文报告称模型给出的概率可能偏低；即使正确读取状态，也可能选错动作。**级联**是最有杠杆效应的降本手段：RouteLLM（UC Berkeley / LMSYS，ICLR 2025）报告称，它只把一小部分调用路由到前沿模型，却能达到其约 95% 的质量，成本降低处在 45-85% 的范围。这个范围应当理解为特定基准下的上限，而不是保证；升级比例才是实时成本变量，而如果一个级联把大多数流量都升级了，那就省不了多少。模型档位差距很大，而升级请求会为经过的每一次调用付费。OpenAI 自 GPT-6.1 Terra（10 月 26 日，$1/$5）起重新提供三级阶梯：从 Luna（$0.10/$0.50）到 Terra 相差 10 倍，到 Sol（$2/$10）相差 20 倍；因此从 Luna 升级到 Sol 的成本约为只用 Luna 的 21 倍，而中间的 Terra 档可用半价拦截中等难度请求。级联也已成为实际发布的产品模式：GitHub Copilot Fusion（2026 年 10 月 28 日 GA）支持 Standard、High、Max 三档 effort，并通过 Single、Cascade 和 Critique 工作流在模型间路由。
 
+**KV cache 感知路由**在自托管集群中将决策下移至提供商层以下：Kubernetes Gateway API Inference Extension 的端点选择器（2026 年 8 月并入 llm-d 项目）和 NVIDIA Dynamo 路由器将请求送至缓存中已有其前缀的副本；Google 报告其多集群 GKE Inference Gateway 的路由开销低于 1%。
+
 路由和回退是可以组合的：在正常路径上按成本 / 质量 / 延迟做路由，在异常路径上跨提供商回退以获得可靠性。级联本质上就是把质量驱动路由和内建可靠性回退结合在一起。
 
 ---
@@ -98,7 +100,8 @@ flowchart TD
 - **LiteLLM**（开源、自托管代理加 SDK）是事实标准：在一个 OpenAI 格式 API 之后接入 100+ 个提供商，支持路由策略（延迟、使用量、成本、最不忙）、有序回退、带美元预算的虚拟密钥，以及原生 OpenTelemetry。常见批评是，YAML 配置在企业治理规模下会显得吃力。
 - **OpenRouter**（托管聚合器）在 200+ 个模型上提供最快的覆盖面和零运维，按透传提供商定价（文档中适用 BYOK 费用）。取舍是会多一次外部跳转，并且数据会离开你的边界。
 - **Portkey**（托管型，带自托管层）把自己定位为完整控制平面：路由、回退、token 级可观测性、语义缓存和约束。
-- **Cloudflare AI Gateway**（托管、边缘侧）在可观测性和缓存方面表现强，支持顺序式提供商回退，但路由逻辑和预算强制较轻。
+- **Cloudflare AI Gateway**（托管、边缘侧）在可观测性和缓存方面表现强，路由能力正在追赶：2026 年 11 月 4 日加入模型别名，每个网关可将模型组成命名池，通过一个名称调用并使用有序回退或智能路由，使别名背后的模型无需重新部署即可变化。预算强制仍比 LiteLLM 轻。自 11 月 3 日起，通过 API 创建的新网关默认启用认证（一旦启用不可关闭），但已有未认证网关保留原设置，因此应审计旧网关。Cloudflare 托管检索服务 AI Search 于 2026 年 10 月 1 日 GA，表明网关正吸收检索与依据能力。
+- **Langfuse AI Gateway**（自 2026 年 11 月 4 日起公开测试）是可观测平台吸收网关层的例子：应用向 Langfuse 发送原生 OpenAI（Responses、Chat Completions）和 Anthropic Messages 请求，后者使用存储在 Langfuse 的供应商凭据转发，并将每次调用记录为带追踪的生成。团队可签发带逐密钥模型允许列表、过期、撤销和支出跟踪的网关密钥；测试版不做 API 转换，仅支持 OpenAI 和 Anthropic。取舍是更简单的成本归因，代价是将密钥托管和每条提示词集中到追踪供应商，影响范围与下文 LiteLLM 相同。
 - **Kong AI Gateway**（API 管理平台）把 LLM 路由（包括语义路由）、重试 / 回退、语义缓存和 PII 清理器带入一个成熟网关；如果你本来就在使用 Kong，这通常是最合适的。
 - **Envoy AI Gateway**（开源、CNCF 生态）提供基础设施级的基于优先级回退、重试和超时，原生适配 Kubernetes。
 - **云原生**路由器（AWS Bedrock 智能提示路由、Google Vertex）与各自云环境紧密集成；但严格的账户级限流仍然让多提供商层变得有用。
@@ -117,6 +120,8 @@ flowchart TD
 - **网络跳转税：** 网关会增加一次跳转。可以通过把它与应用同地部署（同一区域 / VPC / 集群）来缓解，这样跳转会低于毫秒级；同时保持代理足够轻，并积极缓存，让命中直接跳过提供商。相对于 500-2000ms 的模型延迟，这个跳转代价不大，但在高负载下是真实存在的。
 - **不要让网关变成单点故障：** 这是核心架构风险。应在负载均衡器后运行多个无状态副本，把共享状态外置（Redis 存放限流与使用计数，数据库存放密钥和支出），并对副本做健康检查。一个把一切都集中起来、但只运行单实例的网关，不过是把单点故障从别处搬到了这里。
 - **多区域：** 按区域部署副本，按区域本地路由，并使用跨区域 / 跨提供商回退，这样区域级故障就可以切换到别处。
+- **数据驻留路由：**现在可按请求或端点选择区域内处理（Anthropic `inference_geo`、OpenAI 驻留端点及 `us.`／`eu.` 区域 API 域名、Bedrock 和 Google Cloud 区域端点、us. 和 eu.openrouter.ai），驻留通常有约 10% 的溢价（OpenRouter 称不加价）。网关适合按租户固定驻留位置，使只有受约束流量支付溢价，并确保回退链绝不离开所需地域。平台的驻留粒度不同：Google 管理的 Google Cloud 上 Claude Models 的区域端点仅支持 Claude Sonnet 4.6 及更早模型，因此 Opus 5.5、Sonnet 5.5、Haiku 5.5 和 Fable 5.1 必须使用全球端点或 `us`／`eu` 多区域端点；Sonnet 4.5 及之后多区域比全球贵 10%，预置吞吐量则需要区域端点。
+- **强制执行链路中最小请求上限：**Anthropic 于 2026 年 10 月 28 日将自有平台 Messages 和 Token Counting 请求上限从 32 MB 提高到 128 MB，而 Google Agent Platform 仍将 Claude 载荷限制为 30 MB。主路径可用的大 PDF 可能在回退路径失败，因此路由前按最严格后端检查大小。
 - **缓存与可观测性：** 对完全相同的提示做精确匹配缓存，对近似重复做语义缓存，并使用 OpenTelemetry span 传递用户 / 密钥、尝试过的模型、失败原因、最终获胜的回退、每一步延迟以及精确成本。这正是让限流故障模式从“神秘莫测”变成“可见可诊断”的关键。见 [可观测性](../14-evaluation-and-observability/02-observability.md)。
 
 ---
@@ -134,8 +139,9 @@ flowchart TD
 | CVE-2026-114612（严重，CVSS 9.9） | 同一密钥既用于加密静态密钥，也用于签发会话令牌，因此内部用户可获得代理加密的伪造管理员凭据，并将其作为 bearer token 重放；从 1.91.0 起的默认配置均可利用 | 1.100.4、1.101.3、1.102.2、1.103.1 |
 | GHSA-w4c7-34wj-hqm8（严重，CVSS 10.0，仅限 Enterprise 许可证代理） | 未认证请求可令代理读取本地文件（例如保存 master key 的进程环境），并将其发送至攻击者指定的 URL | 1.103.10、1.104.8、1.105.6、1.106.5；出口流量允许列表可阻断外传 |
 | 10 月 21 日供应链入侵 | 5 月 27 日提交到公开仓库且从未撤销的内部管理员密钥，于 10 月 10 日导致 GitHub 组织所有者令牌和 CI 密钥被盗；10 月 21 日，仿冒 fork 在约两小时内发布七个恶意 PyPI wheel（litellm 1.107.0）以及 Docker Hub、GHCR 镜像，窃取云凭据、供应商密钥、master/virtual key 和环境变量 | 任何拉取过这些构建的主机都应轮换所有密钥；按哈希固定包，按 digest 固定镜像 |
+| Cosign 密钥暴露（10 月 21 日后续） | LiteLLM 称此前镜像签名密钥的私钥部分很可能暴露，因此受污染的 1.107.0 镜像带有有效旧密钥签名，`cosign verify` 通过不能证明安全。它于 10 月 23 日轮换密钥（10 月 24 日首批新密钥版本为 1.103.8、1.104.6、1.105.4 和 1.106.3），并于 10 月 30 日公布新密钥 SHA-256 指纹 | 只信任 10 月 21 日之前发布镜像的旧密钥签名；根据受污染构建清单检查摘要；将 cosign 脚本和准入策略（Kyverno、Sigstore policy-controller、Connaisseur）重新固定到新密钥 |
 
-综合来看，每个代理都应使用其分支上的 1.100.4、1.101.3、1.102.2、1.103.1 或更高版本；Enterprise 许可证代理应使用 1.103.10、1.104.8、1.105.6 或 1.106.5。这里的“更高”绝不包括 1.107.0，因为这是被植入恶意代码的构建。
+综合来看，每个代理都应使用其分支上的 1.100.4、1.101.3、1.102.2、1.103.1 或更高版本；Enterprise 许可证代理应使用 1.103.10、1.104.8、1.105.6 或 1.106.5。这里的“更高”绝不包括 1.107.0，因为这是被植入恶意代码的构建：跳过 1.107 系列并使用 1.108.0（11 月 4 日），除非已使用事故后合法的 1.107 RC，例如 1.107.0rc3。面试中的教训是：签名检查的强度取决于密钥保管，CI 密钥被盗后，受污染构建显示验证成功正是预期结果。
 
 由此得出的设计规则：
 
@@ -143,7 +149,8 @@ flowchart TD
 - **尽可能不在代理中保存长期密钥。** 从保险库按请求注入凭据（Envoy 的 `credentialOverride`）；在可用时使用工作负载身份而非静态供应商密钥（OpenAI 于 2026 年 8 月 29 日正式提供 mTLS 和 X.509 工作负载身份联合）；其余密钥设置短有效期（OpenAI 于 9 月 10 日增加密钥到期功能）。
 - **把网关当作供应链环节。** 固定版本与哈希、按 digest 固定容器镜像、从镜像索引安装并在接纳新版本前设置短暂隔离期、订阅安全通告，并且不要将管理或测试端点暴露到互联网。10 月的入侵始于一把泄漏后超过四个月未撤销的密钥，因此供应商自身的密钥卫生也属于你的威胁模型。
 - **限制出口流量。** 网关只能连接一组已知供应商主机。启用出口允许列表后，类似 GHSA-w4c7-34wj-hqm8 的文件读取漏洞就无法外传 master key，木马构建也无法回连攻击者。
-- **假设网关会被攻破并限制影响范围：**按信任区分别部署网关，为每个部署分配独立且受限的供应商密钥，并按密钥设置支出上限，让失窃凭据造成的损失有上限。
+- **假设网关会被攻破并限制影响范围：**按信任区分别部署网关，为每个部署分配独立且受限的供应商密钥，并按密钥设置支出上限，让失窃凭据造成的损失有上限。逐密钥配额不仅是 FinOps，也是安全控制：Google Threat Intelligence 和 Mandiant 于 2026 年 11 月 3 日报告，其处理的 LLMjacking 事件单日欺诈费用超过 $100,000，主要通过被盗云身份令牌实现（见[访问控制](../12-security-and-access/02-access-control.md)）。
+- **每个请求归因到终端客户。**Anthropic 于 2026 年 10 月 20 日推出用户 profile：平台注册每个终端客户（`POST /v1/user_profiles`），并将返回 ID 放在 `anthropic-user-profile-id` header 中发送（Amazon Bedrock 上 Claude 使用请求体字段），使安全限制或封禁落在单个客户而非整个组织。Anthropic 文档警告，没有 profile 时一个终端客户可能导致整个组织受到限制措施。网关适合附加租户 profile ID，并对报告限制开始或结束的组织 Webhook 设置告警（测试版，需申请）。
 
 ---
 
@@ -174,7 +181,7 @@ flowchart TD
 ### Q: 你的网关保存着所有供应商密钥。如何保护它？
 
 **强回答：**
-我会把它视作皇冠上的明珠，因为一个漏洞就可能一次性暴露所有密钥。LiteLLM 曾出现未认证远程代码执行漏洞（CVE-2026-37004，CVSS 9.8）、允许任意已认证用户将请求连同运营者保存的密钥重定向到其自有主机的漏洞（CVE-2026-84377），以及 10 月发生的 Enterprise 代理 master key 泄漏事件（CVSS 10.0）。首先，调用方不能选择目的地：我会把上游主机加入允许列表、在边缘层剥离 `api_base` 一类参数，并启用出口允许列表，确保文件读取漏洞也无法外传密钥。其次，尽量减少长期有效的密钥：支持时使用工作负载身份或 mTLS；其他情况由保险库按请求注入凭据、缩短密钥有效期；并为每个网关部署使用独立密钥和支出上限，限制泄漏造成的损失。第三，管好供应链：按哈希固定软件包、按 digest 固定镜像，并从镜像仓库安装（LiteLLM 在 2026 年有两次 PyPI 构建遭木马化，第二次还包括容器镜像，源于 CI 密钥被盗）；跟踪安全通告并设定修补时限，管理端点只放在私有网络。最后，记录每个上游目的地，并对允许列表外的主机告警，以便及时发现重定向攻击。
+我会把它视作皇冠上的明珠，因为一个漏洞就可能一次性暴露所有密钥。LiteLLM 曾出现未认证远程代码执行漏洞（CVE-2026-37004，CVSS 9.8）、允许任意已认证用户将请求连同运营者保存的密钥重定向到其自有主机的漏洞（CVE-2026-84377），以及 10 月发生的 Enterprise 代理 master key 泄漏事件（CVSS 10.0）。首先，调用方不能选择目的地：我会把上游主机加入允许列表、在边缘层剥离 `api_base` 一类参数，并启用出口允许列表，确保文件读取漏洞也无法外传密钥。其次，尽量减少长期有效的密钥：支持时使用工作负载身份或 mTLS；其他情况由保险库按请求注入凭据、缩短密钥有效期；并为每个网关部署使用独立密钥和支出上限，限制泄漏造成的损失。第三，管好供应链：按哈希固定软件包、按 digest 固定镜像，并从镜像仓库安装（LiteLLM 在 2026 年有两次 PyPI 构建遭木马化，第二次还包括容器镜像，源于 CI 密钥被盗）；跟踪安全通告并设定修补时限，管理端点只放在私有网络；签名密钥作为秘密管理，任何 CI 失陷后都轮换，因为 LiteLLM 受污染镜像通过了旧密钥验证。最后，记录每个上游目的地，并对允许列表外的主机告警，以便及时发现重定向攻击。
 
 ### Q: 如何把一个长时间运行的 agent 对话故障转移到另一家供应商？
 
@@ -197,6 +204,9 @@ flowchart TD
 - [Gateway API Inference Extension v1.6.0](https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/tag/v1.6.0)
 - Anthropic：[拒绝与回退](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback) 和[速率限制](https://platform.claude.com/docs/en/api/rate-limits)
 - OpenAI：[API 更新日志](https://developers.openai.com/api/docs/changelog)
+- Anthropic：[用户 profile](https://platform.claude.com/docs/en/manage-claude/user-profiles)和[Google Cloud 上 Claude Models（Google 管理）](https://platform.claude.com/docs/en/build-with-claude/claude-models-on-google-cloud/google-managed)
+- Cloudflare：[AI Gateway 更新日志](https://developers.cloudflare.com/changelog/?product=ai-gateway)；Langfuse：[AI Gateway 公开测试](https://langfuse.com/changelog/2026-11-04-ai-gateway-public-beta)（2026 年 11 月 4 日）
+- Google Threat Intelligence Group：[LLMjacking：将受攻陷云模型变现](https://cloud.google.com/blog/topics/threat-intelligence/llmjacking-monetizing-compromised-cloud-models)（2026 年 11 月 3 日）
 
 ---
 

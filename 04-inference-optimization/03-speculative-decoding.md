@@ -37,18 +37,20 @@ LLM 解码受内存带宽限制：为了生成一个单独的 2 字节 token，�
 
 **最终结果**：低并发时，实际耗时加速 2 倍到 3 倍，且**质量零损失**。这一保证是严格的：标准推测采样的输出分布可证明与目标模型一致；贪心解码时，每个 token 都完全相同。变化的是速度，它取决于**接受长度**（每次验证接受的 token 数）。
 
+这一保证仅适用于标准验证。引擎现在提供可选的有损策略（vLLM v0.33.0 于 2026 年 11 月加入 FLy，报告在 MI355X 和 B300 上解码吞吐量提升 1.04 倍至 1.31 倍），以牺牲输出精确性换取速度。因此应将任何非默认验证策略视为模型变更，并重新运行评估。
+
 ---
 
 ## 2026 年的草拟器：预测头、MTP、扩散模型与 DSpark
 
-业界逐渐从单独训练的草拟模型转向与目标模型绑定的草拟器；前者增加 VRAM 占用、需要第二份 KV 缓存，还要处理 tokenizer 匹配。Medusa 预测头开启了这一转变；vLLM 的文档已不再介绍它（`medusa` 方法仍被接受），下表方法取代了它。
+业界逐渐从单独训练的草拟模型转向与目标模型绑定的草拟器；前者增加 VRAM 占用、需要第二份 KV 缓存，还要处理 tokenizer 匹配。Medusa 预测头开启了这一转变。vLLM 先停止在文档中介绍它，随后在 v0.33.0（2026 年 11 月 2 日）彻底移除了 Medusa 和 MLP speculator，下表方法取代了它们。仍设置 `"method":"medusa"` 的配置在升级后会失败，应改用 EAGLE-3 或模型自带的 MTP 模块。
 
 | 方法 | 草拟方式 | 说明 |
 |------|----------|------|
 | **EAGLE-3** | 使用目标模型多个层的隐藏特征输入轻量预测头 | 论文报告在 SGLang 中最高加速 6.5 倍，批次大小 64 时吞吐量提高 1.38 倍；没有原生 MTP 的开放模型常用此方案 |
 | **原生 MTP** | 随模型训练的多 token 预测头（始于 DeepSeek-V3） | MiMo-V2.6 和 Qwen3.8-Flash-Next（含 4B MTP 模块）内置提供 |
 | **DFlash / DFlash 2** | 小型块扩散模型，并行提出整个 token 块 | DFlash 2（Inco AI，2026 年 8 月 18 日）报告在 Qwen3.8-27B 上吞吐量提高 2.7 至 3.4 倍（厂商报告）；8 月 19 日至 27 日间并入 SGLang、vLLM 和 llama.cpp |
-| **DSpark** | DeepSeek 随检查点提供的推测模块 | DeepSeek-V4-Flash-DSpark（6 月 27 日，MIT）是在原检查点上增加该模块；Kimi K3（RadixArk）和 MiniMax-M3（NVIDIA）也有 DSpark 草拟器，Nemotron 3.5（NVIDIA）和 LFM2.5（Liquid）的发布者则提供自己的草拟器 |
+| **DSpark** | DeepSeek 随检查点提供的推测模块 | DeepSeek 将模块放入检查点：先是 V4-Flash-DSpark 和 V4-Pro-DSpark（6 月 27 日，MIT），随后是 V4-Flash-0731、V4-Pro-0813 和 V4.1-Flash（9 月 10 日，包括 10 月 17 日构建），均采用 MIT 许可；Kimi K3（RadixArk）和 MiniMax-M3（NVIDIA）也有 DSpark 草拟器，Nemotron 3.5（NVIDIA）和 LFM2.5（Liquid）的发布者则提供自己的草拟器 |
 | **独立草拟模型** | 同一家族中较小的模型 | 上述方案都不存在时仍有用；PARD（并行草拟）变体可降低草拟延迟 |
 
 对系统设计有两个影响：

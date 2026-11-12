@@ -111,19 +111,19 @@
 
 ## 多智能体的 2026 框架版图
 
-现在每个主要 AI 实验室都在提供智能体框架。截至 2026 年 11 月上旬，多智能体编排版图如下（版本与 star 数截至 11 月 2 日）：
+现在每个主要 AI 实验室都在提供智能体框架。截至 2026 年 11 月上旬，多智能体编排版图如下（版本截至 11 月 6 日，star 数截至 11 月 2 日）：
 
 | 框架 | 提供方 | 多智能体模型 | 状态 |
 |-----------|----------|-------------------|--------|
-| **LangGraph** | LangChain | 基于图，最灵活 | 生产中；LangGraph 1.2.19（约 44.3k stars） |
+| **LangGraph** | LangChain | 基于图，最灵活 | 生产中；LangGraph 1.2.20（约 44.3k stars） |
 | **Claude Agent SDK** | Anthropic | 带内置工具的监督器树 | GA（Python + TypeScript） |
-| **Google ADK** | Google | 原生支持 A2A 的图工作流 | Python 2.13.0、TypeScript 2.4.0、Go 2.6.0、Java 1.13.0 |
+| **Google ADK** | Google | 原生支持 A2A 的图工作流 | Python 2.13.0、TypeScript 2.4.0、Go 2.7.1、Java 1.14.0（Go 2.7.0 更改了遥测和调用上限的默认值；见[应对框架快速变化](../09-frameworks-and-tools/12-navigating-framework-churn.md)） |
 | **Microsoft Agent Framework** | Microsoft | 工作流 + 群聊模式、A2A 和 MCP 互操作 | 2026 年 4 月 2 日 GA；Python 1.24.0、.NET 1.27.0；AutoGen 进入维护模式 |
 | **OpenAI Agents SDK** | OpenAI | 带护栏的基于转交群体 | Python 0.24.0、TypeScript 0.21.0（约 30.4k stars）；仍处于 1.0 前 |
-| **CrewAI** | CrewAI Inc. | 基于角色的 crew 与 Flows | 1.15.34（约 60.4k stars；厂商称覆盖 60% 以上的《财富》500 强企业） |
+| **CrewAI** | CrewAI Inc. | 基于角色的 crew 与 Flows | 1.15.35（约 60.4k stars；厂商称覆盖 60% 以上的《财富》500 强企业） |
 | **Smolagents** | HuggingFace | 轻量级、开源 | 1.26.0（2026 年 5 月 29 日）；此后未发布新版本 |
 
-**关键趋势**：没有任何单一框架能在所有四种多智能体模式（监督器、群体、流水线、辩论）上都表现出色。团队越来越多地组合框架使用，例如用 LangGraph 处理复杂编排，用 CrewAI 处理面向业务用户的自动化。另一个趋势是托管运行时：OpenAI Agents API（公开 beta）、Claude Managed Agents（beta）和 Amazon Bedrock Managed Agents（公开预览）托管运行框架本身，使“自建还是租用”的决策上移一层（参见[持久执行](11-durable-execution.md)）。截至 2026 年 11 月上旬，三者均未 GA，因此租用前请检查 beta 条款（API 稳定性、数据保留、数据驻留）。
+**关键趋势**：没有任何单一框架能在所有四种多智能体模式（监督器、群体、流水线、辩论）上都表现出色。团队越来越多地组合框架使用，例如用 LangGraph 处理复杂编排，用 CrewAI 处理面向业务用户的自动化。另一个趋势是托管运行时：OpenAI Agents API（公开 beta）、Claude Managed Agents（beta）和 Amazon Bedrock Managed Agents（公开预览）托管运行框架本身，使“自建还是租用”的决策上移一层（参见[持久执行](11-durable-execution.md)）。截至 2026 年 11 月上旬，三者均未 GA，因此租用前请检查 beta 条款（API 稳定性、数据保留、数据驻留）；AWS 自己的 AgentCore 托管运行框架是已 GA 的例外（自 2026 年 6 月 17 日起）。
 
 ---
 

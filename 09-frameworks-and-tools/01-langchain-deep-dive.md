@@ -2,7 +2,7 @@
 
 LangChain 早已不再只是一个“提示库（prompting library）”。它已经发展为一个用于构建生产级 LLM 应用的**模块化生态系统**。LangGraph（它在 2025 年 10 月升级到 v1.0，并且是所有 LangChain agent 的默认运行时）负责有状态编排。**LCEL（LangChain Expression Language，LangChain 表达式语言）** 仍然是构建可组合链路最快的方式。
 
-版本快照及发布日期（这些数字每月都在变化）：`langchain` 1.4.7（2026 年 10 月 21 日）、`langchain-core` 1.7.3（10 月 29 日）、`langgraph` 1.2.19（10 月 30 日）。JS 端 `langchain` 1.6.0（10 月 28 日）、`@langchain/core` 1.3.2（10 月 29 日）和 `@langchain/langgraph` 1.6.0（10 月 30 日）。
+版本快照及发布日期（这些数字每月都在变化）：`langchain` 1.4.9（2026 年 11 月 4 日）、`langchain-core` 1.7.6（2026 年 11 月 5 日；1.7.5 统一了模型拒答内容块）、`langgraph` 1.2.20（2026 年 11 月 5 日）。JS 端为 `langchain` 1.6.1 和 `@langchain/core` 1.3.4（11 月 3 日），以及 `@langchain/langgraph` 1.7.0（11 月 5 日）。现在就规划 Python 升级：`langchain` 1.4.8 和 `langchain-core` 1.7.4（11 月 2 日）警告，`langchain-core` 1.8.0 和 `langchain` 1.5.0 将结束对 Python 3.10 的支持，因为 Python 3.10 已于 2026 年 10 月 1 日结束生命周期。
 
 ## 目录
 

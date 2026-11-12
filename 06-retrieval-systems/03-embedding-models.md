@@ -85,7 +85,7 @@ Embedding（嵌入）模型将文本转换为高维向量。前沿已经从静�
 - **同一共享空间中的模型家族。**Voyage 4 家族和 Cohere Embed 5 Pro/Fast 经过训练，其向量可以互换。用大型模型为语料库建一次索引（获得更好的文档表示），再用小型模型处理查询（降低查询延迟和费用）；也可在不同大小模型间转移查询流量，无需改动索引。
 - **可替换的查询编码器。**Qdrant 的 Constella 研究预览版（2026 年 9 月 29 日）固定使用 Stella（400M）文档索引，替换查询编码器。Constella Nano（34.5M 参数）在 CPU 延迟降低 12 倍（3.1 ms 对 39.0 ms）时，仍保留 Stella 在 BEIR-15 nDCG@10 上约 91% 的成绩（0.5081 对 0.5614）；不使用 Transformer、仅做 token 查表的 Constella Zero 在 0.081 ms 下得分 0.4572（供应商自报的研究预览结果）。
 
-限制在于：共享空间由供应商定义。不能用 Voyage 索引搭配 Cohere 查询编码器；预览模型（pplx-embed-v2-context-9b-preview）还明确警告其向量与后续版本不兼容。
+限制在于：共享空间由供应商定义。不能用 Voyage 索引搭配 Cohere 查询编码器；预览模型会警告其向量与后续版本不兼容（Perplexity 的 2026 年 9 月 pplx-embed-v2-context-9b-preview 便是如此；10 月取代它的非预览版 9B 和 0.6B 模型彼此共享空间，因此用预览版建立的索引必须重新嵌入）。
 
 ---
 

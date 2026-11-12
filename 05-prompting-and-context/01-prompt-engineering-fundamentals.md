@@ -91,7 +91,7 @@ $USER_INPUT_HERE
 
 | 供应商 | `temperature` / `top_p` 状态 |
 |--------|-----------------------------------|
-| **Anthropic** | 从 API 版本 `2026-10-21`（2026 年 10 月 21 日）开始，所有模型的 `temperature`、`top_p` 和 `top_k` 无论取何值，即使是默认值，也会返回 400；新版 SDK 主版本（Python 2.0.0、TypeScript 1.0.0）默认发送该版本。较早的 API 版本在 Claude 4.7 及后续模型（包括 Sonnet 5、Sonnet 5.5、Haiku 5.5 和 Fable 5.1）上拒绝非默认值。Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法签名中移除这三个参数，传入时会触发 `TypeError`。 |
+| **Anthropic** | 从 API 版本 `2026-10-21`（2026 年 10 月 21 日）开始，所有模型的 `temperature`、`top_p` 和 `top_k` 无论取何值，即使是默认值，也会返回 400；当天发布的八个 SDK 和 CLI 新主版本均默认发送该版本：Python 2.0.0、TypeScript 1.0.0、C# 13.0.0、Go 2.0.0、Java 3.0.0、PHP 1.0.0、Ruby 2.0.0 和 ant CLI 2.0.0（现均采用 Apache 2.0 而非 MIT），因此任何语言中的常规依赖升级都可能开始返回 400。较早的 API 版本在 Claude 4.7 及后续模型（包括 Sonnet 5、Sonnet 5.5、Haiku 5.5 和 Fable 5.1）上拒绝非默认值。Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法签名中移除这三个参数，传入时会触发 `TypeError`。 |
 | **OpenAI** | GPT-6 Astra（2026 年 9 月 3 日）不支持自定义 `temperature`、`top_p` 或 `logprobs`。 |
 | **Google** | Gemini API 于 2026 年 7 月 21 日弃用 `temperature`、`top_p` 和 `top_k`；Gemini 3.8 Flash 使用 `thinking_level` 而非 `thinking_budget`。 |
 

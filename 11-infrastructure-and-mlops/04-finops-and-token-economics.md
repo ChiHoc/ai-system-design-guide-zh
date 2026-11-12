@@ -57,7 +57,7 @@ cost_per_task = cost_per_request × expected_steps × (1 + retry_rate) + runtime
 | 长上下文价格跳变 | OpenAI 输入超过 272K（整个请求）；Claude Haiku 5.5 提示超过 100K token（整个请求，包含缓存读写）；xAI 提示达到 200K+（所有 token 价格翻倍）；Gemini 3.1 Pro Preview 超过 200K | GPT-6 Sol 每 100 万 token 的输入/输出价格从 $2/$10 变为 $4/$15，因此 273K 提示输入成本约为 272K 的两倍；Haiku 5.5 从 $0.10/$0.50 涨至 $0.50/$2.50，涨幅为 5 倍 | 保持低于阈值或改用检索；其他 Anthropic 模型（Claude 4.6 及以后）在 1M 以内按统一价格计费 |
 | 服务层级 | 所有主要供应商 | Batch 和 Flex 为 0.5 倍；OpenAI Fast 为 2 倍（GPT-5.5 为 2.5 倍）、Ultrafast 为 6 倍（GPT-6 Astra、GPT-6.1 Sol）；Gemini Priority 约 1.8 倍；Bedrock Priority 为 1.75 倍；Claude Opus 5.5 的 fast mode 为 $8/$40，而标准价为 $4/$20 | 按工作负载类别设置层级策略（见[批处理与异步经济学](#batch-和-async-经济学)） |
 | 数据驻留 | Anthropic `inference_geo: "us"`（Claude 4.6 及以后为 1.1 倍）、OpenAI 驻留端点、Bedrock 与 Google Cloud 区域端点、Mistral EU | 每个 token 约加价 10% | 只对有要求的租户固定地理位置 |
-| 推广期定价 | Gemini 4 Argon 的 $2/$10 维持至 2026 年 11 月 30 日，此后为 $4/$20；Gemini 3.8 Flash 的 $0.75/$3.75 维持至 2026 年 12 月 31 日，此后为 $1.50/$7.50；GPT-5.6 Sol 的 $4/$20 优惠仅承诺“至少持续到”11 月 21 日（标价 $5/$30） | 基于优惠价制定的预算可能低估最多 2 倍 | 按标价预测 |
+| 推广期定价 | Gemini 4 Argon 的 $2/$10 维持至 2026 年 11 月 30 日，此后为 $4/$20；Gemini 3.8 Flash 的 $0.75/$3.75 维持至 2026 年 12 月 31 日，此后为 $1.50/$7.50；GPT-5.6 Sol 的 $4/$20 优惠注明持续至 2026 年 11 月 30 日，未公布优惠后的价格（此前 $5/$30 的标价是根据公布的降幅推算的，并未公开） | 基于优惠价制定的预算可能低估最多 2 倍 | 按标价预测 |
 | 收费的拒绝响应 | Anthropic：自 2026 年 9 月 24 日起，`bio`、`frontier_llm` 和 `reasoning_extraction` 类别在输出前的拒绝也收费 | 探测这些领域的红队与评估套件会产生成本 | 按 `stop_details.category` 拆分支出 |
 | 运行时计费项 | Claude Managed Agents：运行会话每小时 $0.08，另计 token，且无 Batch 折扣；OpenAI Agents API：托管沙箱计算资源，自 10 月 9 日起仅在活跃轮次计费；gpt-live-1：每会话分钟 $0.05，另计后端 token | token 之外的第二类计费 | 将空闲及运行时行为纳入每任务成本模型 |
 
@@ -112,7 +112,7 @@ FinOps Foundation 的框架：在许多部署中，**inference（推理）占整
 - **先 showback（展示性分摊），后 chargeback（费用回收）。** 先从可视化仪表板开始（按 provider、model、team、tenant 切分，并带每日预测和突增告警），等标签足够可信后再转入对账计费。
 - **Unit economics（单元经济性）。** 跟踪每用户、每次对话、每个已解决 ticket（工单）或 case（案例）的成本，以及 AI 成本占收入和毛利的比例。把 AI 产品当作 cost-of-goods business 来教。
 - **Margin reality（毛利现实）。** 已有报告快照显示，AI 产品的 gross margins（毛利率）比传统 SaaS 低约 25-30 个百分点，因为每次请求都有可变的 token 成本。这也是为什么 **outcome-based pricing（按结果定价）** 正在上升的原因，例如按每个已解决支持工单收费的固定价格。要求是：在按结果定价之前，先知道你的每次解决成本。
-- **默认拒绝超预算请求。** 供应商上限控制较粗。Anthropic 的使用层级（Start、Build、Scale）分别有 $500、$1,000、$200,000 的月度支出上限；触顶后，整个组织会收到带 `enforced_spend_limit_reached`、没有 `retry-after` 的 HTTP 429，直到下个月 1 日 00:00 UTC 才重置。Claude Managed Agents 的会话预算（2026 年 8 月 7 日）则以 `budget_reached` 暂停单个会话，这才是合适的粒度。应将自己的按功能和按会话预算设置得远低于供应商上限，让失控功能触发内部告警，而非导致所有产品被供应商切断。
+- **默认拒绝超预算请求。** 供应商上限控制较粗。Anthropic 的使用层级（Start、Build、Scale）分别有 $500、$1,000、$200,000 的月度支出上限；触顶后，整个组织会收到带 `enforced_spend_limit_reached`、没有 `retry-after` 的 HTTP 429，直到下个月 1 日 00:00 UTC 才重置。Claude Managed Agents 的会话预算（2026 年 8 月 7 日）则以 `budget_reached` 暂停单个会话，这才是合适的粒度。应将自己的按功能和按会话预算设置得远低于供应商上限，让失控功能触发内部告警，而非导致所有产品被供应商切断。预算也是被盗用时的损失上限：Google Threat Intelligence 和 Mandiant 于 2026 年 11 月 3 日报告，其处理的 LLMjacking 事件中，欺诈费用单日超过 $100,000，累计最高达 $1 million 后访问才被撤销，攻击者还启用了受害者从未开启过的 LLM 服务。对未启用模型或服务产生的支出设置告警。
 - **工具。** Gateways 提供实时的每次请求控制和支出上限；FinOps platforms（FinOps 平台）（Helicone、Vantage、Finout、Amnic，以及云成本工具）提供跨云分摊和 chargeback。成熟栈会同时运行两者。标准化某个工具之前，要先核实其当前状态；这一类工具变化很快（例如 Helicone 于 2026 年 3 月被 Mintlify 收购），因此应保持成本数据可导出至自有数仓。
 
 ---

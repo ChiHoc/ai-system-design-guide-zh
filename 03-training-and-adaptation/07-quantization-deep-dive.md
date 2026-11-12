@@ -52,7 +52,7 @@ AWQ 观察到，约 **1% 的权重“显著”**（它们与较大的激活值�
 | **NVFP4** | 16 个值 | 每块一个 FP8（E4M3）缩放值，另有每张量一个 FP32 缩放值 | NVIDIA Blackwell、Rubin |
 | **MXFP4**（OCP Microscaling） | 32 个值 | 每块一个 2 的幂（E8M0）缩放值 | AMD MI350 和 MI455X、NVIDIA Blackwell |
 
-它已成为主流的证据包括：NVIDIA 将 Vera Rubin NVL72 机架的 NVFP4 推理性能标为 3,600 PFLOPS；MLPerf Inference v6.1（2026 年 9 月）中已有提交从 FP8 转向 FP4，包括 NVFP4 权重配合 FP8 KV 缓存；DeepSeek-V4 的 MoE 专家权重使用 FP4，而大多数其他参数使用 FP8。检查点在不同厂商硬件间也越来越可移植：SGLang v0.5.18 在 AMD 上加载 NVFP4 检查点时将其重新量化为 MXFP4，并报告五个大型 MoE 模型的 GSM8K 恢复率为 97.5% 至 100.2%。
+它已成为主流的证据包括：NVIDIA 将 Vera Rubin NVL72 机架的 NVFP4 推理性能标为 3,600 PFLOPS（稀疏计算数值；稠密训练额定性能为 2,520 PFLOPS）；MLPerf Inference v6.1（2026 年 9 月）中已有提交从 FP8 转向 FP4，包括 NVFP4 权重配合 FP8 KV 缓存；DeepSeek-V4 的 MoE 专家权重使用 FP4，而大多数其他参数使用 FP8。检查点在不同厂商硬件间也越来越可移植：SGLang v0.5.18 在 AMD 上加载 NVFP4 检查点时将其重新量化为 MXFP4，并报告五个大型 MoE 模型的 GSM8K 恢复率为 97.5% 至 100.2%。
 
 **内核路径仍需注意。** 低精度只有在内核路径足够好时才有优势。NVIDIA 自己在 B200/GB200 上运行 Nemotron 3.5 Lightning 的 Dynamo 配方时，测得 BF16 比采用 Marlin 内核的 NVFP4 **快 80%**，比采用 CuTeDSL 内核的 NVFP4 仍快 12%。vLLM v0.30.0 在 SM100/103 上将 FlashInfer CuTeDSL 设为默认 NVFP4 W4A16 路径，替代 Marlin，因此同一个检查点在引擎升级后速度也可能变化。迁移前，应对准确的模型、引擎版本和内核后端做基准测试。
 

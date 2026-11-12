@@ -32,12 +32,13 @@
 
 **细微差别**：生产级栈不再把工具定义“硬编码”进系统提示词；它们使用 **动态清单（Dynamic Manifests）**，仅根据用户意图拉取必要的工具。
 
-2026 年，以下四项模型提供商侧的变化会影响运行框架代码：
+2026 年，以下五项模型提供商侧的变化会影响运行框架代码：
 
 - **规模最大的 Claude 模型不再支持强制工具调用。**Fable 5.1、Mythos 5.1、Opus 5.5 和 Sonnet 5.5 在 `tool_choice` 为 `any` 或 `tool` 时返回 HTTP 400；仅支持 `auto` 和 `none`。Haiku 5.5 仍接受强制 `tool_choice`，但响应会以工具调用开头，不包含 thinking 块。旧的“强制工具调用以获取 JSON”提取模式需要改用 `auto` 加严格工具模式，或改用结构化输出。
 - **工具可在对话中途变化而不丢失缓存。**Anthropic 于 9 月 22 日推出的 `inline-tools-2026-09-15` beta 允许在对话中途的系统消息内定义、替换或移除工具，而不使提示词缓存失效；它还可将拉取到的 MCP 工具列表固定在 `mcp_tool_listing` 块中，防止服务器在会话中途偷换定义。
 - **GPT-6 Astra 的工具调用需要 Responses API。**Astra 不再支持 `temperature`、`top_p` 和 logprobs，因此曾靠调整采样参数或读取 logprobs 来路由工具的运行框架需要采用其他机制。
-- **Claude 也不再支持采样参数。**Anthropic API 版本 `2026-10-21`（10 月 21 日）起，所有模型上的 `temperature`、`top_p` 和 `top_k` 即使使用默认值也会返回 HTTP 400。新 SDK 主版本（Python 2.0.0、TypeScript 1.0.0、Go 2.0.0 等）默认发送该版本，并改用 Apache 2.0 许可证，因此例行升级 SDK 会让仍传入 `temperature=0` 的工具路由代码失效。
+- **Claude 也不再支持采样参数。**Anthropic API 版本 `2026-10-21`（10 月 21 日）起，所有模型上的 `temperature`、`top_p` 和 `top_k` 即使使用默认值也会返回 HTTP 400。全部八个新版 SDK 和 CLI 主版本（Python 2.0.0、TypeScript 1.0.0、C# 13.0.0、Go 2.0.0、Java 3.0.0、PHP 1.0.0、Ruby 2.0.0 和 `ant` CLI 2.0.0）默认发送该版本，并改用 Apache 2.0 许可证，因此例行升级 SDK 会让仍传入 `temperature=0` 的工具路由代码失效。
+- **服务端线程会冻结工具列表。**Anthropic 消息线程测试版（2026 年 11 月 2 日）只在创建请求中接受系统提示和工具，`tool_choice` 或 `mcp_servers` 变化时以 400 `thread_fingerprint_mismatch` 拒绝，与对话中途更改工具冲突；线程也可能随时返回 404，因此运行框架应保存对话记录并重放（见[智能体记忆与状态](05-agent-memory-and-state.md#生产实现)）。
 
 ---
 
@@ -221,7 +222,7 @@ sequenceDiagram
 |-----------|--------|--------------|
 | **Tasks**（`io.modelcontextprotocol/tasks`） | Beta；由 AWS 贡献、改为基于轮询的生命周期 | 工具调用可以返回任务句柄；客户端轮询 `tasks/get`，通过 `tasks/update` 推送中途输入，并以 `tasks/cancel` 取消。这是处理超出单次请求生命周期工作的标准方式。 |
 | **MCP Apps** | Stable；自 2026 年 1 月 26 日起正式发布 | 工具声明 `ui://` 模板；宿主在 sandboxed iframe 中渲染（无 DOM 访问、默认拒绝 CSP），UI 到宿主的通信通过 postMessage 承载 JSON-RPC，UI 触发的动作仍经过同一工具调用同意路径。Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等均可渲染。 |
-| **企业托管授权（EMA）** | Stable；2026 年 6 月 18 日发布 | 组织通过 IdP 集中配置 MCP 服务器访问：OIDC 或 SAML 断言经 RFC 8693 交换为 ID-JAG，再由 RFC 7523 JWT bearer grant 换取 MCP access token，无需逐用户同意屏幕。Okta 是首个支持的 IdP；Claude 和 VS Code 在发布时即支持。ID-JAG 授权本身仍是 IETF OAuth 工作组的 Internet-Draft（-04），并非 RFC，因此线缆协议仍可能变化。 |
+| **企业托管授权（EMA）** | Stable；2026 年 6 月 18 日发布 | 组织通过 IdP 集中配置 MCP 服务器访问：OIDC 或 SAML 断言经 RFC 8693 交换为 ID-JAG，再由 RFC 7523 JWT bearer grant 换取 MCP access token，无需逐用户同意屏幕。Okta 是首个支持的 IdP；Claude 和 VS Code 在发布时即支持。自 2026 年 10 月 30 日起，文档列出 Okta、Ping Identity（PingFederate 13.1+）、Descope、Athenz、Janssen 和 ThunderID 可签发并接受 ID-JAG；Auth0、WorkOS AuthKit 和 Scalekit 在早期访问中接受；Stytch 和 AuthPlane 接受；Keycloak 为实验性支持（26.7.0 及更高版本需启用功能开关）。除非购买 Okta for AI Agents，否则 Okta 每用户每资源应用每月最多签发 250 个 ID-JAG，对智能体集群是实际上限；各实现跟踪的草案修订版也不同。ID-JAG 授权本身仍是 IETF OAuth 工作组的 Internet-Draft（-04），并非 RFC，因此线缆协议仍可能变化。 |
 
 ### 迁移清单
 
@@ -245,7 +246,7 @@ sequenceDiagram
 | 传输可扩展性 / 无状态核心 | 已在 2026-07-28 修订中**交付**（见[无状态化改造](#mcp-2026-07-28-无状态化改造)）。8 月 22 日的路线图更进一步：以 Streamable HTTP 为唯一绑定，本地服务器也通过 stdin/stdout 使用它 |
 | MCP Apps（服务器渲染 UI） | **Stable。**2026 年 1 月 26 日作为首个正式扩展发布；Claude、ChatGPT、VS Code、Goose 和 Microsoft 365 Copilot 等可渲染。Apps SDK 于 9 月 8 日在 ext-apps 2.0.0 中迁移到 v2 TypeScript 包，但线缆协议未变，因此 2.x View 能在 1.x 宿主运行，2.x 宿主也能渲染 1.x View：SDK 层有破坏性变化，线缆层没有，这正是扩展框架的设计目标 |
 | Tasks 扩展（长时间运行工作） | **Beta。**2026-07-28 修订将其作为 `io.modelcontextprotocol/tasks` 发布，并改为基于轮询的任务句柄；扩展仓库目前仍只有 v0.2.x 预发布标签，Beta 阶段允许记录在案的破坏性变化，因此接口仍在稳定中。10 月成立的 Tasks and Events 工作组负责该扩展。8 月 22 日路线图计划在组合审查后最终将 Tasks（SEP-2663）纳入核心协议，使任务、订阅和进度通知共用生命周期、取消模型和错误表面 |
-| 企业认证 | **Stable。**2026 年 6 月 18 日以企业托管授权扩展形式发布（Okta 为首个 IdP；Claude 和 VS Code 发布时支持）。下一步是智能体身份：DPoP 发送方约束令牌（SEP-1932）和工作负载身份联合（SEP-1933）仍是开放草案，但 TypeScript 客户端 2.1.0 已支持 DPoP |
+| 企业认证 | **Stable。**2026 年 6 月 18 日以企业托管授权扩展形式发布（Okta 为首个 IdP；Claude 和 VS Code 发布时支持）。截至 10 月 30 日支持表已增加到十余家 IdP 和认证供应商，不同草案修订版的互操作性不均。下一步是智能体身份：DPoP 发送方约束令牌（SEP-1932）和工作负载身份联合（SEP-1933）仍是开放草案，但 TypeScript 客户端 2.1.0 已支持 DPoP |
 | MCP Server Cards（连接前发现） | **Beta。**SEP-2127 于 10 月 6 日定稿（扩展 ID 为 `io.modelcontextprotocol/server-card`）。卡片可位于任意 URI；`<streamable-http-url>/server-card` 是推荐位置，而非强制要求。客户端通过域名的 AI Catalog `/.well-known/ai-catalog.json` 发现卡片。这个跨协议索引由 Linux Foundation 旗下的 Agent Card Working Group 维护，也列出 A2A Agent Card 和 Claude Code 插件。卡片有意不包含工具、资源或提示词列表，因此客户端仍需通过运行时列表调用获知工具面。它与核心的 `server/discover` RPC 不同 |
 | MCP Registry | 仍处于预览（`registry.modelcontextprotocol.io`），API 冻结在 v0.1；GA 时间尚未公布。8 月 6 日发布的 v1.8.1 修复了 GitHub Pages 组织命名空间接管问题 |
 | 通过 MCP 提供 Skills（新增） | **Beta。**SEP（SEP-2640）于 2026 年 9 月 13 日以 `io.modelcontextprotocol/skills` 扩展形式定稿，TypeScript SDK 于 10 月 23 日在 2.4.0 中发布支持；见下文 |
@@ -498,7 +499,7 @@ STDIO MCP 服务器隐含地把进程边界当作信任边界，而 2026 年不�
 
 ### SDK 默认限制与逐工具授权
 
-**SDK 现默认实施的限制。**2026 年 8 月 19 日至 9 月 30 日的一批拒绝服务修复改变了默认值，值得所有 MCP 端点借鉴：TypeScript 2.1.0 和 Python 将请求体限制为 4 MiB（HTTP 413），TypeScript 将 JSON-RPC 批量请求限制为 100 条；CVE-2026-59951 表明未回收的有状态会话会耗尽内存，因此 Python 1.30.0 和 2.2.0 会关闭空闲 30 分钟的旧版有状态会话，并将每台服务器的会话上限设为 10,000（超限返回 503）；Go 1.8.0 限制 JSON 嵌套深度、SSE 事件大小和 stdio 行长度。客户端同样会受到攻击：Python 客户端曾同步获取服务器声明的 `outputSchema` 中任意 `$ref`，且没有超时（GHSA-rwrf-2pqf-9j8j），造成 SSRF 和本地文件读取。逐会话服务器状态是 DoS 攻击面，这也是无状态修订在运维上的理由；工具输出 schema 则是客户端接收的攻击者可控输入。
+**SDK 现默认实施的限制。**2026 年 8 月 19 日至 9 月 30 日的一批拒绝服务修复改变了默认值，值得所有 MCP 端点借鉴：TypeScript 2.1.0 和 Python 将请求体限制为 4 MiB（HTTP 413），TypeScript 将 JSON-RPC 批量请求限制为 100 条；CVE-2026-59951 表明未回收的有状态会话会耗尽内存，因此 Python 1.30.0 和 2.2.0 会关闭空闲 30 分钟的旧版有状态会话，并将每台服务器的会话上限设为 10,000（超限返回 503）；Go 1.8.0 限制 JSON 嵌套深度、SSE 事件大小和 stdio 行长度。客户端同样会受到攻击：Python 客户端曾同步获取服务器声明的 `outputSchema` 中任意 `$ref`，且没有超时（GHSA-rwrf-2pqf-9j8j），造成 SSRF 和本地文件读取。FastMCP 客户端的问题更严重（GHSA-gpgx-58w2-xwwf，严重，10 月 16 日）：恶意服务器可返回一个 `outputSchema`，其自引用标题未经清洗即进入 Python 的 `ForwardRef`，解析成功的结构化工具结果时就以客户端权限执行攻击者代码；异常处理器只记录日志，使调用看似成功（已在 3.4.8 和 4.0.11 修复；服务器提供的表单 elicitation schema 是第二条路径）。浏览器也是客户端：Java SDK 无状态 servlet 传输层（GHSA-hp8w-r5wh-cw9q，CVSS 7.1，10 月 20 日）无论 `Content-Type` 如何都解析 JSON-RPC，因此网页可让访客浏览器以 `text/plain` no-cors 简单请求发送 `tools/call`，无需 CORS 预检或 DNS 重绑定（已在 `mcp-core` 0.18.5、1.1.5 和 2.1.0 修复；同日还有 GHSA-2hm9-qff2-hrpj，无认证 `initialize` 洪泛造成永不回收的会话）。逐会话服务器状态是 DoS 攻击面，这也是无状态修订在运维上的理由；工具输出 schema 则是客户端接收的攻击者可控输入。
 
 **走在规范前面的逐工具授权。**TypeScript 服务器 2.1.0（9 月 23 日）新增针对每个工具、资源和提示词的请求时范围质询（`requireScopes`），在处理器运行前返回 HTTP 403 `insufficient_scope`；TypeScript 客户端 2.1.0 加入 DPoP 发送方约束令牌（RFC 9449，遵循草案 SEP-1932），使单独窃取到的持有者令牌不足以完成访问。
 
@@ -506,7 +507,11 @@ STDIO MCP 服务器隐含地把进程边界当作信任边界，而 2026 年不�
 
 无状态核心让人容易尝试一种捷径：既然请求不再依赖会话，就在启动时创建一个服务器对象和一个传输对象，让所有客户端共用。官方 TypeScript SDK 中，这种模式造成了跨租户泄露。**CVE-2026-111770**（CVSS 7.7，2026 年 10 月）：多个客户端共用服务器或传输对象时，一个客户端的响应可能被交付给另一个客户端。受影响范围为 `@modelcontextprotocol/server` 2.0.0 至 2.2.x，2.3.0 已修复，但这不是可直接替换的升级：2.3.0 强制每个无状态请求或每个会话各自创建一个服务器和传输对象，因此启动时只创建一次的应用必须重构。
 
-同一发布周期还暴露了另一个值得注意的默认设置。拒绝其他服务所签发令牌的受众检查（CVE-2026-111771）已在 `sdk` 1.32.0 和 `server` 2.3.0 修复，但它是**可选启用**的：只有传入 `expectedResource` 才会生效。升级时未配置它，漏洞仍然存在。
+同一发布周期还暴露了另一个值得注意的默认设置。拒绝其他服务所签发令牌的受众检查（CVE-2026-111771）已在 `sdk` 1.32.0 和 `server` 2.3.0 修复，但它是**可选启用**的：只有传入 `expectedResource` 才会生效。升级时未配置它，漏洞仍然存在。2026 年 10 月 15 日出现第三项：**CVE-2026-111768**（CVSS 7.5）表明服务器未限制每个请求验证的数组元素和对象键数量，因此一个未认证请求即使位于默认 4 MiB 请求体限制内也能耗尽堆内存（`sdk` 1.3.0 至 1.31.0、`server` 2.0.0 至 2.2.0）。1.32.0 和 2.3.0 的修复在 `McpServer` 上增加默认关闭的 `maxToolInputElements` 选项；公告明确指出单独升级不会改变任何东西，并建议降低 `maxRequestBodySize`。
+
+共享对象缺陷并非 MCP 独有。Strands Agents 的 A2A 服务器（**CVE-2026-115419**，CVSS 8.1，10 月 22 日）在不同 `context_id` 调用方之间共享对话历史，使多用户部署中的已认证调用方可读取其他人的历史或影响其模型行为；`strands-agents` 1.43.0 和 `@strands-agents/sdk` 1.5.0 通过工厂按 `context_id` 构建智能体，公告给出的临时办法是每个租户使用独立 A2A 服务器。
+
+身份绑定也必须默认拒绝。MCP C# SDK 公告 GHSA-x863-g495-4cjc（CVSS 7.5，11 月 3 日）的有状态 Streamable HTTP 会话仅根据 `NameIdentifier`、`sub` 或 UPN 声明绑定用户，因此缺少三个声明的两个主体会比较为 `null == null`；持有受害者 `Mcp-Session-Id` 的第二个用户可在其会话内操作并终止会话。触发需要自定义认证处理器不输出这些声明，但通用规则是：缺失身份声明是错误，绝不是可比较的值。`ModelContextProtocol.AspNetCore` 1.4.2 和 2.3.1 修复了问题；1.4.2 还验证 PKCE 支持和元数据 issuer，因此依赖无元数据的 2025-03-26 OAuth 发现方式的服务器必须显式启用 `ModelContextProtocol.Authentication.AllowLegacyOAuthMetadataFallback`。
 
 由此可推广出几条经验：
 
@@ -516,15 +521,17 @@ STDIO MCP 服务器隐含地把进程边界当作信任边界，而 2026 年不�
 
 ### 面向生产 MCP 的纵深防御检查清单
 
-- 所有远程 MCP 服务器都运行在带有 OAuth 2.1、PKCE 和受众绑定令牌（RFC 8707）的后面，并在每次请求中验证签名、签发者和受众。SDK 的受众检查默认关闭（TypeScript 使用 `expectedResource`），因此要显式启用。
+- 所有远程 MCP 服务器都运行在带有 OAuth 2.1、PKCE 和受众绑定令牌（RFC 8707）的后面，并在每次请求中验证签名、签发者和受众。SDK 的受众检查默认关闭（TypeScript 使用 `expectedResource`），因此要显式启用；输入元素上限 `maxToolInputElements`（TypeScript 1.32.0 / 2.3.0）也默认关闭，须一并启用。
+- 会话或状态句柄绑定非空用户身份；身份声明缺失的请求直接拒绝，绝不进行比较（C# SDK 1.4.2 / 2.3.1）。
 - 服务器和传输对象按请求或会话创建，绝不在多个客户端间共享（CVE-2026-111770）。
 - 客户端将每份存储的凭据绑定到签发者，并拒绝将其发送给 MCP 服务器指定的授权服务器。
 - 可写和敏感工具要求逐级授权范围（403 `insufficient_scope`）；高价值部署使用绑定 DPoP 的令牌。
-- 本地 HTTP 服务器绑定回环地址，校验 `Origin` 和 `Host`；限制请求体大小（4 MiB），并限制及回收服务器会话。
+- 本地 HTTP 服务器绑定回环地址，要求 `Content-Type: application/json`，校验 `Origin` 和 `Host`，即便在回环地址也要认证；限制请求体大小（4 MiB），并限制及回收服务器会话。
 - STDIO 服务器运行在容器内，`network: none`、根文件系统只读、无宿主卷挂载，并限制 `nproc` 和 `memory`；启动命令及参数均须加入白名单。
 - 每次工具调用都会记录用户身份、绑定的令牌受众、工具名称、参数哈希和结果哈希。日志发送到仅追加存储。
 - 在每个 MCP 服务器前放置速率限制器，并按用户身份划分范围。对可写工具，突发预算要很紧。
 - 工具参数在到达服务器之前先经过内容过滤：对字符串字段进行基于模式的提示注入检测，对结构化字段进行模式校验，对不需要 shell 元字符的工具直接硬拒绝。
+- 客户端将服务器声明的输出和 elicitation schema 视为攻击者输入，并运行已修补的库（FastMCP 3.4.8 / 4.0.11 或更高版本）。
 - 工具结果在回传给模型之前先经过输出验证器：PII 检测、密钥检测、大小上限、针对已知外泄标记的内容过滤。
 - 高危工具（文件写入、shell 执行、外发 HTTP）需要人工批准步骤或签名能力令牌，而不是依赖模型安全地调用它们。
 
@@ -669,7 +676,7 @@ MCP 本身并不能解决这个问题。协议提供工具目录（`tools/list` 
 ### 问：2026-07-28 修订版让 MCP 无状态了。现在能否在负载均衡器后让所有客户端共用一个服务器对象？
 
 **强回答：**
-可以运行多个实例，但不能让多个客户端共用同一个对象。无状态意味着协议会话不再把客户端绑定到某个实例，因此任何副本都可处理任何请求；这不代表进程内对象可以安全共享：服务器和传输对象仍保存处理中请求映射和响应路由信息。官方 TypeScript SDK 已通过 CVE-2026-111770 证明这一点：多个客户端共用服务器或传输对象时，一个客户端的响应可能被交给另一个客户端；2.3.0 的修复要求修改代码，为每个无状态请求或会话创建服务器和传输对象。我的设计会在无状态端点上按请求创建服务器，把跨调用状态保存在绑定到已认证用户的服务器签发句柄中，显式开启 SDK 默认关闭的受众检查，并添加两个租户并发请求、响应绝不能串线的测试。我也会确认框架实际捆绑的 SDK 版本，因为基于 SDK 构建的封装库可能会晚数周才引入这些修复。
+可以运行多个实例，但不能让多个客户端共用同一个对象。无状态意味着协议会话不再把客户端绑定到某个实例，因此任何副本都可处理任何请求；这不代表进程内对象可以安全共享：服务器和传输对象仍保存处理中请求映射和响应路由信息。官方 TypeScript SDK 已通过 CVE-2026-111770 证明这一点：多个客户端共用服务器或传输对象时，一个客户端的响应可能被交给另一个客户端；2.3.0 的修复要求修改代码，为每个无状态请求或会话创建服务器和传输对象。我的设计会在无状态端点上按请求创建服务器，把跨调用状态保存在绑定到已认证用户的服务器签发句柄中，显式开启 SDK 默认关闭的受众检查和输入元素上限，并添加两个租户并发请求、响应绝不能串线的测试。我也会确认框架实际捆绑的 SDK 版本，因为基于 SDK 构建的封装库可能会晚数周才引入这些修复。
 
 ---
 
@@ -691,6 +698,12 @@ MCP 本身并不能解决这个问题。协议提供工具目录（`tools/list` 
 - AIR Security. “Plugin4Shell”（2026 年 9 月）。https://www.air.security/blog-posts/plugin4shell
 - Anthropic. “计算机使用工具”文档。https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool
 - [MCP TypeScript SDK 共享服务器与传输对象漏洞公告，CVE-2026-111770（GHSA-jm63-cq47-j5jp）](https://github.com/advisories/GHSA-jm63-cq47-j5jp)
+- [MCP TypeScript SDK 输入元素耗尽公告，CVE-2026-111768（GHSA-46jr-4wx8-v453）](https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-46jr-4wx8-v453)
+- [FastMCP 客户端 outputSchema 代码执行（GHSA-gpgx-58w2-xwwf）](https://github.com/PrefectHQ/fastmcp/security/advisories/GHSA-gpgx-58w2-xwwf)
+- [MCP Java SDK Content-Type 公告（GHSA-hp8w-r5wh-cw9q）](https://github.com/modelcontextprotocol/java-sdk/security/advisories/GHSA-hp8w-r5wh-cw9q)
+- [MCP C# SDK 会话身份绑定（GHSA-x863-g495-4cjc）](https://github.com/modelcontextprotocol/csharp-sdk/security/advisories/GHSA-x863-g495-4cjc)
+- [Strands Agents A2A 共享历史，CVE-2026-115419（GHSA-4v6f-7vjh-6x4m）](https://github.com/strands-agents/sdk-python/security/advisories/GHSA-4v6f-7vjh-6x4m)
+- [MCP 企业托管授权实现支持](https://modelcontextprotocol.io/extensions/auth/enterprise-managed-authorization)
 - NIST. “AI 智能体标准倡议”（Feb 2026）
 - JSON-RPC 2.0 规范。
 - Pydantic 文档。

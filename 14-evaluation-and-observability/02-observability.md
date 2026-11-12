@@ -176,7 +176,7 @@ async def rag_query(query: str) -> str:
 
 ---
 
-属性名应遵循 OpenTelemetry GenAI 语义约定（`gen_ai.*`），不要自创命名；LLM 专用后端会依赖这些属性展示视图，Langfuse v`4` SDK 默认也只导出 Langfuse、`gen_ai.*` 和已知 LLM 埋点作用域的 span。
+属性名应遵循 OpenTelemetry GenAI 语义约定（`gen_ai.*`），不要自创命名；LLM 专用后端会依赖这些属性展示视图，Langfuse v4 和 v5 SDK 默认也只导出 Langfuse、`gen_ai.*` 和已知 LLM 埋点作用域的 span（v5 的过滤器要求包含点号的 `gen_ai.` 前缀）。
 
 ### 埋点悄然失效时
 
@@ -483,7 +483,7 @@ alerts:
 | 工具 | 重点 | 最适合 | 留意事项 |
 |------|------|----------|----------|
 | LangSmith | 追踪与评测；轨迹转微调自 `2026` 年 9 月 24 日起公开测试 | LangChain 和 LangGraph 应用 | 自 `2026` 年 10 月 1 日起改用按 LangChain Standard Unit（LSU）计费（1 LSU = $1），取代按运行次数和 uptime 计费，因此应重新预测追踪量；自 `2026` 年 9 月 14 日起，SaaS 轨迹的延长留存最多为 `180` 天；自托管和 BYOC 不变 |
-| Langfuse | 基于 OpenTelemetry 的开源追踪与评测 | 自托管、隐私保护 | 自 `2026` 年 1 月起成为 ClickHouse 一部分；Python SDK v`4` 修改了 API，默认只导出 LLM 作用域的 span |
+| Langfuse | 基于 OpenTelemetry 的开源追踪与评测；AI Gateway 自 2026 年 11 月 4 日起公开测试 | 自托管、隐私保护 | 自 2026 年 1 月起成为 ClickHouse 一部分；Python SDK v5（2026 年 10 月 14 日）现在是 `pip install langfuse` 安装的版本，会破坏 v4 代码路径（见下文）。网关以保存在 Langfuse 中的供应商密钥转发原生 OpenAI 和 Anthropic 请求并追踪每次调用：成本归因更简单，但密钥托管和每条提示词都交给追踪供应商 |
 | Weights & Biases | 实验跟踪；Weave 用于 LLM 追踪与评测 | 同时跟踪训练和微调运行的 ML 团队 | 自 `2025` 年起成为 CoreWeave 一部分 |
 | Arize Phoenix | LLM 追踪与评测 | 生产环境监控 | Elastic-`2.0` 许可证（源码可用，非 OSI 开源）；Dynatrace 于 `2026` 年 10 月 1 日完成对 Arize 的 `$915M` 收购，并表示 Phoenix 继续可用 |
 | Helicone | API 代理日志 | 简单集成 | 被 Mintlify 收购（`2026` 年 3 月宣布）；采用前确认产品路线图 |
@@ -492,9 +492,10 @@ alerts:
 
 ### 集成示例：Langfuse（Python SDK v`4`）
 
-Langfuse Python SDK 自 v`3` 重写（`2025` 年 6 月）起就基于 OpenTelemetry，到 `2026` 年 9 月底版本为 `4.16.0`。旧教程中的 v`2` 模式（`langfuse.trace()`、`trace.span()`、`trace.generation()`、`span.end()`）已过时；应使用 `@observe()` 装饰器和 `start_as_current_observation()`：
+Langfuse Python SDK 自 v3 重写（2025 年 6 月）起就基于 OpenTelemetry。以下示例是 v4 代码，因此按原样运行时应固定 `langfuse>=4,<5`：v5 于 2026 年 10 月 14 日发布，Python 3.11 或更高版本上 `pip install langfuse` 现解析到 v5（11 月 5 日为 5.2.0）。v5 需要 Langfuse Cloud 或自托管 v4.59.0 或更高版本的服务端（不支持自托管 v3），移除 `api.scores_v3.get_many_v3()` 且没有别名（应使用 `api.scores.get_many()`），也移除 `api.trace.get/list`、`api.sessions`、`api.legacy.*`、`api.ingestion.batch`、`set_current_trace_io()` 和 `span.set_trace_io()`；它还将 span 属性中的元数据值编码为 JSON，并以 gzip 压缩 span 批次。迁移前请阅读 [v4 到 v5 升级指南](https://langfuse.com/docs/observability/sdk/upgrade-path/python-v4-to-v5)。旧教程中的 v2 模式（`langfuse.trace()`、`trace.span()`、`trace.generation()`、`span.end()`）已过时；应使用 `@observe()` 装饰器和 `start_as_current_observation()`：
 
 ```python
+# pip install "langfuse>=4,<5"  (v4 API; see the v5 notes above)
 from langfuse import get_client, observe, propagate_attributes
 
 langfuse = get_client()  # credentials from the LANGFUSE_* environment variables
@@ -608,6 +609,8 @@ v`4` 的两个行为值得注意。被装饰的函数会记录参数与返回值
 - OpenTelemetry GenAI 语义约定：https://opentelemetry.io/docs/specs/semconv/gen-ai/
 - Langfuse: https://langfuse.com/docs
 - Langfuse Python SDK v`3` 至 v`4` 升级指南：https://langfuse.com/docs/observability/sdk/upgrade-path/python-v3-to-v4
+- Langfuse Python SDK v4 至 v5 升级指南：https://langfuse.com/docs/observability/sdk/upgrade-path/python-v4-to-v5
+- Langfuse. “AI Gateway public beta”（2026 年 11 月 4 日）：https://langfuse.com/changelog/2026-11-04-ai-gateway-public-beta
 - LangSmith: https://docs.smith.langchain.com/
 - OpenAI Python SDK `httpx2` 说明：https://github.com/openai/openai-python/blob/main/httpx2.md
 

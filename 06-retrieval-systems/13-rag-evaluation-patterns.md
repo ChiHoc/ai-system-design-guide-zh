@@ -104,6 +104,8 @@ RAG Triad 是评估 RAG 系统的基础框架。它将正确性分解为三个�
 
 RAGAS（Retrieval Augmented Generation Assessment，检索增强生成评估）是目前采用最广泛的开源 RAG 评估框架，提供无需参考答案的参考无关（reference-free）指标。
 
+**维护注意事项：**截至 2026 年 11 月，该仓库（现为 vibrantlabsai/ragas）自 2026 年 2 月 24 日以来没有提交，最新版本为 v0.4.3（2026 年 1 月 13 日）。仓库尚未归档，下述指标定义仍然成立，但应固定版本、将依赖的提示词纳入自己的代码库，并准备仍在维护的替代方案（DeepEval 或追踪平台原生评估器），以防模型 SDK 变更导致其失效。
+
 ### 核心 RAGAS 指标
 
 ```
@@ -512,13 +514,13 @@ Haiku 5.5 只有在提示词（含缓存读写）不超过 100K token 时才保�
 
 | 工具 | 最适合 | 开源 | 核心优势 | 核心劣势 |
 |------|----------|------------|--------------|--------------|
-| **RAGAS** | 快速 RAG 评估、合成数据 | 是 | 无需参考答案的指标、社区强 | 指标结果缺少解释 |
+| **RAGAS** | 快速 RAG 评估、合成数据 | 是 | 无需参考答案的指标、广泛使用 | 指标结果缺少解释；自 2026 年 2 月以来没有提交（最新为 v0.4.3），应固定版本 |
 | **DeepEval** | CI/CD 集成、面向 LLM 的 TDD（测试驱动开发） | 是 | 兼容 pytest、自解释评分 | 配置更重 |
 | **TruLens** | RAG 三元组评估、可观测性 | 是 | 提出了 RAG Triad，追踪能力好 | 维护活跃度较低 |
 | **UpTrain** | 生产监控、漂移检测 | 是 | 混合评估（LLM + 启发式）、漂移告警 | 排序准确率较低 |
 | **Braintrust** | 团队协作、实验跟踪 | 商业 | 最佳 UI/UX、实验对比 | 高级功能付费 |
 | **LangSmith** | 追踪、评估、从追踪到微调的闭环 | 商业 | 与 LangChain/LangGraph 集成最深；其他技术栈也可通过 SDK 和 OTel 接入 | 自 2026 年 10 月 1 日起按 LSU 用量计费（1 LSU = $1）；SaaS 延长保留期的追踪记录自 2026 年 9 月 14 日起最多保存 180 天：不能当作审计日志 |
-| **Langfuse** | 自托管追踪与评估 | 是 | 原生支持 OTel，可导出；Python SDK 4.x 使用 `@observe()`（v2 的 `trace()` API 已移除） | 自托管除 Postgres 外还需运维 ClickHouse、Redis 和对象存储 |
+| **Langfuse** | 自托管追踪与评估 | 是 | 原生支持 OTel，可导出；Python SDK v5（2026 年 10 月 14 日；`pip install langfuse` 在 Python 3.11+ 上现在解析为 5.x，需要服务端 v4.59.0 或更高版本，移除 `api.scores_v3`、`set_current_trace_io()` 等 v4 调用，因此应固定 `langfuse<5` 或迁移 v4 示例） | 自托管除 Postgres 外还需运维 ClickHouse、Redis 和对象存储 |
 | **Arize Phoenix** | 自托管追踪与 RAG 评估 | 源码可用（Elastic-2.0） | 原生支持 OTel，检索视图强 | 自 2026 年 10 月 1 日起属于 Dynatrace：关注后续路线和许可证 |
 | **Promptfoo** | CI 断言、红队测试 | 是（MIT） | 声明式测试套件；OpenAI Evals 的迁移目标（2026 年 11 月 30 日关闭） | 现属 OpenAI（仍为 MIT 许可证）：需权衡供应商中立性 |
 

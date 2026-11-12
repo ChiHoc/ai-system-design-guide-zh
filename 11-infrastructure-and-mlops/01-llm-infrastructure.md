@@ -68,7 +68,7 @@ def should_use_api(requirements: dict) -> bool:
 | Ollama | 低 | 良好 | 开发、小规模 |
 | llama.cpp | 低 | 良好 | CPU 推理、边缘端 |
 
-**固定并及时修补推理引擎。** 服务引擎已成为 CVE 密集型依赖。vLLM 在 2026 年 8 月 11 日至 9 月 28 日间发布了 20 多条安全公告：包括即使设置 `trust_remote_code=False` 仍会执行恶意仓库处理器代码的模型加载 RCE（CVE-2026-90553），以及一次未认证请求即可令所有租户引擎崩溃的问题（CVE-2026-93592），两者均在 0.28.0 修复；10 月又新增一批公告，包括图像解码可能触及 Ghostscript 的漏洞（CVE-2026-115915）。建议至少使用 vLLM 0.32.0，并先检查其破坏性默认值变更（默认关闭 CORS、要求 Python 3.11、将 `max_tokens` 作为上限）。SGLang 严重漏洞中仍有项目未记录修复版本；10 月新增的两项包括 CVE-2026-111391（描述列出受影响版本直至当前的 0.5.22）和 CVE-2026-93034，因此应运行 0.5.22、保持 `DUMPER_SERVER_PORT` 未设置，并将其 ZMQ、dist-init 和调试端点限制在 Pod 内。Ollama 仅用于开发者机器，版本使用 0.35.0 或更高版本以修复可能导致 root 代码执行的 `/api/pull` 路径穿越漏洞（CVE-2026-103663）；无论如何都不要暴露该端点。版本和功能详情见[推理服务基础设施](../04-inference-optimization/06-serving-infrastructure.md)；安全视角见[LLM 安全](../12-security-and-access/01-llm-security.md#保护-ai-技术栈本身)。
+**固定并及时修补推理引擎。** 服务引擎已成为 CVE 密集型依赖。vLLM 在 2026 年 8 月 11 日至 9 月 28 日间发布了 20 多条安全公告：包括即使设置 `trust_remote_code=False` 仍会执行恶意仓库处理器代码的模型加载 RCE（CVE-2026-90553），以及一次未认证请求即可令所有租户引擎崩溃的问题（CVE-2026-93592），两者均在 0.28.0 修复；10 月又新增一批公告，包括图像解码可能触及 Ghostscript 的漏洞（CVE-2026-115915）。建议至少使用 vLLM 0.32.0，并先检查其破坏性默认值变更（默认关闭 CORS、要求 Python 3.11、将 `max_tokens` 作为上限）；加载第三方仓库的主机使用 0.33.0（11 月 2 日），因为它修复了特制仓库目录读取问题（GHSA-qrj2-j723-m6w8）。0.33.0 仅提供 CUDA 13.0 构建，旧机群需先升级到驱动 580 或更高版本。SGLang 严重漏洞中仍有项目未记录修复版本，包括 10 月的 CVE-2026-111391 和 CVE-2026-93034；当前 v0.5.23（11 月 2 日）两者均未修复，因此应运行 0.5.23、设置新增的 `SGLANG_ZMQ_ALLOWED_PEERS` 允许列表、保持 `DUMPER_SERVER_PORT` 未设置，并将其 ZMQ、dist-init 和调试端点限制在 Pod 内。Ollama 仅用于开发者机器，版本使用 0.35.0 或更高版本以修复可能导致 root 代码执行的 `/api/pull` 路径穿越漏洞（CVE-2026-103663）；无论如何都不要暴露该端点。版本和功能详情见[推理服务基础设施](../04-inference-optimization/06-serving-infrastructure.md)；安全视角见[LLM 安全](../12-security-and-access/01-llm-security.md#保护-ai-技术栈本身)。
 
 **镜像保存所服务的模型权重。** NVIDIA 于 2026 年 9 月 3 日确认将以 $12.93B 收购 Hugging Face，尚未公布交割日期。无论交易最终如何，使用经过审查的内部镜像仓库都能消除供应链与可用性依赖，也能降低恶意模型仓库攻击风险。
 
@@ -496,7 +496,7 @@ class MultiProviderClient:
 
 | 风险 | 2026 年案例 | 控制措施 |
 |------|-------------|----------|
-| 同一模型在不同平台上的退役时间不同 | Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役，而 Bedrock 已于 10 月 8 日将其移至 Legacy，生命周期结束日期为 2027 年 4 月 8 日；Claude Opus 4.1 于 8 月 5 日退出 Claude API，但在 Bedrock 上可运行至 2027 年 1 月 8 日，且 10 月 8 日起扩展使用价格上调 | 模型注册表按（模型、平台）索引，而不是只按模型 |
+| 同一模型在不同平台上的退役时间不同 | Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 和 Foundry 退役，而 Bedrock 已于 10 月 8 日将其移至 Legacy，生命周期结束日期为 2027 年 4 月 8 日；Claude Opus 4.1 于 8 月 5 日退出 Claude API，但在 Bedrock 上可运行至 2027 年 1 月 8 日，且 10 月 8 日起扩展使用价格上调。相同 Gemini ID 也不同：Vertex AI 于 2026 年 11 月 19 日退役 `gemini-3.6-flash`，2027 年 1 月 28 日退役 `gemini-3.7-flash`（替代为 `gemini-3.8-flash`，未说明自动路由），而 `gemini-3.5-flash` 在 Vertex 上至少保留至‘2027 年 5 月 19 日或更晚’ | 模型注册表按（模型、平台）索引，而不是只按模型 |
 | 闲置备用模型失去访问权限 | Bedrock 的 Legacy 模型不再向新客户开放；现有客户闲置 15 天后也可能失去访问权限 | 按计划演练灾备和季节性模型，不要只在事故期间使用 |
 | 通知窗口很短 | 2026 年 9 月 7 日起发布的 Bedrock 模型，Legacy 通知期为 6 个月或 45 天；Anthropic 为 60 天；OpenAI 对 GA 模型声明 6 个月，但 10 月 14 日通知称 GPT-4o、GPT-4o mini、GPT-4.1、GPT-4.1 mini 的快照及其微调版本将在约 3 个月后（2027 年 1 月 14 日）关闭；`gpt-5.4-cyber` 于 10 月 1 日退役时也只提前通知 20 天 | 按模型记录通知类别；不要依赖承诺的最短期限，随时准备好经认证的回退模型 |
 | 开放权重模型托管方停止提供模型 | Groq 于 8 月 16 日宣布免费和开发者层将停止提供 Llama 3.3 70B 与 Llama 3.1 8B，并提前通知 60 天 | 开放权重模型至少部署在两家托管方 |
@@ -589,11 +589,11 @@ flowchart LR
 | 内存带宽 | 每 GPU 23.3 TB/s |
 | 峰值 FP4 | 每 GPU 约 40 PFLOPS MXFP4；每个 Helios 机架 2.9 exaFLOPS |
 | 机架方案 | **Helios**：72 个 MI455X GPU、18 个 EPYC Venice CPU、Pensando 网络 |
-| 软件 | ROCm 7.x，优先支持 PyTorch / vLLM / SGLang |
+| 软件 | ROCm 10.x（10.0.0 于 2026 年 8 月 26 日发布；10.1.0 于 10 月 5 日发布并带 PyTorch 2.14.0），支持 PyTorch / vLLM / SGLang；vLLM 0.33.0 默认基于 ROCm 10.0 构建。应核查 AMD 兼容性矩阵中的 MI455X 状态，因为 10.0 硬件表列出的是 MI355X |
 
-每 GPU 432 GB 是核心优势：比 B300 和 Rubin 的 288 GB 高出 50%，而内存带宽和 FP4 算力已接近 Rubin。对于 MoE 服务（瓶颈在于让专家权重常驻）和 KV-cache 密集型长上下文工作负载，这一内存优势很实际。AMD 也已补上大部分软件差距；ROCm 7.x 不再像 2023 年那样构成否决项，量化检查点也能跨供应商移植（SGLang 可在 AMD 上加载时将 NVFP4 检查点重新量化为 MXFP4）。
+每 GPU 432 GB 是核心优势：比 B300 和 Rubin 的 288 GB 高出 50%，而内存带宽和 FP4 算力已接近 Rubin。对于 MoE 服务（瓶颈在于让专家权重常驻）和 KV-cache 密集型长上下文工作负载，这一内存优势很实际。AMD 也已补上大部分软件差距；ROCm 在 2026 年 8 月从 7.14 跳至 10.x 后，不再像 2023 年那样构成否决项，量化检查点也能跨供应商移植（SGLang 可在 AMD 上加载时将 NVFP4 检查点重新量化为 MXFP4）。
 
-前沿实验室已经作出部署承诺。AMD 于 2026 年 7 月 23 日称 Helios 已投产；OpenAI 预计从 2026 年第四季度开始部署 Helios；Anthropic 于 7 月 22 日同意部署最高 2 GW 的 MI450 系列 GPU，首个 GW 预计在 2027 年上半年上线。需要关注的是**大规模部署成熟度**：这些部署从 2026 年末延续到 2027 年，因此应把 AMD 视为 2027 年的第二来源产能，而不是当前的主力。超大规模云厂商（Meta、Microsoft、Oracle Cloud）都在运行混合机队。
+前沿实验室已经作出部署承诺。AMD 于 2026 年 7 月 23 日称 Helios 已投产；Anthropic 于 7 月 22 日同意部署最高 2 GW 的 MI450 系列 GPU，首个 GW 预计在 2027 年上半年上线。AMD 在 2026 年第三季度说明（11 月 3 日）中称已在该季度开始批量发运 MI455X，Anthropic、Meta、Microsoft、OpenAI 和 Oracle 等领先客户迅速启用了首批 Helios 机架；数据中心收入创纪录达 $8.5B，AMD 预计随着 HPE、Dell、Lenovo、Supermicro 等 OEM 和 ODM 合作伙伴开始发货，第四季度 Helios 部署将大幅增长（公司报告）。需要关注的仍是**大规模部署成熟度**：少数领先客户的首批机架不等于其他所有人都能获得大批产能，因此应按 2026 年末获得 OEM 供应、2027 年实现真正规模来规划。超大规模云厂商（Meta、Microsoft、Oracle Cloud）都在运行混合机队。
 
 ### Google TPU 与定制推理芯片
 
@@ -601,7 +601,7 @@ Google、OpenAI 和 Meta 现在把训练芯片与推理芯片分开；AMD 则通
 
 | 所有者 | 芯片 | 状态 | 说明 |
 |--------|------|------|------|
-| Google | TPU7x（Ironwood） | 2026 年 3 月 31 日正式可用 | TPU 8t（训练）和 8i（推理）于 2026 年 4 月公布，尚无可用日期 |
+| Google | TPU7x（Ironwood） | 2026 年 3 月 31 日正式可用 | TPU 8t（训练）和 8i（推理）于 2026 年 4 月公布。2026 年 10 月 27 日 Oracle 和 Google 宣布 OCI 将自 2027 日历年开始提供两者（计划中），成为 Google 之外首家提供 TPU 的超大规模云；未披露价格或区域 |
 | OpenAI（与 Broadcom 合作） | Jalapeño | 宣布于 2026 年末出货，2027 年量产 | 专用于推理；每芯片 13.4 PFLOPS MXFP4、216 GB HBM4（The Register、Hot Chips） |
 | Meta | MTIA 400 | 2026 年 8 月在 Hot Chips 公布 | 以训练为先；12 PFLOPS MXFP4、288 GB HBM3e（The Register）；面向推理的 MTIA 450 预计于 2027 年推出 |
 | AMD（Taalas） | 固化模型 ASIC | 2026 年 8 月 6 日宣布收购，预计第四季度完成，待审批 | 将权重刻入硅片；厂商称 Taalas HC1 为 Llama 3.1 8B 提供服务时达到约 17,000 token/s；超过 LoRA 规模的改动都需要重新流片 |
@@ -670,9 +670,9 @@ Cerebras 于 2026 年 5 月 13 日将 IPO 定价为 **$185/股**，募资 **$5.5
 
 对资深工程师的架构含义是：前沿模型提供商的推理边际成本下降速度，比公开 API 定价所暗示的更快。现货容量、非高峰推理批处理以及多区域故障切换，在 2026 年都更容易实现，因为底层建筑已经存在。
 
-**公告中的吉瓦数不等于可交付的吉瓦数。** Jefferies 估计美国数据中心 2026 年部署约 16–18 GW，2027 年实际容量上限约为 20 GW 出头，受先进封装与电力约束。Micron 表示 HBM 和 DRAM 需求到 2028 年前都将超过供应，内存而非逻辑芯片限制加速器供货，也推高了主机 DRAM KV offload 的成本。
+**公告中的吉瓦数不等于可交付的吉瓦数。** Jefferies 估计美国数据中心 2026 年部署约 16–18 GW，2027 年实际容量上限约为 20 GW 出头，受先进封装与电力约束。Micron 表示 HBM 和 DRAM 需求到 2028 年前都将超过供应，内存而非逻辑芯片限制加速器供货，也推高了主机 DRAM KV offload 的成本。地方政治也是约束：2026 年 11 月 3 日，AI 数据中心开发在 10 个州的地方投票中出现 41 次，选民只支持产业一次（Scientific American 统计）；Maine 的 Wells 通过追溯性 180 天暂停令，Kansas 的 Emporia 通过施工禁令。若计划自建 GPU 产能，选址审批应纳入关键路径。
 
-租赁价格也体现了供需压力。Silicon Data 的 B200 指数在 9 月初年内上涨 27.6%，10 月初为每 GPU 小时 $5.86，2026 年 11 月 1 日升至 $6.50，一个月上涨约 11%（11 月 1 日其他产品读数：B300 为 $7.56、H200 为 $3.46、H100 为 $2.93）。同期每 token API 价格仍在下降：GPT-6 Sol 于 9 月 22 日发布，价格为每百万 token $2/$10；GPT-5.6 Sol 标价为 $5/$30；10 月又推出了每百万 token $0.10/$0.50 的 Claude Haiku 5.5 和 $1/$5 的 GPT-6.1 Terra。因此，对租 GPU 的团队而言，2026 年自托管的盈亏平衡点向 API 移动。多供应商和多区域容量合同比过去更重要。
+租赁价格也体现了供需压力。Silicon Data 的 B200 指数在 9 月初年内上涨 27.6%，2026 年 11 月 1 日为每 GPU 小时 $6.50，11 月 5 日升至 $6.70，比 10 月 7 日的 $5.88 高约 14%（11 月 5 日其他产品读数：B300 持平于 $7.56、H200 为 $3.51、H100 为 $2.97；应阅读每日表格，因为指数页面 FAQ 的‘当前’价格已过时）。同期每 token API 价格仍在下降：GPT-6 Sol 于 9 月 22 日发布，价格为每 1M token $2/$10；GPT-5.6 Sol 标价为 $5/$30；10 月又推出了每 1M token $0.10/$0.50 的 Claude Haiku 5.5 和 $1/$5 的 GPT-6.1 Terra。因此，对租 GPU 的团队而言，2026 年自托管的盈亏平衡点向 API 移动。多供应商和多区域容量合同比过去更重要。
 
 ### 三层机队策略
 
@@ -707,8 +707,8 @@ flowchart TD
 ### 产能规划要点
 
 - 规划时要把**每个加速器的内存**与 FLOPS 同等对待。MoE 服务的瓶颈在于专家驻留。
-- 将 **CUDA 锁定**视为真实成本。ROCm 7.x 对大多数生产级服务来说已经足够好。Neuron 对 Anthropic 以及任何愿意承担移植工作的团队来说已经足够好。开放 RISC-V 对成本敏感型推理来说已经足够好。
-- 现在，超大规模云厂商的选择会像反过来那样驱动芯片选择。AWS = Trainium + Cerebras + 一部分 NVIDIA。Microsoft = NVIDIA + Maia。Google = TPU + 一部分 NVIDIA。Oracle = 大规模 NVIDIA（Vera Rubin NVL72 自 10 月 27 日起正式商用）。
+- 将 **CUDA 锁定**视为真实成本。ROCm 10.x 对大多数生产级服务来说已经足够好。Neuron 对 Anthropic 以及任何愿意承担移植工作的团队来说已经足够好。开放 RISC-V 对成本敏感型推理来说已经足够好。
+- 现在，超大规模云厂商的选择会像反过来那样驱动芯片选择。AWS = Trainium + NVIDIA，已宣布 Cerebras。Microsoft = NVIDIA + Maia。Google = TPU7x + NVIDIA（首批 Vera Rubin 云之一）。Oracle = 大规模 NVIDIA（Vera Rubin NVL72 自 10 月 27 日起正式商用），以及自 2027 年起提供 Google TPU 8t 和 8i（计划中），因此从 2027 年起 TPU 不再意味着必须使用 Google Cloud。实验室也自建芯片：OpenAI 使用 NVIDIA，首批 AMD Helios 机架已上线（AMD 于 11 月 3 日称），并计划自 2026 年末使用自己的 Jalapeño（已宣布）。
 - **API 每 token 价格持续下降**：a16z 的 [LLMflation 分析](https://a16z.com/llmflation-llm-inference-cost/)估计，2024 年能力不变时价格约每年下降 10 倍；但 2026 年 GPU 小时租价上涨。9 月 7 日，B200 的 12 个月租期为每 GPU 小时 $5.39，3 个月租期为 $5.73（Silicon Data）。长期租期如今更便宜，与过去等待现货降价的经验相反。
 
 ---
@@ -801,6 +801,11 @@ flowchart TD
 - NVIDIA Groq 3 LPX: https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai
 - SemiAnalysis，Vera Rubin NVL72 agent 推理: https://newsletter.semianalysis.com/p/vera-rubin-nvl72-agentic-inference
 - Amazon Bedrock 模型生命周期: https://docs.aws.amazon.com/bedrock/latest/userguide/model-lifecycle.html
+- Vertex AI 模型版本与退役日期：https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
+- AMD ROCm 发布说明：https://rocm.docs.amd.com/en/latest/about/release-notes.html
+- AMD 2026 年第三季度准备发言（2026 年 11 月 3 日）：https://newsroom.amd.com/documents/2026/11/84f4476b-f064-4f0f-957c-fe484853e178.pdf?download=1
+- Oracle 和 Google，Oracle Cloud Infrastructure 上的 TPU（2026 年 10 月 27 日）：https://www.googlecloudpresscorner.com/2026-10-27-Oracle-Brings-Google-TPUs-to-Oracle-Cloud-Infrastructure
+- Scientific American，2026 年数据中心投票结果：https://www.scientificamerican.com/article/2026-election-results-show-widespread-opposition-to-ai-data-centers/
 - Artificial Analysis，Vera Rubin NVL72 的 AA-AgentPerf 结果：https://artificialanalysis.ai/articles/vera-rubin-nvl72-agentperf
 - vLLM 公告 GHSA-4xqp-c3mv-qff7（`/health` 健康但引擎挂起）：https://github.com/vllm-project/vllm/security/advisories/GHSA-4xqp-c3mv-qff7
 - Silicon Data 租赁指数：https://www.silicondata.com/products/silicon-index/b200（另见 /b300、/h200、/h100）

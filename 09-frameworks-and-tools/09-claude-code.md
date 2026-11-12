@@ -1,6 +1,6 @@
 # Claude Code：自主编码代理
 
-Claude Code 是 Anthropic 的**终端原生自主编码代理**。与最初以补全为核心的 IDE 插件不同，它从第一天起就是智能体：读取代码库、编辑文件、运行命令、执行测试，并迭代直到任务完成。它提供 CLI（npm `latest` 为 2.1.316、`stable` 为 2.1.309，版本截至 2026 年 10 月 31 日）、IDE 扩展、桌面和网页会话，也可通过 Claude Agent SDK 作为库使用。
+Claude Code 是 Anthropic 的**终端原生自主编码代理**。与最初以补全为核心的 IDE 插件不同，它从第一天起就是智能体：读取代码库、编辑文件、运行命令、执行测试，并迭代直到任务完成。它提供 CLI（npm `latest` 自 2026 年 11 月 3 日起为 2.1.318，`stable` 为 2.1.311）、IDE 扩展、桌面和网页会话，也可通过 Claude Agent SDK 作为库使用。
 
 ## 目录
 
@@ -232,6 +232,8 @@ result = asyncio.run(run_coding_task(
 
 该包已从 `claude_code_sdk` / `ClaudeCodeOptions` 更名为 `claude_agent_sdk` / `ClaudeAgentOptions`；旧教程仍使用旧名称。SDK 捆绑 CLI，这也是 2026 年 9 月 CLI 默认模型变化时，SDK 自身 CI 必须固定模型的原因；而 CLI 在 10 月修改无头权限默认值后，SDK 调用方也会受到影响。
 
+**SDK hook 回调默认失效放行。**回调抛出异常、返回 `None` 或返回被拒的值均被视为无决策，因此操作继续执行。Claude Code 2.1.317（2026 年 11 月 2 日）为 Agent SDK hook 回调增加 `onFailure: "block"`，Python `claude-agent-sdk` 0.2.177（11 月 3 日）在 `HookMatcher` 上将其暴露为 `on_failure`；默认仍为 `"continue"`。护栏 hook 只有在故障时默认拒绝才是控制措施，因此每个安全 hook 都应设置 `on_failure="block"`；向旧版捆绑 CLI 传入该参数会抛出 `CLIConnectionError`。
+
 ---
 
 ## 子代理与并行
@@ -323,21 +325,21 @@ bypassPermissions   Everything but a short never-auto list       Disposable sand
 }
 ```
 
-团队规则放在 `.claude/settings.json`，组织策略放在受管设置中；下层配置无法覆盖受管策略。资深工程师应明确两点：针对命令字符串的拒绝规则只是减速带，因为 `python -c` 也能完成 `curl` 的事；`permissions.defaultMode` 中的 `auto` 和 `bypassPermissions` 在项目或本地设置中会被忽略，克隆来的仓库不能自行放宽沙箱。组织若完全不希望使用这两种模式，可在受管设置中分别将 `permissions.disableAutoMode` 或 `permissions.disableBypassPermissionsMode` 设为 `"disable"`。自 2.1.314 起，`permissions.blockWritesOutsideWorkingDirectories` 会让 Write、Edit 和 NotebookEdit 在任何权限模式下都拒绝工作目录以外的路径写入，是抵御“写入工作区外”攻击的一项低成本后备措施。自 2.1.200 起，界面将 `default` 模式标记为 **Manual**；两个名称都可使用。
+团队规则放在 `.claude/settings.json`，组织策略放在受管设置中；下层配置无法覆盖受管策略。资深工程师应明确两点：针对命令字符串的拒绝规则只是减速带，因为 `python -c` 也能完成 `curl` 的事；`permissions.defaultMode` 中的 `auto` 和 `bypassPermissions` 在项目或本地设置中会被忽略，克隆来的仓库不能自行放宽沙箱。组织若完全不希望使用这两种模式，可在受管设置中分别将 `permissions.disableAutoMode` 或 `permissions.disableBypassPermissionsMode` 设为 `"disable"`。自 2.1.314 起，`permissions.blockWritesOutsideWorkingDirectories` 会让 Write、Edit 和 NotebookEdit 在任何权限模式下都拒绝工作目录以外的路径写入，是抵御“写入工作区外”攻击的一项低成本后备措施。它只列出文件工具，因此 shell 写入仍依赖沙箱。同一版本还修复了已存副本过期后 `forceRemoteSettingsRefresh` 不生效（服务器不可达时会话可能没有策略就启动）以及通过 `claude -p --resume` 或 `--continue` 进入 worktree 时沙箱保护不生效的问题。自 2.1.200 起，界面将 `default` 模式标记为 **Manual**；两个名称都可使用。
 
 ### 生产环境安全规则
 
 1. **始终使用沙箱**：在容器或微型虚拟机中运行，网络出站默认拒绝并按允许列表放行。权限层可减少错误，沙箱负责限制影响范围。
 2. **Git 隔离**：开始前创建特性分支；合并前审查 diff。Manifold 于 2026 年 9 月 2 日披露的 GitSpawn 表明，在七款 CLI 智能体中，仓库自带的 `.git/config`（`core.fsmonitor`、`core.hooksPath`、clean 和 process filter）可在不提示的情况下运行沙箱外命令。该攻击要求 `.git` 目录被原样带入（归档、共享盘或同步文件夹）；正常 clone 不会带入。所以应在新 clone 上运行智能体，而不是复制来的目录，并用 `GIT_CONFIG_COUNT` / `GIT_CONFIG_KEY_n` / `GIT_CONFIG_VALUE_n` 在智能体环境中强制关闭风险配置（例如 `core.fsmonitor=false`、`core.hooksPath=/dev/null`）。这些环境覆盖项高于所有配置文件，包括仓库配置（只有显式 `git -c` 优先级更高）；`git config --global` 不行，因为本地仓库配置优先于全局配置。过滤器驱动名称由仓库决定，无法统一用这种方式关闭，因此新 clone 才是首要措施。
-3. **人工检查点**：生产部署需要人工审查最终 diff。GitHub 现允许 Copilot 代码审查的批准计入必需审查（2026 年 9 月 1 日公开预览，默认关闭），因此分支保护应确保智能体编写的 PR 不能仅由智能体批准。
+3. **人工检查点**：生产部署需要人工审查最终 diff。Copilot 代码审查批准自 2026 年 10 月 28 日正式可用后可计入必需审查（默认关闭、按文件路径限定、新提交会撤销），因此分支保护应确保智能体编写的 PR 不能仅由智能体批准。
 4. **密钥与目的地扫描**：对每次 Claude Code 输出运行 `truffleHog` 或 `git-secrets`，并阻止智能体会话创建新的公开仓库、gist，或向个人账户推送（PixelLeak 的外泄通道）。
 5. **预算**：设置 `--max-turns`（推荐 20-30）和 SDK 中的 `max_budget_usd`，避免循环失控。
-6. **最低版本**：Plugin4Shell（替换固定 SHA 的插件）在 2.1.179 修复，GitSpawn 的 `fsmonitor` 路径在 2.1.196 修复；Manifold 报告 `claude ultrareview` 的第二条路径在 2.1.252 仍未修复；2.1.292 修复了钩子审批和 auto mode 在网络路径（UNC）读取文件时绕过权限提示的问题。通过受管 `requiredMinimumVersion` 设置强制最低版本。
+6. **最低版本**：Plugin4Shell（替换固定 SHA 的插件）在 2.1.179 修复，GitSpawn 的 `fsmonitor` 路径在 2.1.196 修复；Manifold 报告 `claude ultrareview` 的第二条路径在 2.1.252 仍未修复；2.1.292 修复了钩子审批和 auto mode 在网络路径（UNC）读取文件时绕过权限提示的问题。通过受管 `requiredMinimumVersion` 设置强制最低版本；考虑写入边界、远程设置和 worktree 沙箱修复，2.1.314 是合理下限；使用 `onFailure: "block"` 的安全 hook 需要 2.1.317 或更高版本。
 7. **扩展就是代码**：插件、钩子和 mods（2.1.287，2026 年 10 月 1 日）不在沙箱中运行，拥有 Claude Code 自身对机器的访问权。应像依赖一样审查，并把每个 IDE 扩展市场视作独立供应链：2026 年 10 月 29 日，Cursor 市场上曾出现并非 Anthropic 构建的恶意 `Anthropic.claude-code` 版本（见[开发者工作站成为攻击目标](../07-agentic-systems/09-agentic-security-and-sandboxing.md#开发者工作站成为攻击目标)）。在开发者设备上应设置发布者允许列表并固定扩展版本。
 
 ### 企业控制项
 
-Claude Code 正成为受治理的基础设施。受管设置已支持模型允许列表（`availableModels`，自 2.1.283 起精确匹配）、`deniedModels`（2.1.283）、`allowedProviders`（2.1.285），以及版本上下限。`claude plugin eval`（2.1.269）可在发布插件前运行可复现的评分评估套件。`claude self-hosted-runner`（2.1.224，面向 Team 和 Enterprise）让网页、移动端和桌面端会话在你自己的机器上执行：Anthropic 运行控制平面，代码、凭据和网络出站仍留在你的边界内。Cursor（9 月 2 日推出 Self-hosted Machines）、OpenAI（9 月 10 日推出带自托管沙箱的 Agents API）和 GitHub（9 月 23 日预览 Copilot 应用中的本地沙箱）在同一时期提供了类似拆分。
+Claude Code 正成为受治理的基础设施。受管设置已支持模型允许列表（`availableModels`，自 2.1.283 起精确匹配）、`deniedModels`（2.1.283）、`allowedProviders`（2.1.285），以及版本上下限。自 2.1.318（11 月 3 日）起，`deniedMcpServers` 的 URL 条目也会阻止上游 URL 匹配的 Anthropic 提供服务器及云会话和自托管 runner 中的连接器；Claude Code 在 IDE 终端启动时不再安装或更新 IDE 扩展；`claude -p` JSON 结果携带 `credential_expires_at`（过期前 10 天起在 stderr 警告），使无人值守运行不因登录过期而终止。`claude plugin eval`（2.1.269）可在发布插件前运行可复现的评分评估套件。`claude self-hosted-runner`（2.1.224，面向 Team 和 Enterprise）让网页、移动端和桌面端会话在你自己的机器上执行：Anthropic 运行控制平面，代码、凭据和网络出站仍留在你的边界内。Cursor（9 月 2 日推出 Self-hosted Machines）、OpenAI（9 月 10 日推出带自托管沙箱的 Agents API）和 GitHub（9 月 23 日预览 Copilot 应用中的本地沙箱）在同一时期提供了类似拆分。
 
 ---
 
@@ -378,7 +380,7 @@ jobs:
           GIT_CONFIG_KEY_1: core.hooksPath
           GIT_CONFIG_VALUE_1: /dev/null
         run: |
-          npm install -g @anthropic-ai/claude-code@2.1.309   # pin the CLI version (stable channel)
+          npm install -g @anthropic-ai/claude-code@2.1.318   # pin the CLI version (at or above the 2.1.314 floor)
 
           printf '%s' "$ISSUE_BODY" | claude -p "Fix the bug described in the issue text on stdin.
           Rules:
@@ -399,7 +401,7 @@ jobs:
           branch: "ai-fix/${{ github.event.issue.number }}"
 ```
 
-这里有三处关键安全设计。Issue 正文由攻击者控制，因此只通过环境变量进入 shell（在 `run:` 中直接插入 `${{ }}` 是典型的 Actions 注入），并作为数据交给模型，同时限制工具范围。checkout 不把作业的写入 token 留在 `.git/config`，因此只有单独的 PR 步骤能推送。作业还固定了 CLI 和模型版本，避免 Claude Code 发布时悄然改变两者。若不想自行维护脚本，Anthropic 的 `anthropics/claude-code-action` 也封装了类似模式。
+这里有三处关键安全设计。Issue 正文由攻击者控制，因此只通过环境变量进入 shell（在 `run:` 中直接插入 `${{ }}` 是典型的 Actions 注入），并作为数据交给模型，同时限制工具范围。checkout 不把作业的写入 token 留在 `.git/config`，因此只有单独的 PR 步骤能推送。作业还固定了 CLI、模型版本和权限模式，避免 Claude Code 发布时悄然改变它们。若不想自行维护脚本，Anthropic 的 `anthropics/claude-code-action` 也封装了类似模式。GitHub 自己的这一架构于 2026 年 10 月 28 日以 **GitHub Agentic Workflows** 正式发布（详见[编码智能体指南](10-opencoderguide.md#github-copilot-microsoft-openai)）。其“安全输出”门禁以及在应用变更前扫描拟议改动的独立威胁检测作业，正是大多数手工流水线遗漏的部分。
 
 ### CI 成本模型
 

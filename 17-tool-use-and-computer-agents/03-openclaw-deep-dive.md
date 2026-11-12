@@ -51,7 +51,7 @@ openclaw gateway status
 - 普通聊天助手：你输入内容，它用文本回复
 - OpenClaw：你输入内容，它会**做事**，例如运行命令、编辑文件、发送电子邮件、控制智能家居设备、管理你的日历
 
-聊天助手也正从另一侧缩小差距。OpenAI dots（2026 年 9 月 29 日宣布）和 Meta Muse（9 月 8 日推出）为托管助手提供独立云端计算机；Anthropic 则把 Cowork 并入 Claude 应用，Claude 默认在行动前请求批准。OpenClaw 如今的区分点是自托管、模型选择和消息平台覆盖面，而不再只是行动能力。
+聊天助手也正从另一侧缩小差距。OpenAI dots（2026 年 9 月 29 日宣布）和 Meta Muse（9 月 8 日推出）为托管助手提供独立云端计算机；Anthropic 则把 Cowork 并入 Claude 应用，Claude 默认在行动前请求批准。Anthropic 的 Claude Duet（2026 年 10 月 21 日研究预览）更进一步：这是拥有独立云端计算机和浏览器、可跨已连接应用工作的主动智能体（见[持久型智能体表格](01-tool-use-landscape.md)）。OpenClaw 如今的区分点是自托管、模型选择和消息平台覆盖面，而不再只是行动能力。
 
 ---
 

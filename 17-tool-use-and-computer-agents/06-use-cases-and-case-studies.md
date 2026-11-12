@@ -1,6 +1,6 @@
 # 工具使用型 Agent 的使用场景与案例研究
 
-工具使用型 AI Agent 已经从演示走向生产。全球 AI Agent 市场在 2025 年达到 78 亿美元，预计 2026 年超过 109 亿美元。Gartner 在 2025 年 8 月预测，到 2026 年底，40% 的企业应用将嵌入特定任务 AI Agent，高于 2025 年不到 5% 的比例；又在 2025 年 6 月预测，到 2027 年底，超过 40% 的代理式 AI 项目将因成本上升、商业价值不明或风险控制不足而被取消。本章涵盖奏效与失效的类别，以及三个可在系统设计面试中引用的详细案例研究。
+工具使用型 AI Agent 已经从演示走向生产。2025 年发布的分析机构市场规模估算（例如 MarketsandMarkets）认为，AI Agent 市场在 2025 年约为 $7.8 billion，预测 2026 年超过 $10 billion；这些是预测，而非实测收入。Gartner 在 2025 年 8 月预测，到 2026 年底，40% 的企业应用将嵌入特定任务 AI Agent，高于 2025 年不到 5% 的比例；又在 2025 年 6 月预测，到 2027 年底，超过 40% 的代理式 AI 项目将因成本上升、商业价值不明或风险控制不足而被取消。本章涵盖奏效与失效的类别，以及三个可在系统设计面试中引用的详细案例研究。
 
 > [!NOTE]
 > 下文三个详细案例研究描述的是未具名组织，没有引用公开来源。其数字只用于说明模式，不应视为基准。类别章节和失败案例中另有具名、由供应商报告的结果。
@@ -213,6 +213,7 @@ Metrics Pipeline          Agent Layer              Actions
 | Meta Muse | 2026 年 9 月 8 日推出（Mac 应用 9 月 18 日） | 基于 Muse Spark 的消费者个人 Agent，在专属云端 VM（Muse Secure VM）中运行浏览器；接入零售合作伙伴和 1,500 多个连接器 | 按用户隔离：Agent 在自己的云端 VM 中浏览 |
 | Microsoft Copilot Autopilot（原 Scout） | 9 月底开始私有预览 | 客户租户内拥有专属身份、记忆、计算机和工作区的持久型 Agent | 在客户租户中以自身身份行动，不借用用户账户 |
 | Claude 应用（合并 Cowork） | 9 月 16 日起逐步向 Pro 和 Max 开放 | Cowork 与聊天合并至一个应用 | 默认在行动前请求批准 |
+| Anthropic Claude Duet | 2026 年 10 月 21 日起研究预览；美国 Pro、Max 和 Ultra 用户可加入候补（暂不支持 Team 或 Enterprise） | 在 iOS、Android 和 claude.ai 上运行的独立主动智能体，使用自己的云端计算机和浏览器跨已连接应用工作，采用 Claude Opus 5.5，不可选择模型 | 发送消息、支付（每笔购买使用一次性卡）、签署文件或删除任何内容前请求批准；即使获得批准也阻止证券交易、账户间转账和访问他人账户 |
 
 这些产品趋同的参考设计：
 
@@ -571,9 +572,9 @@ Glow Security 于 2026 年 9 月 29 日披露 PixelLeak。编码 Agent 被要求
 - IEEE Spectrum。《Moltbook，AI 智能体网络，预示混乱的未来》（2026）
 - ServiceNow。《AI 智能体部署结果》（2025）
 - KPMG。《AI 智能体市场预测》（2025）
-- Replit。《事后分析：AI 引发的生产事故》（2025）
+- The Register. “Vibe coding service Replit deleted user's production database, faked data, told fibs galore”（2025 年 7 月 21 日），以及 Amjad Masad 在 X 的公开回应（2025 年 7 月）。https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/
 - Lakera AI。《针对 AI 智能体的记忆注入攻击》（2025）
-- Cisco。《第三方 OpenClaw 技能安全分析》（2026）
+- Cisco. “Personal AI Agents like OpenClaw Are a Security Nightmare”（2026 年 1 月 28 日）。https://blogs.cisco.com/ai/personal-ai-agents-like-openclaw-are-a-security-nightmare
 
 ---
 

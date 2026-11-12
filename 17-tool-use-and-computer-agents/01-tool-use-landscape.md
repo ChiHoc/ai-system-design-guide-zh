@@ -99,7 +99,7 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 - 后台代理可在分支上异步工作
 - 为开发者工作流优化，而非通用自动化
 
-**Examples:** Cursor（Agent Mode、云端代理、Projects）、Devin Desktop（原 Windsurf）、Cline、GitHub Copilot、Google Antigravity（包含 Antigravity 2.0 多代理应用、IDE、CLI 和 SDK 的产品系列；自 2026 年 8 月 20 日起纳入符合条件的 Gemini Enterprise 订阅）。Antigravity CLI 现为 Google 的通用终端代理；Gemini CLI（2026 年 10 月 27 日的 v0.66.0）面向 Gemini Code Assist Standard、Enterprise 和 Code Assist for GitHub，其 README 称它未针对 Gemini 4 模型优化。
+**Examples:** Cursor（Agent Mode、云端代理、Projects）、Devin Desktop（原 Windsurf）、Cline、GitHub Copilot、Google Antigravity（包含 Antigravity 2.0 多代理应用、IDE、CLI 和 SDK 的产品系列；自 2026 年 8 月 20 日起纳入符合条件的 Gemini Enterprise 订阅）。Antigravity CLI 现为 Google 的通用终端代理；Gemini CLI（2026 年 10 月 27 日的 v0.66.0）面向 Gemini Code Assist Standard、Enterprise 和 Code Assist for GitHub，其 README 称它未针对 Gemini 4 模型优化。AWS 的 Kiro（代理式 IDE 和 CLI）也显示了运行框架的快速变化：Kiro CLI 3.0.0（2026 年 11 月 3 日）使 V3 运行框架成为交互会话、`--trust-all-tools` 脚本和新 ACP 客户端的默认值，并停用了桌面应用和行内自动补全（详见[编程智能体指南](../09-frameworks-and-tools/10-opencoderguide.md#kiro-aws)）。
 
 **固定托管代理版本。** Google 于 2026 年 9 月 17 日以 `antigravity-preview-09-2026` 替代 `antigravity-preview-05-2026`，距离旧版原定 10 月 5 日停用只有约三周。内置工具参数由 snake_case 改为 PascalCase，文件编辑改为按行范围替换，导致在本地执行内置工具或解析其调用的代码失效。应固定带日期的代理版本，并在 CI 中对工具 schema 做契约测试。
 
@@ -137,6 +137,7 @@ AI Agent 与外界交互的方式已发生了重大转变。到 2024 年，"tool
 | OpenAI dots | 9 月 29 日宣布（Pro、Business Premium） | 每个代理一台云端计算机；空闲时只读研究；Custom Rules 可允许、阻断或要求审批；可使用保存的密码而不向模型暴露密码 |
 | Meta Muse | 9 月 8 日面向消费者推出 | 运行在专用云端 VM；Meta 表示预计从交易收取少量费用实现盈利 |
 | Microsoft Copilot Autopilot（原 Scout） | 9 月底私人预览 | 在客户租户中拥有独立身份、记忆和计算机 |
+| Anthropic Claude Duet | 研究预览（10 月 21 日；美国 Pro、Max 和 Ultra 可加入候补，不支持 Team 或 Enterprise） | 使用 Claude Opus 5.5 的独立云端计算机和浏览器，不可选择模型；发送消息、支付（每次购买使用一次性卡）、签署或删除前请求批准，即使获得批准也阻止证券交易和账户间转账；使用套餐额度，不另收费 |
 
 面试中的关键点是：当代理拥有自己的 VM、收件箱和凭据时，难题变成租户隔离、代理身份、审批策略和终止开关，而非完成单个任务。
 
@@ -460,7 +461,7 @@ Built-in Tools: bash, read, write, edit, glob, grep, browser,
 - 用于自定义自动化的 hooks（pre/post commit、文件变更）；自 v2.1.287（2026 年 10 月 1 日）起还有 **mods**：插件内的 TypeScript 函数可改写提示、阻断或改写工具调用、批准或拒绝权限请求、遮蔽工具输出。Anthropic 提醒，这些函数不在沙箱内运行，拥有 Claude Code 自身的访问权限，因此插件审查也是代理信任边界的一部分
 - 自托管运行器（`claude self-hosted-runner`，Team 与 Enterprise），可在自有基础设施上运行会话
 
-**严肃的终端运行框架不止一种。** 2026 年 11 月初，主要替代方案有 OpenCode（MIT，约 22.4 万 stars）、Codex CLI（Apache-2.0，约 13.3 万 stars；默认模型于 9 月 29 日改为 GPT-6.1 Sol）和 Google Antigravity CLI，而 anthropics/claude-code 仓库约 15.4 万 stars。Gemini CLI（Apache-2.0，约 10.9 万 stars）仍在发布，但仅面向 Google 的企业 Code Assist 许可证。Aider 已趋于沉寂（最后版本发布于 2 月 12 日，最后提交于 2026 年 5 月 22 日）。像 Codex 这样静默更换默认模型，也说明基于这些 CLI 构建自动化时应显式固定模型。
+**严肃的终端运行框架不止一种。** 2026 年 11 月初，主要替代方案有 OpenCode（MIT，约 224K stars；新安装使用 V2 系列 `@opencode/cli` 2.2.5，该系列在 10 月 27 日的 2.2.0 中移除了 OpenCode GitHub Action）、Codex CLI（Apache-2.0，约 133K stars；默认模型于 9 月 29 日改为 GPT-6.1 Sol）和 Google Antigravity CLI，而 anthropics/claude-code 仓库约 154K stars。Gemini CLI（Apache-2.0，约 109K stars）仍在发布，但仅面向 Google 的企业 Code Assist 许可证。Aider 已趋于沉寂（最后版本发布于 2 月 12 日，最后提交于 2026 年 5 月 22 日）。像 Codex 这样静默更换默认模型，也说明基于这些 CLI 构建自动化时应显式固定模型。
 
 ---
 

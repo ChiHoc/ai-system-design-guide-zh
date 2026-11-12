@@ -318,34 +318,22 @@ def z_score_normalize(results: list[Result]) -> list[Result]:
 ### SPLADE 实现
 
 ```python
-import torch
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+from sentence_transformers import SparseEncoder  # sentence-transformers >= 5.0
 
 class SpladeEncoder:
-    def __init__(self, model_name="naver/splade-cocondenser-ensembledistil"):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForMaskedLM.from_pretrained(model_name)
+    def __init__(self, model_name="naver/splade-v3"):
+        self.model = SparseEncoder(model_name)
 
-    def encode(self, text: str) -> dict[str, float]:
-        inputs = self.tokenizer(text, return_tensors="pt", truncation=True)
-        outputs = self.model(**inputs)
+    def encode_query(self, text: str) -> dict[str, float]:
+        emb = self.model.encode_query([text])
+        return dict(self.model.decode(emb)[0])
 
-        # Get sparse weights
-        weights = torch.max(
-            torch.log(1 + torch.relu(outputs.logits)) * inputs["attention_mask"].unsqueeze(-1),
-            dim=1
-        ).values.squeeze()
-
-        # Convert to sparse dict
-        non_zero = weights.nonzero().squeeze().tolist()
-        sparse_vec = {
-            self.tokenizer.decode([idx]): weights[idx].item()
-            for idx in non_zero
-            if weights[idx] > 0
-        }
-
-        return sparse_vec
+    def encode_document(self, text: str) -> dict[str, float]:
+        emb = self.model.encode_document([text])
+        return dict(self.model.decode(emb)[0])
 ```
+
+naver/splade-v3 需要申请访问，采用 CC BY-NC-SA 4.0（非商业）许可，较旧的 SPLADE++ 检查点也是如此，因此上线前应核对许可，或选择允许商业使用的学习型稀疏模型。
 
 **何时使用 SPLADE 而非 BM25 + 密集检索混合：** SPLADE 能生成可与稠密向量并列存储在现代向量数据库（如 Milvus 或 Qdrant）中的稀疏向量，从而在单次检索中完成混合检索，无需单独的 Elasticsearch 或 BM25 索引。如果你的数据集中存在极其稀有、非语言学型的词元（如独特序列号），且这些词可能在训练期间未出现过，则应坚持使用 BM25。
 

@@ -56,14 +56,14 @@ flowchart TD
 
 ### 前沿模型对比（2026 年 11 月）
 
-以下分数标明了来源。“AA”指 Artificial Analysis Intelligence Index v5.0，于 10 月 27 日公布（Claude Opus、Sonnet 和 Fable 条目为“带回退”）；v4.x 分数使用不同量表，不可比较。除非另行注明，分数均为 max 努力级别。
+以下分数标明了来源。“AA”指 Artificial Analysis Intelligence Index v5.0，于 10 月 27 日公布（Claude Opus、Sonnet 和 Fable 条目为“带回退”），注明 v5.0.1 的除外：AA 于 11 月 3 日更新方法论，以 CritPt v2 重评所有模型，使 Opus 5.5 升至 59、Gemini 4 Carbon 升至 60；v4.x 分数使用不同量表，不可比较。除非另行注明，分数均为 max 努力级别。
 
 | 模型 | 优势 | 不足 | 上下文 | 最适用场景 |
 |-------|-----------|------|---------|----------|
-| **Claude Opus 5.5**（$4 / $20） | Anthropic 推荐默认。AA 58，开发者可调用模型最高分（受限 Gemini 4 Carbon 为 59）。在 Anthropic 发布表每项胜过 Fable 5.1、多数项目胜过 GPT-6 Astra（Terminal-Bench 4.0 xhigh 66.4% 对 57.9%）；Astra 在 AutomationBench（41.4% 对 40.0%）和 Terminal-Bench-Science（64.6% 对 58.7%）领先，均为供应商自报。独立 Terminal-Bench 4.0 榜单第一（64.85%，max；10 月 6 日新增）。缓存读取 0.05x；fast mode（$8 / $40）10 月 15 日结束研究预览；可用 ZDR | 默认 effort 降为 `medium`；不能关闭思考；强制 `tool_choice` 返回 400；宣传分数包含护栏回退到 Opus 4.8 或 Opus 5 | 1M / 128K 输出 | 智能体编码、计算机使用、困难生产任务 |
+| **Claude Opus 5.5**（$4 / $20） | Anthropic 推荐默认。AA v5.0.1 为 59（v5.0 为 58），开发者可调用模型最高分（受限 Gemini 4 Carbon 为 60）。在 Anthropic 发布表每项胜过 Fable 5.1、多数项目胜过 GPT-6 Astra（Terminal-Bench 4.0 xhigh 66.4% 对 57.9%）；Astra 在 AutomationBench（41.4% 对 40.0%）和 Terminal-Bench-Science（64.6% 对 58.7%）领先，均为供应商自报。独立 Terminal-Bench 4.0 榜单第一（64.85%，max；10 月 6 日新增）。缓存读取 0.05x；fast mode（$8 / $40）10 月 15 日结束研究预览；可用 ZDR | 默认 effort 降为 `medium`；不能关闭思考；强制 `tool_choice` 返回 400；宣传分数包含护栏回退到 Opus 4.8 或 Opus 5 | 1M / 128K 输出 | 智能体编码、计算机使用、困难生产任务 |
 | **Claude Sonnet 5.5**（$2 / $10） | Anthropic 智能体评估接近 Opus（供应商自报 Terminal-Bench 4.0 70.6%、OSWorld 2.1 部分得分 80.1%）。独立 Terminal-Bench 4.0 第二（61.82%，max）；AA 54；10 月 7 日缓存读取降至 0.05x（$0.10）；支持 ZDR | 较低 effort 下与 Opus 的独立测试差距扩大（high 下 AA 41 对 Opus 52）；`thinking: disabled` 返回 400；思考块绑定生成账户 | 1M / 128K | 智能体集群、规模化编码、默认聊天 |
 | **Claude Fable 5.1**（$10 / $50） | Anthropic 能力上限；1M 内统一价格，缓存读取 0.025x；Terminal-Bench 4.0 榜单 57.88%（max） | Opus 5.5 在 Anthropic 自报表中以 40% 价格胜出；AA xhigh 50，比 Opus 低 8 分；保留 30 天，ZDR 仅限获授权 | 1M / 128K | Opus 5.5 提高 effort 后仍未通过评估的任务 |
-| **GPT-6 Astra**（$10 / $50） | OpenAI 能力上限；Terminal-Bench 4.0 榜单 58.18%（max），与 GPT-6.1 Sol 并列、落后两款 Claude。每编码任务约消耗 GPT-5.6 Sol 三分之一的 token（AA）；AA 57 | 超过 272K 后整次 $20 / $75；无 temperature、top_p、logprobs 或 `none` effort；首个网络安全评级 Critical 的 OpenAI 模型，Daybreak 外漏洞利用工作受限 | 1.05M / 128K | OpenAI 栈的能力上限任务；token 效率抵消价格的长编码任务 |
+| **GPT-6 Astra**（$10 / $50） | OpenAI 能力上限；Terminal-Bench 4.0 榜单 58.18%（max），与 GPT-6.1 Sol 并列、落后两款 Claude。每编码任务约消耗 GPT-5.6 Sol 三分之一的 token（AA）；AA 57 | 超过 272K 后整次 $20 / $75；无 temperature、top_p、logprobs 或 `none` effort；首个网络安全评级 Critical 的 OpenAI 模型，Daybreak 外漏洞利用工作受限 | 1.05M / 128K | OpenAI 栈的能力上限任务；token 效率抵消价格的长编码任务。超出 Astra 限制的网络安全工作交给受限的 GPT-6-Cyber（$20 / $100） |
 | **GPT-6.1 Sol**（$2 / $10） | AA 55，比 Astra 低 2 分、价格为五分之一；Terminal-Bench 4.0 榜单 58.18%，与 Astra 并列；缓存读取 0.05x；Codex CLI 默认；Ultrafast（$12 / $60）自 10 月 8 日面向所有 API 用户 | 272K 价格跃升；默认 effort `medium` | 1.05M / 128K | OpenAI 侧编码和专业工作默认选择 |
 | **GPT-6.1 Terra**（$1 / $5） | AA 51，比 Sonnet 低 3 分、价格为一半；缓存读取 0.05x；低延迟路径可用 `none` effort；也在 Bedrock 提供 | 10 月 26 日发布，AA 之外独立评估少；默认 `medium` 下 AA 38，宣传分数需 max effort token；网络安全评级 Critical；272K 价格跃升 | 1.05M | 不需要 Sol 的智能体集群与通用生产任务 |
 | **GPT-6 Sol / GPT-6 Luna**（$2 / $10；$0.10 / $0.50） | GPT-5.6 半价；Luna 重设价格下限（AA 28） | 图像理解退化于 9 月 25 日在相同 ID 下修复；GPT-6.1 Sol 同价且缓存读取更便宜 | 1.05M / 128K | Sol：现有集成；Luna：路由、分类、提取 |
@@ -75,7 +75,7 @@ flowchart TD
 
 **已被接替但仍提供服务：** Claude Opus 5、Sonnet 5、Fable 5、Opus 4.8 和 Haiku 4.5；GPT-5.6 Sol、Terra、Luna；GPT-5.5。Claude Sonnet 4.5 于 2026 年 11 月 30 日退出 Claude API（Bedrock 为 2027 年 4 月 8 日）；`gemini-3.7-flash` 请求已由 3.8 Flash 服务。
 
-**受限或已宣布但多数开发者无法调用（截至 2026 年 11 月 2 日）：** Google **Gemini 4 Carbon**（10 月 28 日宣布）仅限 Fairwind Program 中部分网络防御者，无模型 ID，但以 59 分位居 AA v5.0 榜首。**GPT-6 Rosalind**（10 月 30 日，$15 / $75）和 **Claude Mythos 5.1** 仅限可信访问，不应依赖它们规划。上月宣布但未发布的两款现均已 GA：Gemini 4 Argon（10 月 13 日）和 Claude Haiku 5.5（10 月 7 日）。
+**受限或已宣布但多数开发者无法调用（截至 2026 年 11 月 6 日）：** Google **Gemini 4 Carbon**（10 月 28 日宣布）仅限 Fairwind Program 中部分网络防御者，无模型 ID，但以 60 分位居 AA v5.0.1 榜首。**GPT-6 Rosalind**（10 月 30 日，$15 / $75）、**GPT-6-Cyber**（11 月 5 日，$20 / $100，需 Daybreak Red、单独模型批准及 IP 允许列表）和 **Claude Mythos 5.1** 仅限可信访问，不应依赖它们规划。上月宣布但未发布的两款现均已 GA：Gemini 4 Argon（10 月 13 日）和 Claude Haiku 5.5（10 月 7 日）。
 
 ### Budget Model Comparison（预算模型对比）
 
@@ -85,30 +85,35 @@ flowchart TD
 | **Claude Haiku 5.5** | 提示词不超过 100K 为 $0.10 / $0.50；超过后整个请求为 $0.50 / $2.50 | AA 36；Terminal-Bench 4.0 39.2%（Anthropic） | 1M | Anthropic 栈的短提示快速层；接近 100K 时路由至其他模型 |
 | **GPT-6.1 Terra** | $1.00 / $5.00 | AA max 51、`medium` 38 | 1.05M | 从 Luna 升级、购买 Sol 前的中间层 |
 | **Gemini 3.8 Flash** | 介绍价 $0.75 / $3.75；2027 年 1 月 1 日起 $1.50 / $7.50 | DeepSWE v1.1 74%（三方并列）；AA high 31 | 1M | 编码智能体、RAG |
-| **DeepSeek V4.1-Flash** | 峰时 $0.30 / $1.20；谷时半价 | AA 32（1017 构建） | 1M | 安排在谷时的批处理（周末全为谷时） |
+| **DeepSeek V4.1-Flash** | 峰时 $0.30 / $1.20；谷时半价 | AA v5.0.1 在 max 为 33、high 为 29（1017 构建） | 1M | 安排在谷时的批处理（周末全为谷时） |
 | **GLM-5.3-Flash** | $0.15 / $0.50 | AA 28 | 1M | MIT 权重：API 或自托管相同模型 |
 | **MiMo-V2.6-Flash** | $0.14 / $0.28（OpenRouter） | - | 1M | MIT，309B / 激活 15B；超出 API 需求后可放入一个 8-GPU 节点 |
 | **Claude Haiku 4.5** | $1.00 / $5.00 | 已被接替；100K 以下为 Haiku 5.5 的 10 倍价格 | 200K | 仅用于尚不能迁移 prefill 或 `budget_tokens` 代码的情况；Foundry 列出 11 月 15 日退役 |
 
 ### 开放权重模型
 
-| 模型 | 参数量 | 许可证 | AA v5.0 | 最适用场景 |
+| 模型 | 参数量 | 许可证 | AA（注明处为 v5.0.1） | 最适用场景 |
 |-------|------------|---------|-----------|----------|
-| **DeepSeek V4.1-Flash-1017** | 552B（763B 检查点）；激活 8B / 16B | MIT | 32 | 开放模型最高分；低成本 1M 上下文服务 |
-| **Z.ai GLM-5.3** | 744B / 激活 40B | MIT；收入超过 US$10B 的 MaaS 需安全审查 | 32 | 智能体编码 |
-| **Xiaomi MiMo-V2.6-Pro** | 1.02T / 激活 42B | MIT | 30 | 全模态输入；两个 8-GPU 节点 |
+| **Moonshot Kimi K3.1 Pro** | 2.8T / 激活 104B | Kimi K3.1-Pro License（类似 MIT 的授权；收入超过 US$20M 的 MaaS 需另签协议；月活超过 100M 须在 UI 署名） | 46（v5.0.1；AA 仍标为专有） | 自 11 月 4 日发布权重以来的开放模型最高分；Moonshot 托管价 $2 / $10；自托管约需 1.56 TB 的 MXFP4 权重 |
+| **DeepSeek V4.1-Flash-1017** | 552B（763B 检查点）；激活 8B / 16B | MIT | 33（v5.0.1，max）；high 为 29 | MIT 模型最高分；低成本 1M 上下文服务 |
+| **Z.ai GLM-5.3** | 744B / 激活 40B | MIT；收入超过 US$10B 的 MaaS 需安全审查 | 32（v5.0.1，max）；low 为 23 | 智能体编码；Amazon Bedrock 也提供 |
+| **Xiaomi MiMo-V2.6-Pro** | 1.02T / 激活 42B | MIT | 30（v5.0.1） | 全模态输入；两个 8-GPU 节点 |
+| **Ant Group Ling-3.1-flash-1019** | 560B / 激活约 25B | MIT | 30（v5.0.1） | 输出非常冗长（指数上 240M 输出 token，对比 99.3M 中位数）；应计算每任务价格 |
 | **StepFun Step 5 Preview** | 600B / 激活 27B | StepFun Model License 1.0（收入超过 US$20M 的 MaaS 和任何品牌设备需另签协议） | 29 | 输出冗长；检查每任务 token |
 | **Z.ai GLM-5.3-Flash** | 320B / 激活 18B | MIT | 28 | 智能体编码默认自托管候选 |
-| **Mistral Large 4** | 约 1T / 激活 49B | Mistral Ecosystem Open-Weight License（任何 MaaS 业务需单独许可） | 26 | 内部自托管；无协议不可转售 |
-| **Meta Muse Spark Open** | 816B / 激活 42B | Muse Model License（署名；收入超过 US$20M 的 MaaS 需另签协议） | 25 | 美国开放权重最高分；输入文本、图像、视频和音频 |
-| **Moonshot Kimi K3** | 2.8T / 激活 104B | 定制：收入超过 US$20M 的 MaaS 需另签协议 | - | 许可适合时的强大通用模型 |
-| **Qwen3.8-Flash-Next** | 125B / 激活 6B + 51B N-gram 内存 | Qwen Community 1.0（任何 MaaS 或编码/办公助手业务需另获许可） | - | Qwen4 架构预览；主机 RAM 参数内存 |
-| **Tencent Hy4 preview** | 770B / 激活 49B | Apache 2.0 | - | 接近前沿规模中最清晰的许可证 |
-| **Qwen3.8-27B** | 27B 稠密 | Apache 2.0 | 20 | 单 GPU 级别 |
+| **Mistral Large 4** | 约 1T / 激活 49B | Mistral Ecosystem Open-Weight License（任何 MaaS 业务需单独许可） | High（默认）26，Medium 23 | 内部自托管；无协议不可转售。推理模式为 Low、Medium 和 High，因此预览代码若要求无推理须发送 low |
+| **Meta Muse Spark Open** | 816B / 激活 42B | Muse Model License（署名；收入超过 US$20M 的 MaaS 需另签协议） | 25（v5.0.1） | 美国开放权重最高分；输入文本、图像、视频和音频。Fireworks 也以 $1.25 / $4.25 托管，与 Muse Spark 1.3 同价，应按许可证和数据条款选择；Hugging Face 仓库需要人工批准 |
+| **Moonshot Kimi K3** | 2.8T / 激活 104B | 定制：收入超过 US$20M 的 MaaS 需另签协议 | - | 许可适合时的强大通用模型；Amazon Bedrock 提供显式提示缓存 |
+| **Qwen3.8-Flash-Next** | 125B / 激活 6B + 51B N-gram 内存 | Qwen Community 1.0（任何 MaaS 或编码/办公助手业务需另获许可） | - | Qwen4 架构预览；主机 RAM 参数内存。Qwen4 本身截至 11 月 6 日尚未发布，不应依赖其权重或许可证规划 |
+| **Tencent Hy4 preview** | 770B / 激活 49B | Apache 2.0（仅预览检查点） | - | 接近前沿规模中最清晰的许可证。完整 Hy4（11 月 4 日，AA v5.0.1 得 35）仅提供 API，承诺发布权重但没有日期或许可证，因此不要假定其采用 Apache 2.0 |
+| **Qwen3.8-27B** | 27B 稠密 | Apache 2.0 | 20（v5.0.1，xhigh） | 单 GPU 级别 |
+| **Nanbeige4.3-33B** | 33B 稠密 | Apache 2.0 | 20（v5.0.1） | Qwen3.8-27B 的单 GPU 同类模型，每任务成本更高（160M 输出 token，对比 77.7M 中位数）；没有公开 API |
+| **Reflection AI Beam 1.0** | 501B / 激活 23B | Apache 2.0 | 18（v5.0.1） | 500B 规模、美国来源、无条件 Apache 许可证；因来源而非能力选择 |
+| **Ricursive Ripple-65B Preview** | 65B 稠密 | Apache 2.0 | -（尚未评分） | 厂商报告 Terminal-Bench 2.1 为 80.52；等待独立分数 |
 | **Inkling-Small** | 约 266B / 激活 12B | Apache 2.0 | 13 | 美国来源、Apache、微调底座 |
-| **NVIDIA Nemotron 3 Ultra** | 550B / 激活 55B | OpenMDW-1.1 | 12 | NVIDIA 栈开放智能体 |
+| **NVIDIA Nemotron 3.5 Super VL** | 120B / 激活 12B | OpenMDW-1.1 | 14 | NVIDIA 栈开放智能体；取代 Nemotron 3 Ultra（12）成为默认选择，支持图像与视频输入，在四张 H100 上运行 |
 
-先检查许可，再看基准。多个领先开放模型对 MaaS 转售商设置收入门槛；Mistral Large 4 对任何收入规模的 MaaS 业务要求另获许可，Mistral Medium 3.5 权重则对月收入超过 US$20M 的组织撤销所有权利。AA v5.0 上最好的开放模型比可调用的最佳闭源模型低约 26 分（32 对 58），因此开放权重的优势是控制、数据驻留与微调，而非能力上限。Llama 4 仅发布 Scout（总参数 109B）和 Maverick（总参数约 400B）；不存在 Llama 4 8B、70B 或 405B。
+先检查许可，再看基准。多个领先开放模型对 MaaS 转售商设置收入门槛；Mistral Large 4 对任何收入规模的 MaaS 业务要求另获许可，Mistral Medium 3.5 权重则对月收入超过 US$20M 的组织撤销所有权利。AA v5.0.1 上，若计入 Kimi K3.1 Pro，最佳开放模型比可调用的最佳闭源模型低 13 分（46 对 59）；按 AA 自己的开放标签则低 26 分（DeepSeek 为 33），因此引用数字时要说明规则。无论哪种定义，开放权重的优势是控制、数据驻留与微调，而非能力上限。Llama 4 仅发布 Scout（总参数 109B）和 Maverick（总参数约 400B）；不存在 Llama 4 8B、70B 或 405B。
 
 ---
 
@@ -151,7 +156,7 @@ flowchart TD
 | **Claude Opus 5.5** | $4.00 | $20.00 | Anthropic 默认；缓存读取 $0.20 |
 | **Meta Muse Wonder** | $4.00 | $20.00 | 缓存读取 $0.20；Muse Wonder Full 无 API 价格 |
 | **Gemini 4 Argon** | 11 月 30 日前 $2.00；12 月 1 日起 $4.00 | $10.00；12 月 1 日起 $20.00 | 按 12 月价格预算；仅隐式缓存 |
-| **GPT-5.6 Sol** | $4.00 促销（$5.00 标价） | $20.00 促销（$30.00 标价） | OpenAI 承诺促销价“至少持续到 2026 年 11 月 21 日”；预算按标价 |
+| **GPT-5.6 Sol** | $4.00 促销（$5.00 标价） | $20.00 促销（$30.00 标价） | OpenAI 称促销持续至 2026 年 11 月 30 日，未说明之后价格；12 月 1 日起预算按标价 |
 | **Claude Sonnet 5.5** | $2.00 | $10.00 | 与 Sonnet 5 同价；缓存读取自 10 月 7 日起为 $0.10 |
 | **GPT-6.1 Terra** | $1.00 | $5.00 | 超过 272K 为 $2 / $7.50；缓存读取 0.05 倍 |
 | **GPT-6.1 Sol / GPT-6 Sol** | $2.00 | $10.00 | 超过 272K 为 $4 / $15；6.1 缓存为 0.05 倍 |
@@ -372,7 +377,7 @@ class ModelCascade:
 - 需要定制模型权重或微调（OpenAI 于 2027 年 1 月 6 日停止现有客户创建新微调任务）
 - 需要完全控制模型行为与版本，没有静默替换或强制退役
 
-**先检查许可：** MIT 和 Apache 2.0 选项（GLM-5.3-Flash、MiMo-V2.6、DeepSeek V4.1-Flash、Hy4 preview）清晰；Mistral Large 4 的 MaaS 业务需另获许可，Muse Spark Open、Step 5 Preview、Kimi K3、GLM-5.3、Qwen 社区许可证和 Mistral Medium 3.5 也有商业门槛。
+**先检查许可：** MIT 和 Apache 2.0 选项（GLM-5.3-Flash、MiMo-V2.6、DeepSeek V4.1-Flash、Beam 1.0、Hy4 preview）清晰；Mistral Large 4 的 MaaS 业务需另获许可，Muse Spark Open、Step 5 Preview、Kimi K3 和 K3.1 Pro、MiniMax-M3.1-Flash、GLM-5.3、Qwen 社区许可证和 Mistral Medium 3.5 也有商业门槛。
 
 **混合方案往往最好：**
 - 可预测的高吞吐工作负载自托管
@@ -387,7 +392,7 @@ class ModelCascade:
 
 “Anthropic 在 Sonnet 5 发布三个月后用 Sonnet 5.5 接替它，OpenAI 在 GPT-6 Sol 一周后发布 GPT-6.1 Sol，10 月又在不到三周内新增 Haiku 5.5、GPT-6.1 Terra 和 GA 的 Gemini 4 Argon。我将模型升级视为常设流水线，而非一次项目：
 
-1. **固定精确模型 ID，再验证实际服务内容。** 固定 ID 必要但不足：DeepSeek 把退役的 `deepseek-v4-flash` 名称路由到 V4.1-Flash，xAI 退役的 Grok 标识按 grok-4.3 费率计费，Google 自 10 月 8 日起用 Gemini 3.8 Flash 响应 `gemini-3.7-flash` 请求；Azure Foundry 于 2027 年 1 月 14 日将带日期的 gpt-4o 2024-05-13 自动升级到 gpt-5.1。我记录每个响应报告的模型，并在变化时告警。
+1. **固定精确模型 ID，再验证实际服务内容。** 固定 ID 必要但不足：DeepSeek 把退役的 `deepseek-v4-flash` 名称路由到 V4.1-Flash，xAI 退役的 Grok 标识按 grok-4.3 费率计费，Google 自 10 月 8 日起用 Gemini 3.8 Flash 响应 `gemini-3.7-flash` 请求，并将自 12 月 1 日起把弃用的 `gemini-2.5-pro` 路由到 3.8 Flash；Azure Foundry 于 2027 年 1 月 14 日将带日期的 gpt-4o 2024-05-13 自动升级到 gpt-5.1。我记录每个响应报告的模型，并在变化时告警。
 2. **比较 API 契约，而不只是质量。** Opus 5.5 将默认强度从 high 改为 medium；Sonnet 5.5 拒绝 `thinking: disabled`；Opus 5.5、Sonnet 5.5 和 Fable/Mythos 5.1 拒绝强制 `tool_choice`，Haiku 5.5 虽接受但会跳过当轮思考；Haiku 5.5 拒绝 assistant prefill，提示词超过 100K 后按 5 倍计价，且 2000x1500 图像产生的视觉 token 约为 Haiku 4.5 的 2.5 倍；Anthropic 新 SDK 主版本发送的 API 版本 `2026-10-21` 会对所有模型拒绝采样参数；GPT-6 Astra 不接受 temperature 和 logprobs。每一项都可能破坏代码或改变延迟，而基准中不会出现质量回归。
 3. **每个变更都必须通过自身评估集，以生产推理强度运行**，包括供应商在 ID 未变时修复的问题。OpenAI 于 9 月 25 日在不更名的情况下修复 GPT-6 Sol 图像理解，并要求客户重跑图像评估。
 4. **先影子流量，再金丝雀发布**，比较每任务成本、延迟、拒答率（Anthropic 部分拒答现在收费）与升级率，而不只看质量分。

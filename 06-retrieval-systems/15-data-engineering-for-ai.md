@@ -48,7 +48,7 @@ CROSS-CUTTING   orchestration (Airflow/Dagster) · lineage (OpenLineage) · vers
 
 - **按内容而非扩展名检测文件类型。** 标准做法是通过 `libmagic`（Unix `file` 命令背后的库）进行 magic-number sniffing（魔数嗅探），并通过 `python-magic` 之类的绑定对外暴露。像 Unstructured 这样的解析器会按这种方式自动检测文件类型，并在必要时回退到扩展名。
 - **语言检测** 用于路由和过滤，常见做法是使用 fastText 的语言分类器。
-- **解析与路由。** 内容类型决定处理器：可直接提取文本的 PDF 走快速文本路径，扫描件或图像 PDF 走 OCR，复杂多栏或表格密集文档走布局模型或多模态（逐页截图）路径，办公文档走特定格式处理器，邮件则拆分为 headers 和 body。主流工具链包括 **Unstructured**（支持 64+ 种文件类型，输出 Title/NarrativeText/Table 等带类型的元素）、**Docling**（IBM 出品，MIT 许可证，包含布局和表格模型，支持多种导出格式，截至 2026 年 9 月还可插拔 NVIDIA Nemotron Parse 2.0、MinerU 2.5 Pro 等 VLM 后端）、**MinerU**，以及 **LlamaParse**（分层 API 模式，最高可到多模态 agentic parse）。一个教学重点：公开的 parser 基准结果并不一致，所以**应基于自己的文档做 parser 选择的基准测试**，而不是盲目相信排行榜。
+- **解析与路由。** 内容类型决定处理器：可直接提取文本的 PDF 走快速文本路径，扫描件或图像 PDF 走 OCR，复杂多栏或表格密集文档走布局模型或多模态（逐页截图）路径，办公文档走特定格式处理器，邮件则拆分为 headers 和 body。主流工具链包括 **Unstructured**（支持 64+ 种文件类型，输出 Title/NarrativeText/Table 等带类型的元素）、**Docling**（IBM 出品，MIT 许可证，包含布局和表格模型，支持多种导出格式，截至 2026 年 9 月还可插拔 NVIDIA Nemotron Parse 2.0、MinerU 2.5 Pro 等 VLM 后端，自 10 月 20 日的 v2.141.0 起还支持 Nemotron 3.5 Parse）、**MinerU**，以及 **LlamaParse**（分层 API 模式，最高可到多模态 agentic parse）。一个教学重点：公开的 parser 基准结果并不一致，所以**应基于自己的文档做 parser 选择的基准测试**，而不是盲目相信排行榜。
 
 ### 把页面路由到能够胜任的最低成本层级
 
@@ -57,9 +57,9 @@ CROSS-CUTTING   orchestration (Airflow/Dagster) · lineage (OpenLineage) · vers
 | 层级 | 示例 | 成本与吞吐 | 用途 |
 |---|---|---|---|
 | 无模型 | MinerU 4.0 `flash` 层级、PDF 原生文本提取 | 仅 CPU | 数字原生 PDF 和办公文件 |
-| 小型专用模型 | MinerU `basic`（OCR、公式和表格模型，可使用 CPU）；NVIDIA Nemotron Parse 2.0（参数少于 1B，OpenMDW-1.1） | 便宜，可自托管 | 布局简单的扫描件 |
+| 小型专用模型 | MinerU `basic`（OCR、公式和表格模型，可使用 CPU）；NVIDIA Nemotron 3.5 Parse（2026 年 10 月 17 日，约 0.63B 参数，OpenMDW-1.1，可选多遍处理模式；它取代了 Nemotron Parse 2.0） | 便宜，可自托管 | 布局简单的扫描件 |
 | 解析 VLM | Cohere Parse `parse-v5.0`（2.3B，2026 年 8 月 27 日）：API 每 1,000 页 $1.50，单 GPU 每秒 4.5 页（厂商数据）；jina-ocr-v1（2026 年 9 月 14 日）：单张 A100 每秒 2.57 页，采用 CC BY-NC 4.0，未获许可不得商用 | 中等 | 表格、表单、多栏内容 |
-| 前沿 VLM | GPT-6 Sol、Claude Opus 5.5、Gemini 3.8 Flash 等 | 每页成本最高 | 最难处理的剩余页面 |
+| 前沿 VLM | GPT-6.1 Sol、Claude Opus 5.5、Gemini 4 Argon | 每页成本最高 | 最难处理的剩余页面 |
 
 各层级间的准确率差距小于价格差距：在 Cohere 自己运行的 ParseBench 上，Cohere Parse 平均得分 79.2，GPT-5.5 为 84.4，Claude Opus 4.8 为 84.3；后两者甚至在该结果发表时都不是各厂商的最新模型（厂商运行，依赖前应在当前模型上重测）。MinerU 4.0（2026 年 9 月 16 日）内置 `flash`、`basic`、`standard`、`advanced` 分层；可原生解析 DOCX、PPTX、XLSX、EPUB 和 HTML，无需转成 PDF；还会返回稳定的块定位符（`doc/tier/page/block`），让引用可验证，也让智能体能渐进读取文档，而非一次接收预先切好的片段。
 
@@ -174,7 +174,7 @@ CROSS-CUTTING   orchestration (Airflow/Dagster) · lineage (OpenLineage) · vers
 **强回答：**
 我会按层级路由，并以每 GPU 秒处理页数为核心指标。先根据内容检测类型，把数字原生 PDF 和办公文件送入无模型路径（原生文本提取；MinerU 的 `flash` 层级也使用这种方式），这通常覆盖企业语料的大部分。扫描件进入小型自托管 OCR 与布局模型。只有未通过廉价质量检查的页面（空文本、损坏的表格、低 OCR 置信度、错乱的阅读顺序）才升级到解析 VLM，仍失败的剩余页面才交给前沿 VLM。
 
-假设每页约有 1,500 个输入 token 和 800 个输出 token，且不产生推理 token，成本可这样计算：Cohere Parse 每 1,000 页 $1.50，全部 500 万页为 $7,500；GPT-6 Sol（每 100 万输入/输出 token 为 $2/$10）每页约 $0.011，总计约 $55,000；Claude Opus 5.5（$4/$20）至少是其两倍，因为无法关闭思考。然而专用解析器在厂商运行的 ParseBench 上，仅比旧一代前沿模型（GPT-5.5、Opus 4.8）低约 5 分。前沿家族中的低价模型打破了简单的成本阶梯：GPT-6 Luna（$0.10/$0.50）每页约 $0.0006，整批约 $2,750，低于解析 API，因此它也应与专用模型一同进入基准测试；未知的是它在表格与扫描件上能否保持质量。
+假设每页约有 1,500 个输入 token 和 800 个输出 token，且不产生推理 token，成本可这样计算：Cohere Parse 每 1,000 页 $1.50，全部 5M 页为 $7,500；GPT-6 Sol（每 1M 输入/输出 token 为 $2/$10）每页约 $0.011，总计约 $55,000；Claude Opus 5.5（$4/$20）至少是其两倍，因为无法关闭思考。然而专用解析器在厂商运行的 ParseBench 上，仅比旧一代前沿模型（GPT-5.5、Opus 4.8）低约 5 分。前沿家族中的低价模型打破了简单的成本阶梯：GPT-6 Luna 和 Claude Haiku 5.5（均为 $0.10/$0.50；Haiku 仅在单次请求低于 100K token 时适用，单页始终满足）每页约 $0.0006，整批约 $2,750，低于解析 API（Haiku 的新 tokenizer 对相同内容计数约多 30% token，因此实际成本预计略高）。GPT-6.1 Terra（$1/$5）处于中间档，每页约 $0.0055（约 $27,500）。这三者都应与专用模型一同进入基准测试；未知的是它们在表格与扫描件上能否保持质量。
 
 专用 GPU 又会改变计算结果：按 Cohere 报告的单 GPU 每秒 4.5 页，500 万页约需 300 个 GPU 小时。正因如此，Cohere 声称其单租户 Model Vault 部署在 50% 利用率下比 API 低 23%（厂商报告）。自托管前还应检查许可证（jina-ocr-v1 使用 CC BY-NC），保留块级定位符，使引用指向页和块，并在设定路由阈值前，先用自己的数百页文档对每个层级做基准测试。
 

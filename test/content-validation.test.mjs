@@ -42,6 +42,8 @@ test('百分比范围将单位应用到两个端点', () => {
   assert.deepEqual(numericTokens('22.9 percent'), numericTokens('22.9%'))
   assert.deepEqual(numericTokens('fell from 29% in 2021 to 10% in 2026'), ['0.1', '0.29', '2021', '2026'])
   assert.deepEqual(numericTokens('rates rose from 24% for Opus 4.7 to 73% for Fable'), ['0.24', '0.73', '4.7'])
+  assert.deepEqual(numericTokens('OOD scores stayed 2.45 to 16.25% below the base model'), numericTokens('分布外得分比基座低 2.45% 至 16.25%'))
+  assert.deepEqual(numericTokens('2.45% and 16.25%'), ['0.0245', '0.1625'])
 })
 test('标题层级忽略代码围栏中的 Markdown 示例', () => {
   assert.deepEqual(headingShape('# Title\n\n```md\n## Example\n```\n\n## Section\n'), [1, 2])

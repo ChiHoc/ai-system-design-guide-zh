@@ -58,11 +58,11 @@ User Request                    User Request
 
 | 提供商 | 产品 | 方法 | 关键优势 |
 |----------|-------|----------|--------------|
-| Anthropic | `computer_toolset_20260801`（2026 年 8 月 19 日在 Claude API 正式发布）和 `browser_toolset_20260801` | 客户托管的工具集：桌面用像素，浏览器用无障碍树元素引用 | 一个 API 覆盖桌面与浏览器，支持批量动作 |
+| Anthropic | `computer_toolset_20260801`（2026 年 8 月 19 日在 Claude API 正式发布）和 `browser_toolset_20260801`；Claude Duet（2026 年 10 月 21 日研究预览） | 客户托管的工具集：桌面用像素，浏览器用无障碍树元素引用；Duet 是拥有独立云端计算机和浏览器的持久型智能体 | 一个 API 覆盖桌面与浏览器，支持批量动作；Duet 的请求批准与阻止操作策略 |
 | OpenAI | Agents API computer use（托管浏览器于 2026 年 9 月 29 日加入，公开测试）、Responses API 的 `computer_use`（GPT-6.1 Terra，2026 年 10 月 26 日，每 1M $1/$5）、ChatGPT agent、dots | 托管 Codex 运行框架上的 OpenAI 浏览器；Responses API 上由客户端托管的工具；独立云端计算机上的持久化代理 | 按网站来源审批；凭据不进入模型输入 |
 | Google | Gemini API computer use（2026 年 10 月 30 日正式发布；推荐 `gemini-3.8-flash`，能力最强的选项为 `gemini-4-argon`）；Gemini Enterprise Computer Use 沙箱（2026 年 9 月 9 日正式发布） | 在标准化的 0–999 坐标网格上操作浏览器、Android 和桌面 | 内置返回 `require_confirmation` 的安全服务；VPC 隔离的托管沙箱 |
 | Microsoft | GitHub Copilot computer use（2026 年 10 月 1 日公开预览）、Copilot Autopilot（私人预览）、UFO 研究框架 | 结合可访问的应用内容与视觉信息操作桌面应用 | 按应用批准权限；代理在客户租户内有独立身份 |
-| Amazon | Nova Act | 专用浏览器模型 | 电子商务工作流 |
+| Amazon | Nova Act；Amazon WorkSpaces for AI agents（2026 年 11 月 3 日在 Windows Server 之外加入 Linux 和 Windows 11 桌面） | 专用浏览器模型；托管云桌面由托管 MCP 服务器驱动，其工具可点击、输入、滚动和截图，按技术栈启用 | 电子商务工作流；桌面即服务，人工观察者可实时观看并停止会话，并具备 WorkSpaces 网络隔离和 IAM 访问控制（Linux 智能体拥有完整 root 权限，须相应隔离） |
 | Meta | Muse（2026 年 9 月 8 日） | 在专用云端 VM 中运行浏览器的消费级代理 | 零售与连接器合作伙伴 |
 
 ### 各供应商 API 的差异
@@ -416,7 +416,7 @@ Snorkel AI 对 OSWorld 2.0 运行的分析指出四类失败模式，各自对�
 | QA 和视觉测试 | 像用户一样导航应用，验证视觉渲染，用自然语言报告问题 | 超越像素差异比较 -- 能理解布局和用户体验 |
 | 代码变更的视觉证据 | 编程代理运行应用、截图并附在 PR 中 | 审查者无需检出分支就能看到界面（下方 PixelLeak 展示了这种做法的风险） |
 | 竞争情报 | 导航产品页面，从 JS 渲染的小组件中捕获价格数据 | 适用于阻止传统爬虫的网站 |
-| 持久化个人与职场代理 | 拥有独立云端计算机、始终在线的代理在请求之间跨应用工作（OpenAI dots、Meta Muse、Copilot Autopilot） | 它接触的大多数应用没有代理 API；见[用例与案例研究](06-use-cases-and-case-studies.md) |
+| 持久化个人与职场代理 | 拥有独立云端计算机、始终在线的代理在请求之间跨应用工作（OpenAI dots、Meta Muse、Copilot Autopilot、Claude Duet） | 它接触的大多数应用没有代理 API；见[用例与案例研究](06-use-cases-and-case-studies.md) |
 
 ---
 

@@ -22,7 +22,7 @@
 
 **LangWatch 与 Langfuse：** 两者都是核心能力相近的开源平台。LangWatch 提供 30 多个现成评估器（RAG、安全、质量），无需编写评审提示就可接入。Langfuse 提供基于模板的托管式 LLM 评审、托管代码评估器和更成熟的提示管理，社区也更大。本指南同时展示两者，便于按需求选择。
 
-**SDK 版本很重要。** Langfuse 示例面向基于 OTel 的 Python SDK v4（2026 年 9 月底为 4.16.0）；调用 `langfuse.trace()` 的教程面向 v2 SDK，新安装后会失败。LangWatch 示例面向 Python SDK 1.x（9 月底为 1.4.0，使用 `langwatch.setup()` 和 `langwatch.experiment.init()`）。应固定两种 SDK，升级时重新检查示例。示例使用 `gpt-4o` 和 `gpt-4o-mini`，因为它们广泛可用且仍接受 `temperature`；当前评审模型的选择见第 13 章与附录 E。
+**SDK 版本很重要。** Langfuse 示例面向基于 OTel 的 Python SDK v4（2026 年 9 月底为 4.16.0），因此应使用 `pip install "langfuse>=4,<5"` 安装：Langfuse 于 2026 年 10 月 14 日发布 Python SDK v5，Python 3.11 或更高版本中直接执行 `pip install langfuse` 现解析到 v5（11 月 5 日为 5.2.0）。v5 需要 Langfuse Cloud 或自托管 v4.59.0 或更高服务端，移除了下文示例使用的多个 v4 调用，包括 `api.scores_v3.get_many_v3()`（现为 `api.scores.get_many()`）和旧版 API 调用，因此这些示例在迁移前无法在 v5 上运行；完整列表见 [Langfuse 集成示例](14-evaluation-and-observability/02-observability.md#集成示例-langfuse-python-sdk-v4)和 [v4 到 v5 升级指南](https://langfuse.com/docs/observability/sdk/upgrade-path/python-v4-to-v5)。调用 `langfuse.trace()` 的教程面向 v2 SDK，任何当前安装都会失败。LangWatch 示例面向 Python SDK 1.x（9 月底为 1.4.0，使用 `langwatch.setup()` 和 `langwatch.experiment.init()`）。应固定两种 SDK，升级时重新检查示例。示例使用 `gpt-4o` 和 `gpt-4o-mini`，因为它们广泛可用且仍接受 `temperature`；当前评审模型的选择见第 13 章与附录 E。
 
 ---
 
@@ -308,7 +308,7 @@ Langfuse 提供 tracing、评估、数据集、实验以及提示词管理。它
 #### 安装与配置
 
 ```bash
-pip install langfuse openai  # Python SDK v4.x (OpenTelemetry-based)
+pip install "langfuse>=4,<5" openai  # Python SDK v4.x (OpenTelemetry-based); v5 breaks some calls below
 ```
 
 ```python
@@ -2596,7 +2596,7 @@ for model in MODELS:
           f"cost=${results['cost']:.2f}, latency={results['latency_p50']:.0f}ms")
 ```
 
-模型切换时要注意三点：**强制迁移**有明确期限。Claude Sonnet 4.5（`claude-sonnet-4-5-20250929`）于 2026 年 11 月 30 日退役；Google 于 2026 年 9 月 18 日限制 Gemini 2.5 新用户，Vertex AI 原定于 10 月 20 日退役 2.5 Pro、Flash 和 Flash-Lite。本指南示例使用的 `gpt-4o` 和 `gpt-4o-mini` 也有期限：OpenAI 将于 2027 年 1 月 14 日关闭剩余的 `gpt-4o-2024-08-06`、`gpt-4o-2024-11-20`、`gpt-4o-mini-2024-07-18`、GPT-4.1 和 GPT-4.1 mini 快照及其微调模型；指定替代模型 `gpt-6-luna` 无法微调，因此基于这些模型的微调裁判没有同类继任者。OpenAI 托管 Evals 也将于 2026 年 11 月 30 日关闭。应提前对替代模型运行测试集。
+模型切换时要注意三点：**强制迁移**有明确期限。Claude Sonnet 4.5（`claude-sonnet-4-5-20250929`）于 2026 年 11 月 30 日退役；Google 于 2026 年 11 月 2 日在 Gemini API 上弃用 `gemini-2.5-pro` 和 `gemini-2.5-flash`，计划自 12 月 1 日起将请求分别路由到 `gemini-3.8-flash` 和 `gemini-3.5-flash-lite`，并按目标模型费率计费。固定在 2.5 的裁判仍会返回 200，但已变为另一模型，其函数调用验证更严格、`thinking_level` 替代 `thinking_budget` 且没有采样参数，因此应在此前重新验证（`gemini-2.5-flash-lite` 未被弃用）。Vertex AI 将 2026 年 10 月 20 日列为 2.5 模型退役日期，但未标记已执行，因此依赖前应核查 Vertex 上的可用性。本指南示例使用的 `gpt-4o` 和 `gpt-4o-mini` 也有期限：OpenAI 将于 2027 年 1 月 14 日关闭剩余的 `gpt-4o-2024-08-06`、`gpt-4o-2024-11-20`、`gpt-4o-mini-2024-07-18`、GPT-4.1 和 GPT-4.1 mini 快照及其微调模型；指定替代模型 `gpt-6-luna` 无法微调，因此基于这些模型的微调裁判没有同类继任者。OpenAI 托管 Evals 也将于 2026 年 11 月 30 日关闭（第 16 章）。应在截止日期之前充分提前对替代模型运行测试集，而不是等到最后一周。
 
 **新模型移除了旧参数。** GPT-6 Astra 不接受自定义 temperature 或 top_p；Claude Opus 5.5 无法关闭思考，Sonnet 5.5 对 `thinking: disabled` 返回 400；自 Anthropic API 版本 `2026-10-21`（新版 SDK 主版本的默认值）起，所有 Claude 模型对任何 `temperature`、`top_p` 或 `top_k` 值（包括默认值）返回 400。硬编码 `temperature=0` 或关闭思考的运行框架可能报错，或悄悄评测到不同配置。
 
@@ -2702,7 +2702,7 @@ Gemini `3.8` Flash 的促销价（每百万 token 输入／输出 `$0.75/$3.75`�
 | 类型化决策模型：TypeSafe Jev（早期访问）、OpenAI Decisions API | 约 $0.08（Jev）至 $0.20（Decisions API） | 对全部流量执行二元清单检查 |
 | 基于代码 | $0 | 格式检查、模式匹配、验证 |
 
-以上假设每次判断约 2,000 输入和 300 输出 token，按 2026 年 11 月 Standard 每百万 token 标价计算；见[定价章节](02-model-landscape/03-pricing-and-costs.md)。推理 token 按输出计费，Opus 5.5 无法关闭思考，Sonnet 5.5 最低为 `between_tools`，应先在开发集上测量实际输出。Gemini 3.8 Flash 促销价 $0.75/$3.75（每 1K 约 $2.60）持续至 2026 年 12 月 31 日，之后为 $1.50/$7.50（每 1K 约 $5.25）。Haiku 5.5（2026 年 10 月 7 日正式发布）提示词不超过 100K token（含缓存读写）时为 $0.10/$0.50，超过后整个请求为 $0.50/$2.50；相同文本的 tokenizer 计数比 Haiku 4.5 多约 30%。它对 `temperature`、`top_p`、`top_k` 和 `budget_tokens` 返回 400，迁移裁判需修改代码并重新验证。截至 11 月 2 日 Haiku 4.5 在 Claude API 仍为 Active、没有弃用通知，按 60 天规则至少可用到约 2027 年 1 月；Microsoft Foundry 的 `claude-haiku-4-5` 部署列出的退役日期为 2026 年 11 月 15 日。保持裁判可替换。
+以上假设每次判断约 2,000 输入和 300 输出 token，按 2026 年 11 月 Standard 每百万 token 标价计算；见[定价章节](02-model-landscape/03-pricing-and-costs.md)。推理 token 按输出计费，Opus 5.5 无法关闭思考，Sonnet 5.5 最低为 `between_tools`，应先在开发集上测量实际输出。Gemini 3.8 Flash 促销价 $0.75/$3.75（每 1K 约 $2.60）持续至 2026 年 12 月 31 日，之后为 $1.50/$7.50（每 1K 约 $5.25）。Haiku 5.5（2026 年 10 月 7 日正式发布）提示词不超过 100K token（含缓存读写）时为 $0.10/$0.50，超过后整个请求为 $0.50/$2.50；相同文本的 tokenizer 计数比 Haiku 4.5 多约 30%。它对 `temperature`、`top_p`、`top_k` 和 `budget_tokens` 返回 400，迁移裁判需修改代码并重新验证。截至 11 月 6 日 Haiku 4.5 在 Claude API 仍为 Active、没有弃用通知，按 60 天规则至少可用到约 2027 年 1 月；Anthropic 于 10 月 29 日仅将其从消费级 Claude 应用的模型选择器中移除；Microsoft Foundry 的 `claude-haiku-4-5` 部署列出的退役日期为 2026 年 11 月 15 日。保持裁判可替换。
 
 **提示：** 先用强模型，验证你的 judge prompt（评审提示词），再测试更便宜的模型是否能得到相近的 TPR/TNR。通常是可以的。
 
@@ -2813,7 +2813,7 @@ langwatch.setup()  # reads LANGWATCH_API_KEY
 
 **Langfuse：**
 ```bash
-pip install langfuse openai
+pip install "langfuse>=4,<5" openai  # samples target v4; v5 (October 2026) removed some APIs
 # Sign up at cloud.langfuse.com or self-host
 ```
 
@@ -2919,8 +2919,9 @@ if check_for_degradation(today_failure_rate, avg_failure_rate):
 
 **Langfuse：** 通过其 API 构建自定义 Dashboard：
 ```python
-# Fetch recent scores (Scores API v3, Python SDK 4.8.1+; the v1/v2 score
-# list endpoints are deprecated and leave Langfuse Cloud on November 16, 2026)
+# Fetch recent scores (Scores API v3, Python SDK 4.8.1 to 4.x; the v1/v2 score
+# list endpoints are deprecated and leave Langfuse Cloud on November 16, 2026).
+# SDK v5 removed scores_v3 with no alias: call langfuse.api.scores.get_many()
 scores, cursor = [], None
 while True:
     page = langfuse.api.scores_v3.get_many_v3(
@@ -3409,9 +3410,14 @@ What does NOT count as a failure:
 | 生成多样化批评 | 0.5–0.7 | 为不同角度保留一定创造性 |
 | 头脑风暴故障模式 | 0.7–1.0 | 高创造性，便于探索 |
 
-对于 judge 评估，始终使用 temperature 0.0。你希望同一输入每次都产生相同输出。
+**许多当前裁判模型已不接受 temperature。**自 Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型的 `temperature`、`top_p` 和 `top_k` 即使为默认值也返回 HTTP 400；包括 Python 和 TypeScript 在内的全部八个新版 SDK 和 CLI 主版本默认发送该版本。较早版本中 Claude 4.7 及之后模型已拒绝非默认值，Python SDK 1.0 于 2026 年 8 月 20 日从 Messages 方法移除了这三个参数；Google 于 2026 年 7 月 21 日弃用 Gemini API 中的相同参数，GPT-6 Astra 不接受自定义 temperature 或 top_p。在这些模型上，可通过固定其他因素提高可复现性：
 
-部分新模型已不接受 temperature 等采样参数：自 Anthropic API 版本 `2026-10-21` 起，所有 Claude 模型的 `temperature`、`top_p` 和 `top_k` 即使为默认值也返回 HTTP `400`；新版 Python 2.0.0、TypeScript 1.0.0 SDK 默认发送该版本。较早版本中 Claude `4.7` 及之后模型已拒绝非默认值，Python SDK `1.0` 于 `2026` 年 `8` 月 `20` 日从 Messages 方法移除了这三个参数；Google 于 `7` 月 `21` 日弃用 Gemini API 中的相同参数。GPT-`6` Astra 不接受自定义 temperature 或 top_p；Claude Opus `5.5` 不能关闭 thinking，Sonnet `5.5` 传 `thinking: disabled` 会返回 HTTP `400`。因此按模型能力构造请求，不要向所有裁判统一发送采样参数。
+- 精确模型 ID（供应商提供时使用带日期的快照）和推理 effort 或 thinking 档位
+- 裁判提示词版本和少样本集
+- 结构化输出 schema，使解析保持一致
+- 重复评分：每个开发集条目运行 3 次，跟踪裁判自一致率，对边界案例采用多数投票
+
+Temperature 0 从不是确定性保证（批处理和浮点效应仍会影响结果），因此测量裁判自一致性适用于每个模型。
 
 ### 6. 结构化输出格式
 
@@ -3522,6 +3528,8 @@ langfuse.create_prompt(
 
 <a name="appendix-f"></a>
 ## 附录 F：平台方法参考（LangWatch & Langfuse）
+
+下方签名与已发布的 LangWatch Python SDK 1.4.0 和 Langfuse Python SDK 4.16.0 一致（固定 `langfuse<5`；2026 年 10 月 14 日发布的 v5 移除了 `api.scores_v3`、`api.legacy.*` 和 `api.trace.*`）。供应商文档与已发布 SDK 不一致时（例如 LangWatch 的 `prompts.create(model=...)`），以 SDK 签名为准，升级前重新核查两者。
 
 ### LangWatch
 
@@ -3687,7 +3695,8 @@ langfuse = get_client()
 
 # Observations API v2: filter by trace_id, name, type, session_id, and
 # always bound the time window. Needs a Langfuse v4 server (Cloud, or
-# self-hosted after upgrading; on a v3 server use api.legacy.observations_v1).
+# self-hosted after upgrading; on a v3 server use api.legacy.observations_v1,
+# which SDK v5 removed along with v3-server support).
 # The trace list/get endpoints (langfuse.api.trace.*) are deprecated and
 # leave Langfuse Cloud on November 16, 2026.
 observations = langfuse.api.observations.get_many(
@@ -3698,7 +3707,8 @@ observations = langfuse.api.observations.get_many(
     limit=100,  # max 1,000; follow observations.meta.cursor for more
 )
 
-# Scores API v3 (Python SDK 4.8.1+); limit is capped at 100, page with meta.cursor
+# Scores API v3 (Python SDK 4.8.1 to 4.x); limit is capped at 100, page with meta.cursor.
+# On SDK v5 this is langfuse.api.scores.get_many() (scores_v3 was removed).
 scores = langfuse.api.scores_v3.get_many_v3(name="dietary_adherence", limit=100)
 ```
 
@@ -3951,7 +3961,7 @@ AI evals（AI 评估）不仅仅是“测试”——它是一种产品开发方
 | **Langfuse** | 自定义流水线与追踪 | MIT（企业模块商业许可） | [GitHub](https://github.com/langfuse/langfuse) · [文档](https://langfuse.com/docs) |
 | **Arize Phoenix** | 追踪与评测，原生支持 OTel | Elastic-2.0 | [GitHub](https://github.com/Arize-ai/phoenix) |
 | **Promptfoo** | 评测与红队 CLI；OpenAI Evals 迁移目标 | MIT | [GitHub](https://github.com/promptfoo/promptfoo) · [文档](https://www.promptfoo.dev/docs/intro/) |
-| **RAGAS** | RAG-specific evaluation（RAG 专用评估） | Apache 2.0 | [GitHub](https://github.com/explodinggradients/ragas) · [Docs](https://docs.ragas.io/) |
+| **RAGAS** | RAG 专用评估（自 2026 年 2 月 24 日以来没有提交；2026 年 1 月 13 日的 v0.4.3 是最新版本，因此应固定） | Apache 2.0 | [GitHub](https://github.com/vibrantlabsai/ragas) · [Docs](https://docs.ragas.io/) |
 | **Comet Opik** | LLM tracing & evaluation（LLM 追踪与评估） | Apache 2.0 | [GitHub](https://github.com/comet-ml/opik) · [Site](https://www.comet.com/site/products/opik/) |
 | **judgy** | Statistical bias correction（统计偏差修正） | Open | [GitHub](https://github.com/ai-evals-course/judgy) |
 | **Braintrust** | Experimentation & logging（实验与日志） | Partial | [Docs](https://www.braintrust.dev/docs) |

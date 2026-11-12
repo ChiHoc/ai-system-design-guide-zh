@@ -64,6 +64,8 @@ flowchart TB
 
 共享档位有两个细节值得注意。关键词搜索的得分依赖语料库统计，因此在共享集合中，一个租户的文档会改变另一个租户的 BM25 排名；Qdrant 1.19 为稀疏检索和 BM25 增加了按租户计算的 IDF 统计，正是为了解决这个问题。客户自有云方案也已成为现成产品：Pinecone 的 BYOC 于 2026 年 9 月 23 日在 AWS、Google Cloud 和 Azure 正式上线，向量、文档和请求载荷都留在客户账户中。
 
+命名空间隔离不仅会因遗漏过滤器而失效，编码缺陷也会使其失守：LangGraph 的 Postgres 和 SQLite 存储允许含点的标签与其他租户的命名空间发生别名冲突（CVE-2026-115883，2026 年 10 月 21 日；原理和修复版本见 [LangGraph 编排](../09-frameworks-and-tools/02-langgraph-orchestration.md#持久化与检查点)）。租户部分应由认证身份派生，绝不使用调用方提供的字符串，并在底层保留 RLS。
+
 ### 2. 数据隔离的纵深防御
 
 **答案：** 我们从不信任单一层。我们的隔离栈如下：
@@ -74,6 +76,7 @@ flowchart TB
 4. **LLM 层**：系统提示明确说明“你只为租户 X 回答”。这有助于约束回答，但不是安全控制，隔离绝不能依赖它
 5. **输出层**：生成后过滤器扫描任何不属于该租户的文档 ID
 6. **推理层**：如果自托管模型，前缀缓存就是共享状态。vLLM 用逐请求的 `cache_salt` 隔离租户；2026 年 9 月，一个遗漏该 salt 的代码路径重新引入了跨租户前缀缓存成员关系探测漏洞，直到 0.30.0 才修复（GHSA-935w-9g4m-p28p）。固定 vLLM >= 0.32.0（当前最低安全版本），并测试对外开放的每个端点是否带上 salt。缓存隔离细节见[访问控制](../12-security-and-access/02-access-control.md)
+7. **供应商账户层**：所有租户的流量都通过同一个组织账户到达模型供应商，因此一个滥用服务的租户可能导致全部 500 个租户受限。自 2026 年 10 月 20 日起，Anthropic 允许平台注册每个终端客户（`POST /v1/user_profiles`），并在每次请求中发送 profile ID（`anthropic-user-profile-id` header，或 Bedrock 请求体的 `user_profile_id` 字段），使安全限制或封禁作用于该客户而非整个组织；Anthropic 文档警告，没有 profile 时一个终端客户可能导致整个组织受到限制措施。应在网关为每个租户附加 profile，并针对报告限制开始或结束的组织 Webhook 设置告警（测试版，需申请）。Profile 仅在 Anthropic 运营的平台创建（Claude API、Claude Platform on AWS、Anthropic 托管的 Foundry 和 Anthropic 管理的 Google Cloud 上 Claude）；Bedrock 和 Google 管理的 Vertex 只检查其格式
 
 ### 3. 为什么不为每个租户建一个向量数据库？
 
@@ -139,7 +142,7 @@ async def delete_tenant_data(tenant_id: str):
 
 ### 数据驻留
 
-欧盟租户常在合同中要求区域内处理，模型厂商如今通常将此作为每 token 约 +10% 的单独收费项：Bedrock 和 Google Cloud 上的 Claude 区域端点、OpenAI 的数据驻留端点以及 Mistral 的欧盟推理服务，溢价都约为这一水平；Anthropic 仅限美国的 `inference_geo` 设置按 1.1 倍计费。应在网关按租户固定地理位置，并将成本计入有此需求的档位，而不是让所有租户的流量都多付 10%。
+欧盟租户常在合同中要求区域内处理，模型厂商如今通常将此作为每 token 约 +10% 的单独收费项：Bedrock 和 Google Cloud 上的 Claude 区域端点、OpenAI 的数据驻留端点以及 Mistral 的欧盟推理服务，溢价都约为这一水平；Anthropic 仅限美国的 `inference_geo` 设置按 1.1x 计费。应逐模型和平台检查“区域”的含义：在 Google 管理的 Vertex 上，区域端点仅支持 Claude Sonnet 4.6 及更早模型，因此 Opus 5.5、Sonnet 5.5、Haiku 5.5 和 Fable 5.1 需要全球端点或 `us`、`eu` 多区域端点（地理范围级驻留，而非单一区域）；后者相对全球端点同样溢价 10%，且预置吞吐量需要区域端点。应在网关按租户固定地理位置，并将成本计入有此需求的档位，而不是让所有租户的流量都多付 10%。
 
 ## 成本分析（500 个租户）
 

@@ -32,7 +32,7 @@ Loss = -sum(log P(token_i | token_1, ..., token_{i-1}))
 重点已经从“更多数据”转向“更好的课程”。
 
 ### 前沿模型的 token 预算
-公开的开放模型预训练预算处于 15T 到 36T+ token 范围：Llama 3 使用约 15T token，DeepSeek-V3 为 14.8T，Qwen3 约 36T；Meta 称 Llama 4 的混合数据超过 30T。封闭实验室（OpenAI、Anthropic、Google）不公布 token 数，因此 GPT、Claude 或 Gemini 的任何具体数值都只能视为猜测。在这个规模下，**去重（Deduplication）** 和 **质量过滤（Quality Filtering）** 是主要差异点。
+公开的开放模型预训练预算现处于约 15T 到 45T token 范围：Llama 3 使用约 15T，DeepSeek-V3 为 14.8T，Qwen3 约 36T；Meta 称 Llama 4 的混合数据超过 30T；Thinking Machines Lab 的 Inkling（2026 年 7 月）使用 45T 多模态 token 预训练（厂商报告）。封闭实验室（OpenAI、Anthropic、Google）不公布 token 数，因此 GPT、Claude 或 Gemini 的任何具体数值都只能视为猜测。在这个规模下，**去重（Deduplication）** 和 **质量过滤（Quality Filtering）** 是主要差异点。
 
 ### 数据混合标准
 | 组成 | 百分比 | 目的 |

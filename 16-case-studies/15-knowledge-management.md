@@ -133,19 +133,20 @@ flowchart LR
     end
 
     subgraph Sync["Sync Strategy"]
-        C1 --> DELTA[Delta Sync<br/>Change Tokens]
-        C2 --> DELTA
+        C1 --> DELTA[增量同步<br/>Graph 变更令牌]
+        C2 --> CQL[CQL lastmodified 水位线<br/>或 Webhook，加完整扫描]
         C3 --> HASH[Hash-Based<br/>Change Detection]
     end
 
     subgraph Queue["Processing Queue"]
         DELTA --> Q[Message Queue]
+        CQL --> Q
         HASH --> Q
         Q --> WORKER[Processing Workers]
     end
 ```
 
-**关键洞见：** SharePoint 和 Confluence 支持变更令牌（change tokens，delta sync）。文件共享需要哈希比对。两者都进入统一处理队列。
+**关键洞见：** SharePoint 支持变更令牌（Microsoft Graph delta 查询）。Confluence 不支持，因此应通过 CQL 轮询保存的水位线之后的 `lastmodified`（或订阅 Webhook），并定期执行完整扫描，以捕获删除和权限变化。文件共享需要哈希比对。三者都进入统一处理队列。
 
 ---
 

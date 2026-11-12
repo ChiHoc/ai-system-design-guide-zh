@@ -59,12 +59,12 @@ Anthropic 于 2024 年 9 月发布的这一模式解决了 **Context Dilution（
 
 ## 上下文内重排序
 
-随着前沿模型的 1M-token 窗口成为标准（Claude Opus 5.5 和 Sonnet 5.5、1.05M 的 GPT-6 系列、Gemini 3.8 Flash），**按上下文排序（Rank-by-Context）**是一种可行模式。
+随着当前模型的 1M-token 窗口成为标准（Claude Opus 5.5 和 Sonnet 5.5、1.05M 的 GPT-6 和 GPT-6.1 系列、Gemini 4 Argon，乃至快速档位的 Gemini 3.8 Flash 和 Claude Haiku 5.5；但 Haiku 的提示词超过 100K token 后按 5 倍计费），**按上下文排序（Rank-by-Context）**是一种可行模式。
 1. 检索前 100 篇文档。
 2. 将这 100 篇全部放入上下文窗口。
 3. 让模型：“Read these 100 docs and identify the 5 most relevant. Then, use those 5 to answer.”（阅读这 100 篇文档并找出最相关的 5 篇。然后用这 5 篇回答。）
 - **优势**：这利用了模型的**长上下文推理（Long Context Reasoning）**能力，无需单独的 Cross-Encoder（交叉编码器）模型即可执行重排序。
-- **成本检查**：100 篇各 500 token 的文档意味着每查询 50K 输入 token：在 Claude Sonnet 5.5 或 GPT-6 Sol 这类每 1M 输入 $2 的模型上约为 $0.10，而 Voyage rerank-3（每 1M 为 $0.05）处理相同 token 仅约 $0.0025，尚未计入输出 token 就相差 40 倍。仅用于低流量、重推理查询，并使提示词低于长上下文价格跃升阈值（OpenAI 为 272K 输入，xAI 为 200K）。
+- **成本检查**：100 篇各 500 token 的文档意味着每查询 50K 输入 token：在 Claude Sonnet 5.5 或 GPT-6 Sol 这类每 1M 输入 $2 的模型上约为 $0.10，而 Voyage rerank-3（每 1M 为 $0.05）处理相同 token 仅约 $0.0025，尚未计入输出 token 就相差 40 倍。仅用于低流量、重推理查询，并使提示词低于长上下文价格跃升阈值（Claude Haiku 5.5 为 100K，含缓存 token；OpenAI 为 272K 输入；xAI 为 200K），或使用 Claude Sonnet 5.5 等统一定价模型。
 
 ---
 

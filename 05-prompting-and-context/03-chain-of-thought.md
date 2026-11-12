@@ -1,6 +1,6 @@
 # 思考链（Chain-of-Thought, CoT）
 
-Chain-of-Thought（CoT，思考链）是一种鼓励 LLM 在给出最终答案前先生成中间推理步骤的技术。它已从简单的提示短语演化为推理模型的核心架构特征：早期有 OpenAI o1 和 DeepSeek-R1，如今有 GPT-6 Astra 和 GPT-6.1 Sol、Claude Opus 5.5 和 Fable 5.1、Gemini 3.8 Flash、DeepSeek V4.1-Flash；这些模型都会在回答前根据推理强度或思考等级设置进行推理。
+Chain-of-Thought（CoT，思考链）是一种鼓励 LLM 在给出最终答案前先生成中间推理步骤的技术。它已从简单的提示短语演化为推理模型的核心架构特征：早期有 OpenAI o1 和 DeepSeek-R1，如今有 GPT-6 Astra 和 GPT-6.1 Sol、Claude Opus 5.5 和 Fable 5.1、Gemini 4 Argon 和 Gemini 3.8 Flash、DeepSeek V4.1-Flash；这些模型都会在回答前根据推理强度或思考等级设置进行推理。
 
 ## 目录
 
@@ -33,15 +33,15 @@ Chain-of-Thought（CoT，思考链）是一种鼓励 LLM 在给出最终答案�
 
 对推理模型而言，这类提示大多是冗余的：模型已经会在回答前思考。应改为设置推理强度，并说明答案必须满足的成功标准。
 
-在最新 Claude 模型（Fable 5.1 和 5、Opus 5.5 和 5、Sonnet 5.5）上，这类提示还可能直接失败。如果提示要求模型将推理写入输出，例如在答案前填写 `<thinking>` 或草稿区，或在 JSON 中填入 `reasoning` 字段，模型可能按 `reasoning_extraction` 类别拒绝；即使拒绝发生在任何输出之前也会计费。应改为索取简短解释或答案依据；需要了解模型如何推理时，读取摘要化的思考块。
+在最新 Claude 模型（Fable 5.1 和 5、Opus 5.5 和 5、Sonnet 5.5 和 Haiku 5.5）上，这类提示还可能直接失败。如果提示要求模型将推理写入输出，例如在答案前填写 `<thinking>` 或草稿区，或在 JSON 中填入 `reasoning` 字段，模型可能按 `reasoning_extraction` 类别拒绝；即使拒绝发生在任何输出之前也会计费。应改为索取简短解释或答案依据；需要了解模型如何推理时，读取摘要化的思考块。
 
 ---
 
 ## The Rise of "Thinking" Models（“Thinking” 模型的兴起）
 
-**GPT-6 Astra 和 GPT-6.1 Sol**、**Claude Opus 5.5 和 Fable 5.1**、**Gemini 3.8 Flash**、**DeepSeek V4.1-Flash** 等模型通过强化学习（Reinforcement Learning, RL）将 CoT“内建”到模型中。训练过程参见[RLVR 与推理模型](../03-training-and-adaptation/08-rlvr-and-reasoning-models.md)。
+**GPT-6 Astra 和 GPT-6.1 Sol**、**Claude Opus 5.5 和 Fable 5.1**、**Gemini 4 Argon 和 Gemini 3.8 Flash**、**DeepSeek V4.1-Flash** 等模型通过强化学习（Reinforcement Learning, RL）将 CoT“内建”到模型中。训练过程参见[RLVR 与推理模型](../03-training-and-adaptation/08-rlvr-and-reasoning-models.md)。
 
-1. **推理强度取代 token 预算**：模型有专门的思考阶段，由推理强度而非原始 token 数控制。OpenAI 提供 `reasoning.effort`（GPT-6 Astra 和 GPT-6.1 Sol 上从 `low` 到 `max`），Anthropic 提供自适应思考及 `effort`（Opus 4.7 及后续版本对固定 `budget_tokens` 返回 400），Gemini 3.8 Flash 使用 `thinking_level`。API 细节见[上下文工程](05-context-engineering.md#推理强度与思考控制)。
+1. **推理强度取代 token 预算**：模型有专门的思考阶段，由推理强度而非原始 token 数控制。OpenAI 提供 `reasoning.effort`（GPT-6 Astra 和 GPT-6.1 Sol 上从 `low` 到 `max`），Anthropic 提供自适应思考及 `effort`（Opus 4.7 及后续版本对固定 `budget_tokens` 返回 400），Gemini 4 Argon 和 Gemini 3.8 Flash 使用 `thinking_level`。API 细节见[上下文工程](05-context-engineering.md#推理强度与思考控制)。
 2. **隐藏的 CoT**：主流供应商都不返回原始思维链。OpenAI 可返回摘要和加密推理项；Anthropic 返回绑定于生成它的模型与对话的摘要化或空白（最新模型默认“omitted”）思考块。无论能否读取，思考都会作为输出 token 计费。原因之一是**蒸馏防护**：Anthropic 于 2026 年 2 月披露，竞争方通过约 24,000 个欺诈账户进行了超过 16M 次对话，要求 Claude 写出推理；其 2026 年 9 月威胁报告又描述了五次行动、近 200M 次对话。
 3. **扩展定律**：这些模型遵循 **Inference Scaling Law（推理扩展定律）**：思考时间越长，解决难题的能力越强，但每个新增 token 的收益递减。OpenAI 和 Google DeepMind 的实验性推理模型在 IMO 2025 达到了金牌水平。
 

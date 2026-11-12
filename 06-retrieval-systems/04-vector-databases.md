@@ -226,7 +226,7 @@ RAM 计算也因此改变：1 亿个 1,536 维向量以 float32 存储约需 614
 | **Weaviate** | 开源 / 云端 | 单次查询中原生混合检索（BM25 + 稠密向量 + 元数据）、MMR 多样性与 Boost API（1.39 正式发布）、多模态；1.40（2026 年 10 月）将命名空间作为许可功能正式发布，停止创建隐式旧向量索引（自动 schema 会创建名为 `default` 的向量），并将向量化器默认设为 none，因此依赖旧默认值的 schema 升级后会发生变化 | 按每维每小时计费 |
 | **Milvus** | 开源 / 云端（Zilliz） | 分布式扩展；3.0（2026 年 7 月）增加通过对象存储中的 Parquet、Iceberg、Lance 和 Vortex 访问的外部集合，以及在线列回填 | 免费（自托管）或 Zilliz Cloud |
 | **turbopuffer** | 托管服务，以对象存储为基础 | 以较低成本服务大量冷命名空间（按租户划分的索引）；原生嵌入于 2026 年 9 月 29 日正式发布 | 按用量计费 |
-| **Chroma** | 开源 | 原型开发、本地开发、嵌入式使用 | 免费 |
+| **Chroma** | 开源（Apache 2.0） | 原型开发、本地开发、嵌入式使用，仅限自托管或嵌入式：Chroma 于 2026 年 10 月 23 日通知 Chroma Cloud 将于 2026 年 12 月 7 日停止写入、12 月 22 日停止读取服务 | 免费（自托管） |
 
 ### 通用型（插件/扩展）
 
@@ -238,11 +238,14 @@ RAM 计算也因此改变：1 亿个 1,536 维向量以 float32 存储约需 614
 
 ### 2026 年市场变化
 
-评估引擎时有三项变化：
+评估引擎时有四项变化：
 
 1. **嵌入进入数据库。**MongoDB Atlas Automated Embedding（正式发布）、turbopuffer 原生嵌入（正式发布；turbopuffer 声称 Readwise 通过与查询执行并行嵌入，将嵌入中位延迟缩短 8 倍）、Elasticsearch `semantic_text` 和 Milvus 3.0 的 Hugging Face Inference Providers 集成，都消除了独立的嵌入与同步流水线。代价是耦合：模型版本由供应商决定，采用前要问清模型变更如何触发重新嵌入。
 2. **索引向湖仓靠近。**Milvus 3.0 的外部集合可就地查询 Parquet、Iceberg、Lance 和 Vortex 数据（零复制、只读）；turbopuffer 9 月 30 日的《RIP, vector database》介绍了 v3 存储设计，其中 ANN 索引成为次级索引，不再是主要数据布局（已宣布，通过 CI，但尚未用于生产；文中的规模数字由供应商提供）。问题从“选哪个向量数据库”转为“在对象存储上就地建索引，还是复制到服务型存储”。
 3. **低位量化扩展到多家供应商**（见[上文](#低位和基于旋转的量化)），改变了 HNSW 容量规划的 RAM 预算。
+4. **迁移路径进入 Postgres 内部。**Pinecone 的 pg_pinecone（2026 年 10 月 27 日，Apache 2.0）是针对已有 pgvector 列的表的 Postgres 扩展：每张表选择可逆引擎（native 在 Postgres 中运行，不需要网络调用或 Pinecone 账户；pgvector 使用现有 HNSW 或 IVFFlat 索引；remote 在后台同步到 Pinecone serverless 索引），并通过 SQL 执行 BM25、向量或混合搜索。‘先用 pgvector，之后迁移’变成以 Postgres 为权威来源的逐表切换。代价是超级用户扩展（PostgreSQL 17 或 18，remote 模式需要 `shared_preload_libraries`），许多托管 Postgres 套餐不允许；公布的性能数字来自 Pinecone 自己的一种实例类型和 1M 向量数据集。
+
+同一个月也带来相反教训：托管存储可能在短时间通知后消失。Chroma 于 2026 年 10 月 23 日通知 Chroma Cloud 用户，约六周后停止写入（12 月 7 日），再过两周停止读取（12 月 22 日）；开源 ChromaDB 继续采用 Apache 2.0，通知称 Replit 会继续贡献（Dealroom 报道 Replit 正在收购 Chroma；是媒体报道而非供应商确认）。选型标准中应包括导出路径以及重新嵌入和重建索引的成本，而不只看功能。
 
 ---
 
@@ -476,7 +479,9 @@ class VectorDBMaintenance:
 
 应像管理其他数据库一样，关注向量存储的 CVE 公告。pgvector 0.8.7（2026 年 10 月 1 日）修复了 CVE-2026-103484：IVFFlat 索引构建期间的缓冲区溢出，可让任何获准创建索引的数据库角色执行代码。2026 年更早的补丁还修复了并行 HNSW 构建溢出（0.8.2）与 HNSW 清理过程中可能发生的索引损坏（0.8.3）。对于托管 PostgreSQL，应确认提供商已提供 0.8.7；多租户 schema 中不要授予应用角色 `CREATE INDEX`。
 
-Milvus 的最低安全版本为 **3.0.3**（2026 年 10 月 14 日）。它会拒绝 Search 和 HybridSearch 中格式错误的稀疏向量，避免查询节点堆越界写入；也会阻止 DescribeCollection 向无权访问的调用者泄露集合元数据（3.0.1 已修复外部代理端口上流式 gRPC 调用导致的未授权访问）。升级时还需安排其破坏性变更：指标端口上的旧 `/api/v1/*` 路由已移除（健康探针请改用 `/healthz` 或 `/livez`），binlog 导入现在需要集群级 `ImportBinlog` 权限。Qdrant 1.20 则更改了安全默认值：配置 API key 后，`service.enforce_internal_auth` 会默认启用，因此上线前请确认集群内部流量携带凭据。
+Milvus 的最低安全版本为 **3.0.5**（2026 年 10 月 30 日）。3.0.5 修复了 CMEK 集合上的 upsert 将删除部分（主键和时间戳）不加密写入 WAL 的问题，该问题会悄然破坏静态加密承诺；3.0.4（10 月 26 日）因多项 CVE 升级 Go 和 golang.org/x/net，并在启用授权时将客户端遥测管理 API 限为 root、对没有 Import 权限的用户隐藏导入作业详情。3.0.3（10 月 14 日）会拒绝 Search 和 HybridSearch 中格式错误的稀疏向量，避免查询节点堆越界写入；也会阻止 DescribeCollection 向无权访问的调用者泄露集合元数据（3.0.1 已修复外部代理端口上流式 gRPC 调用导致的未授权访问）。升级时还需安排 3.0.3 的破坏性变更：指标端口上的旧 `/api/v1/*` 路由已移除（健康探针请改用 `/healthz` 或 `/livez`），binlog 导入现在需要集群级 `ImportBinlog` 权限。Qdrant 1.20 则更改了安全默认值：配置 API key 后，`service.enforce_internal_auth` 会默认启用，因此上线前请确认集群内部流量携带凭据。
+
+信任存储也是补丁范围的一部分。2026 年 10 月发现八个 eMudhra 中间 CA 的私钥薄弱后，Mozilla 和 Chrome 不再信任它们，并着手移除 emSign ECC Root CA - G3 根证书；Weaviate 在 10 月 22 日至 28 日为 1.36 至 1.40 系列发布补丁。应基于更新后的基础镜像重建向量存储和客户端镜像，并预期只连接到被移除根证书的端点会出现 TLS 失败。
 
 ### 监控
 
@@ -526,14 +531,14 @@ def alert_rules():
 
 | 提供商 | 模型 | 示例：10M 个向量，1536 维 |
 |----------|-------|--------------------------------|
-| Pinecone | 基于 Pod 或无服务器 | 无服务器约 ~$70-150/月 |
+| Pinecone | 无服务器（Node.js SDK v9、Go SDK v7 和 Terraform provider v5，2026 年 9 月至 10 月，不再能创建基于 pod 的索引；现有 pod 继续工作；Docker 模拟器 Pinecone Local 于 10 月 7 日结束生命周期，因此 CI 测试需要独立项目或 mock） | 无服务器约 ~$70-150/月 |
 | Qdrant Cloud | 按 GB 计费 | 约 ~$50/月（20GB） |
 | Weaviate Cloud | 按维度计费 | 约 ~$100/月 |
 | Zilliz（Milvus） | 按 CU 计费 | 约 ~$75/月 |
 
 ### 托管 RAG 流水线（自建还是购买）
 
-一种更新的选择是跳过向量数据库选型，使用负责解析、分块、嵌入、索引和检索的托管流水线，按摄取 token、存储量和查询量付费。Cloudflare AI Search 于 2026 年 10 月 1 日正式发布，以下价格自 2026 年 11 月 1 日生效：
+一种更新的选择是跳过向量数据库选型，使用负责解析、分块、嵌入、索引和检索的托管流水线，按摄取 token、存储量和查询量付费。Cloudflare AI Search 于 2026 年 10 月 1 日正式发布；11 月 2 日 Cloudflare 将收费推迟至 2026 年 12 月 1 日（价格不变），并将默认同步间隔从 6 小时提高至 24 小时，因此需要更快搜索新文档时应显式设置：
 
 | 计费项 | 价格 | 每月包含量（Workers 套餐） |
 |---|---|---|
@@ -595,7 +600,7 @@ def estimate_self_hosted_cost(
 ```
 Need < 100K vectors?
 +-- Yes -> pgvector (if already using PostgreSQL)
-|          +-- Chroma (for prototyping)
+|          +-- Chroma (prototyping, self-hosted or embedded)
 |
 +-- No -> Need managed service?
           +-- Yes -> Cloud-first?
@@ -616,7 +621,7 @@ Need < 100K vectors?
 | 运维能力 | 高 | 我们能否运维它？ |
 | 成本 | 中 | 预算约束是什么？ |
 | 功能 | 中 | 支持混合搜索？多模态？ |
-| 锁定风险 | 低-中 | 是否偏好开源？ |
+| 锁定与退出风险 | 中 | 是否偏好开源？是否有批量导出路径？若供应商退出，重新嵌入和重建索引的成本是多少？ |
 
 ### 概念验证清单
 
@@ -653,7 +658,7 @@ Need < 100K vectors?
 - 有特定合规要求
 - 希望避免厂商锁定
 
-2026 年的两项变化缩小了差距：Pinecone BYOC（9 月 23 日正式发布）让数据平面运行在自有云账户中，Pinecone 无法从外部入站访问；Pinecone 的 BM25 全文检索（9 月 9 日正式发布）也削弱了“必须有单独的关键词引擎”的理由，不过词汇与向量结果仍须在客户端融合。
+2026 年的三项变化缩小了差距：Pinecone BYOC（9 月 23 日正式发布）让数据平面运行在自有云账户中，Pinecone 无法从外部入站访问；Pinecone 的 BM25 全文检索（9 月 9 日正式发布）也削弱了“必须有单独的关键词引擎”的理由，不过词汇与向量结果仍须在客户端融合。Pinecone 的 pg_pinecone 扩展（10 月 27 日）为使用 Postgres 的团队增加了一条路径：保留 pgvector 表，只有个别表超出 Postgres 容量时才将其迁移到远程 Pinecone 引擎。
 
 对于大多数初创公司，我会先使用 Pinecone 或 Qdrant Cloud 加快启动，然后在规模扩大且成本变得不可接受时评估迁移。切换成本主要是重新嵌入和重建索引，而不是 API：查询接口相似，但数据库内嵌入功能会将你绑定到供应商选择的模型。
 
@@ -748,7 +753,9 @@ results = index.query(vector=query, namespace=tenant_id)
 - [Milvus 3.0.0 发布说明（2026 年 7 月）](https://github.com/milvus-io/milvus/releases/tag/v3.0.0)
 - [Qdrant 1.19 发布说明（2026 年 8 月）](https://qdrant.tech/blog/qdrant-1.19.x/)
 - [Weaviate 1.39 发布说明（2026 年 8 月）](https://weaviate.io/blog/weaviate-1-39-release)
-- [Qdrant 1.20.0 release notes (Oct 2026)](https://github.com/qdrant/qdrant/releases/tag/v1.20.0), [Weaviate 1.40.0 release notes (Oct 2026)](https://github.com/weaviate/weaviate/releases/tag/v1.40.0), and [Milvus 3.0.3 release notes (Oct 2026)](https://github.com/milvus-io/milvus/releases/tag/v3.0.3)
+- [Qdrant 1.20.0 发布说明（2026 年 10 月）](https://github.com/qdrant/qdrant/releases/tag/v1.20.0)、[Weaviate 1.40.0 发布说明（2026 年 10 月）](https://github.com/weaviate/weaviate/releases/tag/v1.40.0) 和 [Milvus 发布说明（3.0.3 至 3.0.5，2026 年 10 月）](https://milvus.io/docs/release_notes.md)
+- [Chroma Cloud 停止服务通知（2026 年 10 月）](https://www.trychroma.com/cloud-wind-down)
+- [pg_pinecone 仓库（2026 年 10 月）](https://github.com/pinecone-io/pg_pinecone)及 [Pinecone 2026 年发布说明](https://docs.pinecone.io/release-notes/2026)
 - [Elasticsearch 发布说明](https://www.elastic.co/docs/release-notes/elasticsearch)
 - [turbopuffer. “RIP, vector database”（2026 年 9 月）](https://turbopuffer.com/blog/rip-vector-database)
 - [Qdrant-FineWeb-10B 基准（2026 年 9 月）](https://qdrant.tech/blog/qdrant-fineweb-10b-release/)

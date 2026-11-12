@@ -36,7 +36,7 @@
 
 这是一份实用且持续更新的指南，覆盖 AI system design（AI 系统设计）、RAG architectures（RAG 检索增强生成架构）、LLM engineering（LLM 工程）、agentic AI（智能体化 AI）、MCP 和 A2A protocols（A2A 协议），以及 AI engineering interview preparation（AI 工程面试准备）。内容包括生产模式、模型选型、评估方法，以及来自 staff-level interviews（Staff 级别面试）的真实案例。
 
-**首次阅读？** 可直接跳转到 [155 道面试题库](00-interview-prep/01-question-bank.md)、[RAG 基础章节](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
+**首次阅读？** 可直接跳转到 [193 道面试题库](00-interview-prep/01-question-bank.md)、[RAG 基础章节](06-retrieval-systems/01-rag-fundamentals.md)，或选择 [适合生产环境的 LLM](02-model-landscape/01-model-taxonomy.md)。
 
 ---
 
@@ -99,19 +99,19 @@ flowchart TD
 
 | 本指南 | 纸质书籍 |
 |------------|---------------|
-| 2026 年 11 月模型（Claude Opus 5.5、Sonnet 5.5、Haiku 5.5、Fable 5.1、GPT-6 Astra/Sol/Luna、GPT-6.1 Sol/Terra、Gemini 4 Argon、Gemini 3.8 Flash、Grok 4.7、Muse Wonder、Muse Spark 1.3、DeepSeek V4.1-Flash、Mistral Large 4、MiMo-V2.6、GLM-5.3、Kimi K3、Qwen3.8） | 仍停留在 GPT-4 |
+| 2026 年 11 月模型（Claude Opus 5.5、Sonnet 5.5、Haiku 5.5、Fable 5.1、GPT-6 Astra/Sol/Luna、GPT-6.1 Sol/Terra、Gemini 4 Argon、Gemini 3.8 Flash、Grok 4.7、Muse Wonder、Muse Spark 1.3、DeepSeek V4.1-Flash、Mistral Large 4、MiMo-V2.6、GLM-5.3、Kimi K3.1 Pro、Qwen3.8） | 仍停留在 GPT-4 |
 | MCP 2026-07-28 规范、A2A v1.0.1、OpenClaw、计算机使用、全双工语音智能体、智能体式 RAG、ColBERT、潜在推理、MoE 推理服务 | 尚未涵盖 |
 | 附 2026 年 11 月核验日期的实际定价 | 已经过时 |
-| Staff 级面试问答（截至 2026 年 10 月的 155 道题，含语音 AI）与就业市场趋势 | 泛泛的问题 |
+| Staff 级面试问答（截至 2026 年 11 月的 193 道题，含语音 AI 和近期候选人报告的面试轮次）与就业市场趋势 | 泛泛的问题 |
 
 **快速模型选择（2026 年 11 月）：**
 
-- **智能体式编码与困难生产工作：** Claude Opus 5.5（每 1M $4/$20），Anthropic 建议客户从它开始；它以 58 分位居 Artificial Analysis Intelligence Index v5.0 公开可用模型之首（Gemini 4 Carbon 得分 59，但仅向部分网络防御人员开放）。
+- **智能体式编码与困难生产工作：** Claude Opus 5.5（每 1M $4/$20），Anthropic 建议客户从它开始；它以 59 分（max effort）位居 Artificial Analysis Intelligence Index v5.0.1（2026 年 11 月 3 日）公开可用模型之首（Gemini 4 Carbon 得分 60，但仅向部分网络防御人员开放；GPT-6 Astra 得分 57）。
 - **生产默认：** $2/$10 层包括 Claude Sonnet 5.5、GPT-6 Sol 和 GPT-6.1 Sol。Sonnet 5.5 的缓存读取价格于 10 月 7 日降至每 1M $0.10，与 GPT-6.1 Sol 相同，因此缓存密集的智能体循环在两者上的成本如今大致相当。智能体集群、聊天与通用工作负载可路由至此。Gemini 4 Argon（10 月 13 日正式发布）仅在 11 月 30 日前为 $2/$10，12 月 1 日起为 $4/$20，且仅支持隐式缓存，因此应按 $4/$20 预算。
 - **新增中间层：** GPT-6.1 Terra（10 月 26 日，$1/$5）的价格是 $2/$10 层的一半，在该指数中得分 51；Sonnet 5.5 为 54、GPT-6.1 Sol 为 55。为更大模型付费前，先用稳定流量进行对照测试。
 - **能力上限：** Claude Fable 5.1 或 GPT-6 Astra（$10/$50），仅在评估表明 Opus 5.5 在 high 强度下仍不足时使用。
 - **高吞吐：** Claude Haiku 5.5 和 GPT-6 Luna 均为 $0.10/$0.50，但 Haiku 5.5 的提示词超过 100K token（包括缓存读写）后，整个请求按 $0.50/$2.50 计费，因此应保持提示词简短。Gemini 3.8 Flash 在 12 月 31 日前半价 $0.75/$3.75，之后 $1.50/$7.50，因此按标价预算；能在谷时安排的批处理用 DeepSeek V4.1-Flash，此时为峰时 $0.30/$1.20 的一半。
-- **开放权重：** 最好的模型在该指数得分约 32，比 Opus 5.5 低约 26 分。成熟选择包括 MiMo-V2.6-Pro 和 DeepSeek V4.1-Flash（均为 MIT）、GLM-5.3 和 Kimi K3；10 月新增 Meta Muse Spark Open 和 Mistral Large 4。先读许可：GLM-5.3 仅对年收入超过 US$10B 的 MaaS 运营商增加安全审查；Kimi K3 和 Muse Spark Open 对收入超过 US$20M 的运营商要求另行签约；任何 MaaS 业务使用 Mistral Large 4 均需商业许可。
+- **开放权重：** Moonshot 于 2026 年 11 月 4 日发布 Kimi K3.1 Pro 权重（总参数 2.8T、激活 104B、定制许可证），在 v5.0.1 指数得 46 分，比 Opus 5.5 低 13 分；下一个已发布权重模型 DeepSeek V4.1-Flash 在 max effort 下得 33 分。Artificial Analysis 在 11 月 6 日仍将 K3.1 Pro 标为专有，因此开放与闭源差距是 13 还是 26 分取决于分类规则，引用时应注明。成熟选择包括 MiMo-V2.6-Pro 和 DeepSeek V4.1-Flash（均为 MIT）、GLM-5.3 和 Kimi K3；10 月新增 Meta Muse Spark Open 和 Mistral Large 4。先读许可：GLM-5.3 仅对年收入超过 US$10B 的 MaaS 运营商增加安全审查；Kimi K3、Kimi K3.1 Pro 和 Muse Spark Open 对收入超过 US$20M 的 MaaS 业务要求另行签约（K3.1 Pro 还要求月活超过 100M 或月收入超过 US$20M 的产品显著标注“Kimi K3.1-Pro”）；任何 MaaS 业务使用 Mistral Large 4 均需商业许可。
 - **切换之前：** OpenAI 输入超过 272K token、Haiku 5.5 超过 100K 后整个请求按长上下文费率计费；新版 SDK 主版本默认发送的 Anthropic API 版本 `2026-10-21` 对所有模型的任何 `temperature`、`top_p` 或 `top_k` 值（包括默认值）返回 400；Opus 5.5、Sonnet 5.5 和 Fable/Mythos 5.1 强制 `tool_choice` 返回 400，而 Haiku 5.5 接受但会跳过思考；Opus 5.5 默认 effort 为 `medium`，而 Opus 5 使用 `high`。
 
 完整拆解见[模型分类](02-model-landscape/01-model-taxonomy.md)和[模型选型指南](02-model-landscape/04-model-selection-guide.md)。
@@ -122,7 +122,7 @@ flowchart TD
 
 **本指南是：**
 - 一本用于设计生产级 AI 系统的 staff 级参考（RAG、智能体、MCP、评估流水线、多租户隔离）。
-- 一份面试准备配套材料，包含 155 道真实题（含语音 AI 题组）、带完整模拟面试逐字稿的答题框架，以及截至 2026 年 10 月的十道白板练习。
+- 一份面试准备配套材料，包含 193 道真实题（含语音 AI 题组和根据近期候选人报告整理的题组）、带完整模拟面试逐字稿的答题框架，以及截至 2026 年 11 月的十道白板练习。
 - 一本跟踪新模型发布、协议变化和新兴模式并随之更新的活文档。
 - 对取舍有明确观点：延迟与成本、准确性与忠实性、单智能体与多智能体。
 - 免费、采用 MIT 许可，并欢迎实践者提交 PR。
@@ -138,7 +138,7 @@ flowchart TD
 ## 📖 指南结构
 
 ```
-├── 00-interview-prep/           # Questions (155), frameworks, exercises, job-market trends (November 2026)
+├── 00-interview-prep/           # Questions (193), frameworks, exercises, job-market trends (November 2026)
 ├── 01-foundations/              # Transformers, attention, embeddings
 ├── 02-model-landscape/          # Claude Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.1, GPT-6 and 6.1, Gemini 4 Argon and 3.8, Grok 4.7, DeepSeek V4.1, open weights, pricing
 ├── 03-training-and-adaptation/  # Fine-tuning, LoRA, DPO, distillation, RLVR/GRPO
@@ -274,7 +274,7 @@ AI system design（AI 系统设计）是围绕 LLM（Large Language Models，大
 
 ### 我该如何准备 AI engineering（AI 工程）面试？
 
-从 [题库](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 10 月共有 155 道题），然后结合 [答题框架](00-interview-prep/02-answer-frameworks.md) 和 [白板练习](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [案例研究](16-case-studies/) 中。正式面试前，至少和一位会打断并质疑你的人做一次计时模拟；可在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 与 Om 预约。
+从 [题库](00-interview-prep/01-question-bank.md) 开始（截至 2026 年 11 月共有 193 道题），然后结合 [答题框架](00-interview-prep/02-answer-frameworks.md) 和 [白板练习](00-interview-prep/04-whiteboard-exercises.md) 进行练习。大多数高级别面试会考察 RAG 设计、Agent 调试、multi-tenant isolation（多租户隔离）以及 cost/latency tradeoffs（成本/延迟取舍），这些都收录在 [案例研究](16-case-studies/) 中。正式面试前，至少和一位会打断并质疑你的人做一次计时模拟；可在 [EngineBogie](https://enginebogie.com/u/ombharatiya) 或 [Topmate](https://topmate.io/ombharatiya) 与 Om 预约。
 
 ### 什么是 RAG（Retrieval-Augmented Generation，检索增强生成）？
 
@@ -290,7 +290,7 @@ MCP 是一种开放协议，使 LLM 应用能以标准方式发现并调用外�
 
 ### 生产环境中该用哪个 LLM：Claude、GPT、Gemini，还是开源模型？
 
-这取决于 latency budget（延迟预算）、context length（上下文长度）、每任务成本（每任务 token 乘价格，而非每 token 价格）、tool-use quality（工具使用质量）和 data residency（数据驻留）。2026 年 11 月的合理起点是：智能体式编码与困难工作用 Claude Opus 5.5（每 1M $4/$20），多数生产流量用 $2/$10 层（Claude Sonnet 5.5、GPT-6 Sol、GPT-6.1 Sol），质量达标时使用 GPT-6.1 Terra（$1/$5），高吞吐用 Claude Haiku 5.5、GPT-6 Luna 或 Gemini 3.8 Flash（Haiku 5.5 的 $0.10/$0.50 价格仅适用于 100K token 以下的提示词），仅在评估表明低价层不足时使用 Claude Fable 5.1 或 GPT-6 Astra（$10/$50）。[模型分类](02-model-landscape/01-model-taxonomy.md) 和 [定价](02-model-landscape/03-pricing-and-costs.md) 章节比较这些模型，以及 Gemini 4 Argon、Grok 4.7、Muse Spark 1.3、DeepSeek V4.1-Flash 和 MiMo-V2.6、GLM-5.3、Kimi K3、Mistral Large 4 等开放权重模型；[模型选型指南](02-model-landscape/04-model-selection-guide.md) 将其转为决策树。切换前运行自身评估：供应商分数不能跨测试框架或推理强度迁移。
+这取决于 latency budget（延迟预算）、context length（上下文长度）、每任务成本（每任务 token 乘价格，而非每 token 价格）、tool-use quality（工具使用质量）和 data residency（数据驻留）。2026 年 11 月的合理起点是：智能体式编码与困难工作用 Claude Opus 5.5（每 1M $4/$20），多数生产流量用 $2/$10 层（Claude Sonnet 5.5、GPT-6 Sol、GPT-6.1 Sol），质量达标时使用 GPT-6.1 Terra（$1/$5），高吞吐用 Claude Haiku 5.5、GPT-6 Luna 或 Gemini 3.8 Flash（Haiku 5.5 的 $0.10/$0.50 价格仅适用于 100K token 以下的提示词），仅在评估表明低价层不足时使用 Claude Fable 5.1 或 GPT-6 Astra（$10/$50）。[模型分类](02-model-landscape/01-model-taxonomy.md) 和 [定价](02-model-landscape/03-pricing-and-costs.md) 章节比较这些模型，以及 Gemini 4 Argon、Grok 4.7、Muse Spark 1.3、DeepSeek V4.1-Flash 和 MiMo-V2.6、GLM-5.3、Kimi K3.1 Pro（权重自 2026 年 11 月 4 日起提供）、Mistral Large 4 等开放权重模型；[模型选型指南](02-model-landscape/04-model-selection-guide.md) 将其转为决策树。切换前运行自身评估：供应商分数不能跨测试框架或推理强度迁移。
 
 ### 如何在生产环境中评估 LLM 或 RAG 系统？
 
@@ -310,7 +310,7 @@ Agentic RAG（智能体式 RAG）把检索与一个智能体循环结合起来�
 
 ### 这份指南多久更新一次？
 
-持续更新。新的模型发布、协议变化（MCP、A2A）和新兴模式会在发布后持续补充。2026 年 11 月更新将模型、价格、协议和框架版本推进至 2026 年 11 月 2 日状态。近期新增包括八道 [2026 年 10 月题目](00-interview-prep/01-question-bank.md#进阶问题-2026-年-10-月)（Q148-Q155：智能体监控、事件分类、网关供应链、微调迁移、价格断崖、决策模型、API 版本发布、补丁 SLA）、十二道[语音 AI 题目](00-interview-prep/01-question-bank.md#语音-ai-问题)、七道 2026 年 9 月题目、第十道白板练习、重写的[实时语音智能体](18-voice-and-audio-agents/01-realtime-voice-agents.md)章节，以及 [2026 年 11 月就业市场趋势](00-interview-prep/06-job-market-trends-2026.md)。
+持续更新。新的模型发布、协议变化（MCP、A2A）和新兴模式会在发布后持续补充。2026 年 11 月更新将模型、价格、协议和框架版本推进至 2026 年 11 月 6 日状态。近期新增包括十二道[近期面试报告题目](00-interview-prep/01-question-bank.md#近期面试报告中的问题)（Q174-Q185：安全遥测智能体、权限对等的代码探索器、devbox、提示注入下的评论接入、智能体式零售搜索、必须使用 AI 的设计轮）、八道 [2026 年 11 月题目](00-interview-prep/01-question-bank.md#进阶问题-2026-年-11-月)（Q186-Q193：按终端客户隔离限制措施、服务端消息线程、多供应商弃用计划、网络安全访问计划、开放权重许可证审查、重评排行榜、失效放行的租户隔离、智能体批准控制）、十八道[近期面试报告题目](00-interview-prep/01-question-bank.md#近期面试报告中的问题)（Q156-Q173：设计文档审查、模型分发、GPU 调度、从零实现 KV 缓存和 tokenizer、不使用框架的智能体、AI 辅助编码、上线准备、安全面试）、八道 [2026 年 10 月题目](00-interview-prep/01-question-bank.md#进阶问题-2026-年-10-月)（Q148-Q155：智能体监控、事件分类、网关供应链、微调迁移、价格断崖、决策模型、API 版本发布、补丁 SLA）、十二道[语音 AI 题目](00-interview-prep/01-question-bank.md#语音-ai-问题)、七道 2026 年 9 月题目、第十道白板练习、重写的[实时语音智能体](18-voice-and-audio-agents/01-realtime-voice-agents.md)章节，以及 [2026 年 11 月就业市场趋势](00-interview-prep/06-job-market-trends-2026.md)。
 
 ### 如果我从后端、QA、PM 或 EM 转向 AI，可以使用这份指南吗？
 

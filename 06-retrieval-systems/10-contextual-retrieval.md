@@ -441,7 +441,7 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 同样的思路如今也以托管嵌入 API 的形式提供。与使用 Claude 做上下文化相比，上表中的摄取成本可降低一到两个数量级：
 
 - **voyage-context-4**（Voyage AI，2026 年 6 月 29 日正式发布）：为每个分块生成包含整篇文档上下文的向量，内置自动分块（`enable_auto_chunking=True`）、原生重叠分块，并能透明地处理超出其 32K token 窗口的文档。价格为每 100 万 token $0.12，低于 voyage-context-3 的 $0.18。Voyage 报告称，在 39 个数据集上，相比 context-3，分块级提升 2.08%，文档级提升 1.4%（厂商报告）。MongoDB Atlas 也提供此模型。
-- **pplx-embed-v2-context-9b-preview**（Perplexity，Hugging Face，2026 年 9 月 25 日）：联合编码文档的各个分块，输出 2,048 维向量（通过 Matryoshka 可缩至 1,024 维），原生支持 int8，并分别提供 `encode_queries` 和 `encode` 路径。它明确处于预览阶段，生成的嵌入不可与后续版本混用，因此应把它当作评估候选，而非生产索引。
+- **pplx-embed-v2-context**（Perplexity，Hugging Face，9B 和 0.6B，MIT，技术报告发表于 2026 年 10 月 28 日）：联合编码文档的各个分块，两种规模共享 1024 维空间，因此可以用 9B 建索引、用 0.6B 查询。它取代了 9 月 25 日的预览版（2,048 维，通过 Matryoshka 可缩至 1,024 维，原生支持 int8）；预览版模型卡指出其向量不应与后续版本混用，因此应重新嵌入使用预览版构建的内容。
 
 | | LLM 上下文化 | 上下文分块嵌入 |
 |---|---|---|
@@ -547,7 +547,7 @@ Late Chunking 需要长上下文嵌入模型（例如 Jina v3），并且完全�
 - Jina AI. “Late Chunking: Contextual Chunk Embeddings Using Long-Context Embedding Models”（2024）
 - Voyage AI. “voyage-context-3: Contextualized Chunk Embeddings”（2025）
 - Voyage AI. “voyage-context-4”（2026 年 6 月）
-- Perplexity. “pplx-embed-v2-context-9b-preview”模型卡（Hugging Face，2026 年 9 月）
+- Perplexity. “pplx-embed-v2-context-9b”模型卡（Hugging Face，2026 年 10 月）及技术报告（arXiv 2610.38854，2026 年 10 月 28 日）
 - NirDiamant. “RAG Techniques: Contextual Chunk Headers”（GitHub，2024）
 
 ---

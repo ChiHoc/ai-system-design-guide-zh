@@ -45,7 +45,7 @@ Function calling（函数调用）是一种结构化生成方式，LLM 会“选
 
 **细微差别**：**Parallel Function Calling（并行函数调用）** 现在已成为标准。模型可以同时决定调用 5 个不同的工具（例如，检查账户余额、检查信用分数、检查贷款利率），并汇总结果。
 
-**最新 Claude 模型已弃用强制工具调用技巧。**过去两年，从 Claude 获取 JSON 的标准办法是定义带目标 schema 的工具，再用 `tool_choice` 强制调用。Claude Fable 5.1（2026 年 9 月 1 日）、Opus 5.5（9 月 22 日）和 Sonnet 5.5（9 月 28 日）对 `tool_choice` 类型 `any` 和 `tool` 返回 400；`auto` 与 `none` 仍可使用。以 `{` 开始回复的助手预填充，在 Claude 4.6 及后续模型上也已返回 400。替代方案：
+**最新 Claude 模型已弃用强制工具调用技巧。**过去两年，从 Claude 获取 JSON 的标准办法是定义带目标 schema 的工具，再用 `tool_choice` 强制调用。Claude Fable 5.1（2026 年 9 月 1 日）、Opus 5.5（9 月 22 日）和 Sonnet 5.5（9 月 28 日）对 `tool_choice` 类型 `any` 和 `tool` 返回 400；`auto` 与 `none` 仍可使用。Haiku 5.5（10 月 7 日）仍接受强制工具选择，但响应会以工具调用开始，没有思考块，因此结构化输出在此也是更好的方案。以 `{` 开始回复的助手预填充，在 Claude 4.6 及后续模型上也已返回 400。替代方案：
 
 | 旧模式 | 替代方案 |
 |-------------|-------------|
@@ -86,7 +86,7 @@ phone = model("Extract the phone number: call me at 415-555-0199", Regex(r"\d{3}
 - **Stage 1（第一阶段，Text-to-Text）**：提取一组“杂乱但完整”的事实，自然语言即可。
 - **Stage 2（第二阶段，Text-to-JSON）**：使用更小、更便宜的模型，把这些自然语言事实转换为严格的 JSON schema。
 - **收益**：降低“高压下幻觉”——大模型在同时需要推理并遵循严格语法时会更吃力。对推理模型，这种影响较小，因为思考阶段不受 schema 约束，只有最终答案受约束。
-- **在最新 Claude 模型上移除 `reasoning` 字段。**过去常把 `reasoning` 字符串放在 schema 首位，让模型在填写答案字段前“思考”。在 Claude Fable 5.1、Opus 5.5 和 Sonnet 5.5 上，JSON 输出或工具输入中的 `reasoning`、`thinking`、`trace` 字段被列为触发 `reasoning_extraction` 拒绝的因素。让原生思考完成这项工作；审计需要理由时，使用简短的 `explanation` 或 `evidence` 字段。
+- **在最新 Claude 模型上移除 `reasoning` 字段。**过去常把 `reasoning` 字符串放在 schema 首位，让模型在填写答案字段前“思考”。在 Claude Fable 5.1、Opus 5.5、Sonnet 5.5 和 Haiku 5.5 上，JSON 输出或工具输入中的 `reasoning`、`thinking`、`trace` 字段被列为触发 `reasoning_extraction` 拒绝的因素。让原生思考完成这项工作；审计需要理由时，使用简短的 `explanation` 或 `evidence` 字段。
 
 ---
 

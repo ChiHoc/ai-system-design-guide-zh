@@ -105,7 +105,7 @@ export function numericTokens(markdown) {
     .replace(/(\d+(?:[.,]\d+)*)\s*(?:[-–—]|\bto\b|至|到)\s*(\d+(?:[.,]\d+)*)\s*(%|percent\b)/gi, (match, start, end, _unit, offset, text) => {
       const context = text.slice(Math.max(0, offset - 18), offset)
       const year = /^(?:19|20)\d{2}$/.test(start)
-      const ambiguousDecimal = start.includes('.') && /\bto\b/i.test(match) && !/(?:from|between)\s*$/i.test(context)
+      const ambiguousDecimal = start.includes('.') && /\bto\b/i.test(match) && !/(?:from|between|stayed)\s*$/i.test(context)
       return year || ambiguousDecimal ? match : `${start}%–${end}%`
     })
   const values = [...prose.matchAll(pattern)].map((match) => {
@@ -116,7 +116,8 @@ export function numericTokens(markdown) {
     const denominator = 10n ** BigInt(fraction.length) * (['%', 'percent'].includes(unitName?.toLowerCase()) ? 100n : 1n)
     const whole = numerator / denominator
     const remainder = numerator % denominator
-    const decimal = remainder ? `.${remainder.toString().padStart(fraction.length, '0').replace(/0+$/, '')}` : ''
+    const decimalPlaces = fraction.length + (['%', 'percent'].includes(unitName?.toLowerCase()) ? 2 : 0)
+    const decimal = remainder ? `.${remainder.toString().padStart(decimalPlaces, '0').replace(/0+$/, '')}` : ''
     return `${whole}${decimal}`
   })
   for (const [unit, value] of [['千', '1000'], ['百万', '1000000'], ['千万', '10000000'], ['十亿', '1000000000'], ['百亿', '10000000000']]) {

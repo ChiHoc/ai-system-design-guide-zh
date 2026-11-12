@@ -40,8 +40,8 @@ Cost = (input_tokens × input_rate) + (output_tokens × output_rate)
 | **长上下文价格跃升** | 提示词超过阈值后，**整个请求**进入更高费率，而非仅超出部分 | Claude Haiku 5.5 提示词超过 100K 后，所有 token 类型按 5 倍计费，缓存读取和写入也计入长度。OpenAI 输入超过 272K：输入和缓存为 2 倍，输出为 1.5 倍（Batch、Flex 以及 GPT-6 和 GPT-5.6 系列的 Fast 也适用）。xAI Grok 4.6/4.7 达到或超过 200K：所有 token 翻倍。Gemini 3.1 Pro Preview 超过 200K。其他 Anthropic Claude 4.6 及之后模型在 1M 内费率不变；Gemini 4 Argon 没有提示词长度分档 |
 | **缓存写入 / 读取** | 写入前缀支付溢价，TTL 内重读享受折扣 | OpenAI GPT-5.6 及之后：写入 1.25 倍（30 分钟 TTL）或 2.5 倍（12 小时 TTL，仅 Responses API，自 10 月 20 日起）；读取为 0.1 倍，GPT-6.1 Sol 和 Terra 为 0.05 倍。Anthropic：写入 1.25 倍（5 min）或 2 倍（1 h）；读取 0.1 倍，Opus 5.5 和 Sonnet 5.5 为 0.05 倍，Fable 5.1 为 0.025 倍。Gemini：读取 0.1 倍，另按小时收取存储费；Gemini 4 Argon 仅支持隐式缓存（命中价 0.05 倍，不支持显式缓存） |
 | **服务层级** | 等待更久可少付费，优先处理或更快速度需多付费 | OpenAI、Anthropic 和 Gemini API 的 Batch 为 0.5 倍；提供 Flex 的平台为 0.5 倍（OpenAI、Gemini API、Bedrock 的多数模型；Anthropic 无 Flex，Bedrock 上的 GPT-6 Astra 既不支持 Flex 也不支持 Priority）。OpenAI Fast（7 月 30 日由 Priority 更名）为 2 倍，GPT-5.5 为 2.5 倍；Ultrafast 为 6 倍，GPT-6 Astra 已 GA，GPT-6.1 Sol 自 10 月 8 日起向所有 API 用户开放。Gemini Priority 约 1.8 倍。Bedrock Priority 为 1.75 倍。Anthropic Opus 快速模式为 2 倍，Opus 5.5 于 10 月 15 日结束预览；Anthropic 已不再销售 Priority Tier |
-| **数据驻留** | 固定区域处理约贵 10% | Anthropic `inference_geo: "us"` 对所有 token 类型收取 1.1 倍费用（Claude 4.6+；与 Haiku 5.5 超过 100K 的价格叠加）。OpenAI 对 2026 年 3 月 5 日起发布的模型提供驻留端点。Bedrock 和 Google Cloud 的区域 Claude。Bedrock 区域 GPT-6 Astra（$11/$55）。Mistral 欧盟推理 |
-| **促销窗口** | 临时费率可能有截止日期，或仅保证一个最早结束日期 | Gemini 4 Argon 11 月 30 日前 $2/$10，12 月 1 日起 $4/$20。Gemini 3.6/3.7/3.8 Flash 半价至 2026 年 12 月 31 日。GPT-5.6 Sol 为 $4/$20，仅保证“至少持续至 2026 年 11 月 21 日” |
+| **数据驻留** | 固定区域处理约贵 10% | Anthropic `inference_geo: "us"` 对所有 token 类型收取 1.1 倍费用（Claude 4.6+；与 Haiku 5.5 超过 100K 的价格叠加）。OpenAI 对 2026 年 3 月 5 日起发布的模型提供驻留端点。Bedrock 和 Google Cloud 的区域 Claude（Google Cloud 上由 Google 管理的 Opus 5.5、Sonnet 5.5、Haiku 5.5 和 Fable 5.1 等当前模型仅在全球或 `us`/`eu` 多区域端点运行，比全球端点贵 10%；单区域端点最高支持 Sonnet 4.6）。Bedrock 区域 GPT-6 Astra（$11/$55）。Mistral 欧盟推理 |
+| **促销窗口** | 临时费率可能有截止日期，或仅保证一个最早结束日期 | Gemini 4 Argon 11 月 30 日前 $2/$10，12 月 1 日起 $4/$20。Gemini 3.6/3.7/3.8 Flash 半价至 2026 年 12 月 31 日。GPT-5.6 Sol 为 $4/$20，OpenAI 称该价格有效至 2026 年 11 月 30 日，此后的价格尚未公布 |
 | **时段** | 谷时折扣 | DeepSeek 谷时为峰时的 50%；峰时仅限工作日 UTC 01:00-04:00 和 06:00-10:00，中国法定节假日除外 |
 | **按分钟** | 按会话或音频时长而非 token 计费 | `gpt-live-1` 为 $0.05/min，另加后端 token；`gpt-transcribe` 为 $0.0045/min |
 | **付费拒答** | 安全拦截也可能收费 | Anthropic 自 2026 年 9 月 24 日起，对 `bio`、`frontier_llm` 和 `reasoning_extraction` 类别的输出前拒答收费；其他类别仍不收费 |
@@ -84,7 +84,13 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 
 ### 2026 年 11 月定价
 
-> **最后核验：2026 年 11 月 2 日。** 价格会频繁变动。请始终重新核对：[OpenAI](https://developers.openai.com/api/docs/pricing)、[Anthropic](https://platform.claude.com/docs/en/about-claude/pricing)、[Google](https://ai.google.dev/gemini-api/docs/pricing)、[xAI](https://docs.x.ai/developers/models)、[DeepSeek](https://api-docs.deepseek.com/quick_start/pricing)、[Mistral](https://mistral.ai/pricing/api)。10 月 1 日后发布或调价的模型已依据该日供应商页面核验；其他第一方条目沿用 10 月 1 日数据，且确认 xAI 文本模型、DeepSeek token、Gemini 3.8 Flash、GPT-6 Astra、Opus 和 Fable 价格均未变化。标为“沿用”的条目反映 2026 年 8 月 15 日核验。第三方托管价格（OpenRouter、Together AI、Fireworks）是各托管商自己的标价，因提供方而异。
+> **最后核验：2026 年 11 月 6 日。** 价格会频繁变动。请始终重新核对：[OpenAI](https://developers.openai.com/api/docs/pricing)、[Anthropic](https://platform.claude.com/docs/en/about-claude/pricing)、[Google](https://ai.google.dev/gemini-api/docs/pricing)、[xAI](https://docs.x.ai/developers/models)、[DeepSeek](https://api-docs.deepseek.com/quick_start/pricing)、[Mistral](https://mistral.ai/pricing/api)。10 月 1 日后发布或调价的模型已依据该日供应商页面核验；其他第一方条目沿用 10 月 1 日数据，且确认 xAI 文本模型、DeepSeek token、Gemini 3.8 Flash、GPT-6 Astra、Opus 和 Fable 价格均未变化。标为“沿用”的条目反映 2026 年 8 月 15 日核验。第三方托管价格（OpenRouter、Together AI、Fireworks）是各托管商自己的标价，因提供方而异。
+>
+> **2026 年 11 月 2 日至 11 月 6 日的变化：**
+> - **受限模型档位出现新的最高价。** GPT-6-Cyber（11 月 5 日）为 $20 / $100（缓存 $2），是 GPT-6 Astra 的两倍，没有 Batch、Flex 或 Fast 费率。
+> - **MAI-Thinking-1 已公布价格：** Foundry 上每 1M token $2 / $8 起，但默认配额为 0 TPM。
+> - **新增开放权重价格：** Moonshot API 上 Kimi K3.1 Pro 为 $2 / $10（权重于 11 月 4 日发布），OpenRouter 上完整 Tencent Hy4 为 $0.417 / $1.251。
+> - **影响价格的生命周期变化：** Gemini 2.5 Pro 和 2.5 Flash 于 11 月 2 日弃用，12 月 1 日起分别按 Gemini 3.8 Flash 和 3.5 Flash-Lite 费率计费；GPT-5.6 Sol 促销现定于 11 月 30 日结束；Lambda 按需 GPU 价格计划于 11 月 16 日上涨约 15%。
 >
 > **2026 年 10 月 1 日至 11 月 2 日的变化：**
 > - **Anthropic 快速档价格降了 90%，但设有长度断崖。** Claude Haiku 5.5（10 月 7 日）提示词不超过 100,000 token 时为 $0.10/$0.50，超过时整个请求为 $0.50/$2.50，缓存读写也计入长度。它是首个在 1M 内不再统一价格的 Claude 4.6 及后续模型。
@@ -101,14 +107,15 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 |-------|------------|-------------|-------|
 | **GPT-6 Astra** | $10.00 | $50.00 | 自 2026 年 9 月 3 日分阶段发布（先面向 Daybreak 计划），9 月 5 日前进入 API。缓存 $1.00，缓存写入 $12.50（30 分钟）或 $25.00（12 小时）。输入超过 272K 后整个请求按 $20 / $75 计费。Batch 和 Flex 为 $5 / $25；Fast 为 $20 / $100；Ultrafast 为 $60 / $300（9 月 29 日 GA）。1.05M 上下文，128K 输出。不支持 `none` 推理强度、temperature、top_p 或 logprobs；工具调用需要 Responses API。9 月 8 日在 Bedrock GA（In-Region 和 Geo 推理为 $11 / $55）；也已在 Microsoft Foundry GA。 |
 | **GPT-6 Rosalind**（`gpt-6-rosalind`） | $15.00 | $75.00 | 2026 年 10 月 30 日，仅限可信访问计划。缓存 $1.50；超过 272K 为 $30 / $112.50。未列出 Batch、Flex 或 Fast 价格。 |
+| **GPT-6-Cyber**（`gpt-6-cyber`） | $20.00 | $100.00 | 2026 年 11 月 5 日；需加入 Daybreak Red 并另行获得模型批准，设置 `access_programs.cyber: "daybreak_red"` 和 IP 白名单。缓存 $2；缓存写入 $25（30 分钟）或 $50（12 小时）。上下文 1,050,000 token（最大输入 922,000，最大输出 128,000）。仅支持 Chat Completions 和 Responses；没有 Batch、长上下文、Flex 或 Fast 费率。 |
 | **GPT-6.1 Sol** | $2.00 | $10.00 | 2026 年 9 月 29 日。缓存 $0.10（0.05 倍），缓存写入 $2.50（30 分钟）或 $5.00（12 小时，仅 Responses API，自 10 月 20 日起）；超过 272K 为 $4 / $15。Batch 和 Flex 为 $1 / $5；Fast $4 / $20；Ultrafast 自 10 月 8 日起向所有 API 用户开放（$12 / $60，超 272K 时 $24 / $90）。默认推理强度 `medium`。在 Bedrock 上遵循 OpenAI 自己的生命周期条款。 |
 | **GPT-6.1 Terra** | $1.00 | $5.00 | 2026 年 10 月 26 日。缓存 $0.05（0.05 倍），缓存写入 $1.25（30 分钟）或 $2.50（12 小时）；超过 272K 后整个请求按 $2 / $7.50 计费。Batch 和 Flex $0.50 / $2.50；Fast $2 / $10；无 Ultrafast。推理强度为 `none` 至 `max`，默认 `medium`。也已登陆 Bedrock。 |
 | **GPT-6 Sol** | $2.00 | $10.00 | 2026 年 9 月 22 日。缓存 $0.20，缓存写入 $2.50（30 分钟）或 $5.00（12 小时，仅 Responses API）；超过 272K 为 $4 / $15；Batch 和 Flex 为 $1 / $5。9 月 25 日在同一模型 ID 下修复了图像理解缺陷：需重跑图像评估。9 月 22 日在 Bedrock GA。 |
 | **GPT-6 Luna** | $0.10 | $0.50 | 2026 年 9 月 22 日。缓存 $0.01，缓存写入 $0.125；超过 272K 为 $0.20 / $0.75；Batch 和 Flex 为 $0.05 / $0.25。9 月 25 日同样修复了图像问题。也是 Decisions API 背后的模型（每 1M 未缓存输入 $0.10，输出不收费）。 |
-| **GPT-5.6 Sol** | $4.00 促销（$5.00 标价） | $20.00 促销（$30.00 标价） | 自 2026 年 8 月 21 日促销，仅保证“至少持续至 2026 年 11 月 21 日”；按 $5 / $30 做预算。超过 272K 时促销费率为 $8 / $30。缓存 $0.40，缓存写入 $5.00。已不在 OpenAI Ultrafast 价目表中；已由 GPT-6 Sol 接替。 |
+| **GPT-5.6 Sol** | $4.00 促销（$5.00 标价） | $20.00 促销（$30.00 标价） | 自 2026 年 8 月 21 日促销；OpenAI 的定价与模型页面称价格“有效至 2026 年 11 月 30 日”，未说明此后价格。$5 / $30 标价根据所述 20% 和 33% 降幅推算；12 月 1 日起按此预算。超过 272K 时促销费率为 $8 / $30。缓存 $0.40，缓存写入 $5.00。已不在 OpenAI Ultrafast 价目表中；已由 GPT-6 Sol 接替。 |
 | **GPT-5.6 Terra** | $2.00 | $12.00 | 超过 272K 为 $4 / $18。已由 GPT-6.1 Terra 接替，后者输入价减半，输出价远低于一半。 |
 | **GPT-5.6 Luna** | $0.20 | $1.20 | 超过 272K 为 $0.40 / $1.80。已由约半价的 GPT-6 Luna 接替。 |
-| **GPT-5.6-Cyber** | $12.50 | $75.00 | 2026 年 8 月 10 日。缓存 $1.25。400K 上下文，无长上下文层级。仅限 Daybreak Red（身份验证、法律声明、仅支持 Responses API）。 |
+| **GPT-5.6-Cyber** | $12.50 | $75.00 | 2026 年 8 月 10 日。缓存 $1.25。400K 上下文，无长上下文层级。仅限 Daybreak Red（身份验证、法律声明、仅支持 Responses API；请求设置 `access_programs.cyber: "daybreak_red"`）。 |
 | **GPT-Rosalind**（`gpt-rosalind-research`） | $5.00 | $25.00 | 生命科学推理模型，2026 年 9 月 8 日通过可信访问计划 GA。缓存 $0.50。当前仍以此价格与 `gpt-6-rosalind` 并列提供。 |
 | **GPT-5.5** | $5.00 | $30.00 | 2026 年 4 月 23 日。缓存 $0.50；超过 272K 为 $10 / $45。该模型 Fast 为 2.5 倍。 |
 | **GPT-5.5 Pro / GPT-5.4 Pro** | $30.00 | $180.00 | 无缓存输入折扣；超过 272K 约为 $60 / $270。GPT-5.6 和 GPT-6 系列也可通过 `reasoning.mode: "pro"` 使用 Pro，按所选模型标准费率计费。 |
@@ -127,7 +134,7 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 | **Claude Fable 5.1** | $10.00 | $50.00 | 1M | 2026 年 9 月 1 日（`claude-fable-5-1`），五个平台均已 GA。缓存读取 $0.25（0.025 倍，Fable 5 为 $1.00）；缓存写入 $12.50 / $20.00；Batch $5 / $25。128K 输出，默认推理强度 `high`。保留数据 30 天；仅在 Anthropic 明确授权时支持 ZDR（符合 Enterprise Frontier Safeguards 资格的客户，在 EFS 就绪前）。安全护栏拒答可在服务端回退（`fallbacks: "default"`，beta）到 Opus 4.8 或 Opus 5。退役不早于 2027 年 9 月 1 日。 |
 | **Claude Mythos 5.1** | $10.00 | $50.00 | 1M | 与 Fable 5.1 相同的模型，护栏更宽松。可通过 10 月 6 日扩展的 Cyber Verification Program 各档有限访问（已并入 Project Glasswing）；需接受数据保留。 |
 | **Claude Haiku 5.5** | $0.10（提示词不超过 100K）/ $0.50（超过 100K） | $0.50 / $2.50 | 1M | 2026 年 10 月 7 日发布（`claude-haiku-5-5`）。100K 以内：缓存写入 $0.125（5 min）/ $0.20（1 h），缓存读取 $0.01，Batch $0.05/$0.25。超过 100K：缓存写入 $0.625/$1.00，缓存读取 $0.05，Batch $0.25/$1.25。高价适用于**整个请求**，缓存读取和写入计入长度；缓存命中不会让长提示留在低价档。128K 输出。同一文本的 token 数比 Haiku 4.5 多约 30%；2000x1500 图像按约 2.5 倍视觉 token 计费。不支持 Priority Tier。退役不早于 2027 年 10 月 7 日。 |
-| **Claude Haiku 4.5** | $1.00 | $5.00 | 200K | 已由 Haiku 5.5 取代；在 100K 以下，Haiku 5.5 便宜十倍。截至 11 月 2 日 Claude API 上仍为 Active，尚无弃用通知；最早退役日期“不得早于 2026 年 10 月 15 日”已过，按 Anthropic 60 天通知政策，Claude API 上不能早于约 2027 年 1 月退役。Foundry 仍列出 11 月 15 日退役。 |
+| **Claude Haiku 4.5** | $1.00 | $5.00 | 200K | 已由 Haiku 5.5 取代；在 100K 以下，Haiku 5.5 便宜十倍。截至 11 月 6 日 Claude API 上仍为 Active，尚无弃用通知；最早退役日期“不得早于 2026 年 10 月 15 日”已过，按 Anthropic 60 天通知政策，Claude API 上不能早于约 2027 年 1 月退役。Claude 消费者应用于 10 月 29 日对 Free、Pro 和 Max 用户移除了该模型。Foundry 仍列出 11 月 15 日退役，距今九天。 |
 | **Claude Opus 5** | $5.00 | $25.00 | 1M | 2026 年 7 月 24 日。旧版，仍可用。快速模式 $10 / $50。 |
 | **Claude Sonnet 5** | $2.00 | $10.00 | 1M | 2026 年 6 月 30 日。旧版，仍可用。首发价于 2026 年 8 月 10 日永久化。 |
 | **Claude Fable 5** | $10.00 | $50.00 | 1M | 2026 年 6 月 9 日。旧版，仍可用。缓存读取 $1.00（0.1 倍），是 Fable 5.1 的四倍。 |
@@ -144,61 +151,63 @@ Committed (1-year): $2.00 / 1M input tokens (20% savings)
 > - **快速模式**在 Opus 5.5 上为 $8 / $40（10 月 15 日结束研究预览），目前可用于 Claude API、Google Cloud 上由 Anthropic 管理的 Claude Models，以及 Azure 托管的 Foundry 部署；Opus 5 的 $10 / $50 快速模式仍处于研究预览。Opus 4.8 快速模式已于 10 月 30 日弃用，将于 11 月 30 日移除。快速模式可叠加缓存与数据驻留倍率，但不支持 Batch API。
 > - **数据驻留：** Claude 4.6 及之后模型的 `inference_geo: "us"` 对输入、输出、缓存写入和缓存读取均收取 1.1 倍费用，包括 Haiku 5.5 超过 100K 后的高价；旧模型设置此参数返回 400。
 > - **拒答：** 自 2026 年 9 月 24 日起，`stop_details.category` 为 `bio`、`frontier_llm` 或 `reasoning_extraction` 的输出前拒答收费；其他类别不收费。成本看板应按类别拆分拒答支出。
-> - **影响成本代码的破坏性变更：** API 版本 `2026-10-21`（新 SDK 主版本默认使用）对所有模型的 `temperature`、`top_p` 和 `top_k` 无论何值都返回 400。Fable 5.1、Opus 5.5 和 Sonnet 5.5 的 `tool_choice` 为 `any` 或 `tool` 时返回 400；Haiku 5.5 接受强制 `tool_choice`，但该轮会直接调用工具而不生成思考块。思考块绑定于生成它的模型和对话；Sonnet 5.5 与 Haiku 5.5 还绑定生成账户。Bedrock 与 Google Cloud（Google 管理）自行制定 Claude 退役时间。Anthropic 称自己的日期适用于 Claude API、Claude Platform on AWS、Google Cloud 上由 Anthropic 管理的 Claude Models 和 Foundry，但 Microsoft Foundry 的退役计划当前列出的 `claude-haiku-4-5`（11 月 15 日）和 `claude-opus-4-5`（11 月 24 日）日期早于 Anthropic 通知政策允许的日期；Foundry 上应按较早日期规划，并向双方确认。
+> - **影响成本代码的破坏性变更：** API 版本 `2026-10-21`（新 SDK 主版本默认使用）对所有模型的 `temperature`、`top_p` 和 `top_k` 无论何值都返回 400。Fable 5.1、Opus 5.5 和 Sonnet 5.5 的 `tool_choice` 为 `any` 或 `tool` 时返回 400；Haiku 5.5 接受强制 `tool_choice`，但该轮会直接调用工具而不生成思考块。思考块绑定于生成它的模型和对话；Sonnet 5.5 与 Haiku 5.5 还绑定生成账户。Bedrock 与 Google Cloud（Google 管理）自行制定 Claude 退役时间。Anthropic 称自己的日期适用于 Claude API、Claude Platform on AWS、Google Cloud 上由 Anthropic 管理的 Claude Models 和 Foundry，但 Microsoft Foundry 的退役计划当前列出的 `claude-haiku-4-5`（11 月 15 日）和 `claude-opus-4-5`（11 月 24 日）日期早于 Anthropic 通知政策允许的日期；Foundry 还将于 2027 年 2 月 2 日退役 `claude-opus-4-6`、2 月 10 日退役 `claude-sonnet-4-6`，分别早于 Anthropic 自己的最早日期（2 月 5 日和 2 月 17 日）数天；Foundry 上应按较早日期规划，并向双方确认。
 
 #### Google（Gemini 3.x 和 4）
 | 模型 | 输入 / 1M | 输出 / 1M | 上下文 | 备注 |
 |-------|------------|-------------|---------|-------|
 | **Gemini 3.8 Flash** | $0.75 首发（2027 年 1 月 1 日起 $1.50） | $3.75 首发（2027 年 1 月 1 日起 $7.50） | 1M（65K 输出） | 2026 年 9 月 2 日 GA。输出价格含思考 token。Batch 和 Flex 首发 $0.375 / $1.875（1 月 1 日起 $0.75 / $3.75）；Priority 首发 $1.35 / $6.75（1 月 1 日起 $2.70 / $13.50）；缓存读取首发 $0.075（1 月 1 日起 $0.15），另加存储首发每 1M token 每小时 $0.50（1 月 1 日起 $1.00）。思考级别 low、medium、high。报道指出其每任务消耗更多推理 token，抵消了部分低费率优势。 |
-| **Gemini 3.7 Flash / 3.6 Flash** | $0.75 首发 | $3.75 首发 | 1M | 同样的首发价，2027 年 1 月 1 日翻倍。已由 3.8 Flash 接替；自 10 月 8 日起，`gemini-3.7-flash` 请求会由 3.8 Flash 响应。 |
+| **Gemini 3.7 Flash / 3.6 Flash** | $0.75 首发 | $3.75 首发 | 1M | 同样的首发价，2027 年 1 月 1 日翻倍。已由 3.8 Flash 接替；自 10 月 8 日起，`gemini-3.7-flash` 请求会由 3.8 Flash 响应。在 Vertex AI 上，`gemini-3.6-flash` 将于 2026 年 11 月 19 日退役，`gemini-3.7-flash` 将于 2027 年 1 月 28 日退役（替代模型为 `gemini-3.8-flash`，未说明路由）。 |
 | **Gemini 4 Argon**（`gemini-4-argon`） | $2.00（截至 2026 年 11 月 30 日）；12 月 1 日起 $4.00 | $10.00（截至 11 月 30 日）；12 月 1 日起 $20.00 | 输入输出共享 1M（默认输出 65,536） | 2026 年 10 月 13 日 GA，仅面向付费套餐。输出价格包含思考 token。仅支持隐式缓存（命中 $0.10，12 月 1 日起 $0.20）；不支持显式缓存。Batch 和 Flex 为标准价的一半；Priority 为 $3.60 / $18，12 月 1 日起 $7.20 / $36。没有提示词长度分档。超过 65,536 token 的输出（最高约 1M）需要使用 long-decode continuation protocol。应按 12 月标价编制预算。 |
 | **Gemini 3.1 Pro Preview** | $2.00 | $12.00 | 1M | 超过 200K：$4.00 / $18.00。仍处于预览阶段，尚无停服日期；Gemini 4 Argon 是高于它的 GA 模型。Gemini API 没有 Gemini 3.5 Pro。 |
 | **Gemini 3.5 Flash** | $1.50 | $9.00 | 1M | 自 10 月 8 日起，`gemini-3.5-flash` 请求改由 3.6 Flash 响应；Google 未说明重路由请求的具体费率。请迁出该模型 ID，不要猜测计费。 |
 | **Gemini 3.5 Flash-Lite** | $0.30 | $2.50 | 1M | Google 推荐原本会使用 2.5 Flash-Lite 的新项目采用它。 |
 | **Gemini 3.1 Flash-Lite** | $0.25 | $1.50 | 1M | 2027 年 5 月 7 日停服（迁移到 3.5 Flash-Lite）。 |
 | **Gemini 3 Flash Preview** | $0.50 | $3.00 | 1M | 预览版。 |
-| **Gemini 2.5 Pro** | $1.25 | $10.00 | 1M | 超过 200K：$2.50 / $15.00。仅限现有用户（见下文）。 |
-| **Gemini 2.5 Flash-Lite** | $0.10 | $0.40 | 1M | 仅限现有用户。 |
+| **Gemini 2.5 Pro** | $1.25 | $10.00 | 1M | 超过 200K：$2.50 / $15.00。2026 年 11 月 2 日弃用；12 月 1 日起请求路由至 `gemini-3.8-flash` 并按 3.8 Flash 费率计费（见下文）。 |
+| **Gemini 2.5 Flash-Lite** | $0.10 | $0.40 | 1M | 仅限现有用户；未弃用。 |
 
 Google Search grounding：Gemini 3 及更新模型每月共享 5,000 次免费请求，之后每 1,000 次 $14。另有一项治理变化：自 10 月 26 日起，新建的付费 Gemini API 项目默认存储请求（`store=true`）；既有项目的设置保持不变。
 
 > [!WARNING]
-> **Gemini 2.5 生命周期：** Google 曾计划于 2026 年 6 月 17 日关闭这些模型，后来推迟并撤回了日期。2026 年 9 月 18 日，Google 将 Gemini API 的 Gemini 2.5 模型限制为此前使用过它们的项目，称其“未弃用”，将服务至另行通知；新项目建议使用 Gemini 3.5 Flash-Lite 或 3.8 Flash。在 Google Cloud（Vertex AI，Google 文档现在称为 Gemini Enterprise Agent Platform）上，`gemini-2.5-pro`、`gemini-2.5-flash` 和 `gemini-2.5-flash-lite` 原定于 **2026 年 10 月 20 日**退役；截至 11 月 2 日，尚未确认该退役已执行，因此实际依赖前应测试 Vertex 模型 ID。同一模型，两套生命周期。
+> **Gemini 2.5 生命周期（影响价格）：** `gemini-2.5-pro` 和 `gemini-2.5-flash` 于 2026 年 11 月 2 日在 Gemini API 弃用。12 月 1 日起，`gemini-2.5-pro` 请求路由至 Gemini 3.8 Flash 并按其费率计费（首发 $0.75 / $3.75，2027 年 1 月 1 日翻倍），`gemini-2.5-flash` 请求路由至 Gemini 3.5 Flash-Lite 并按其费率计费（$0.30 / $2.50）。`gemini-2.5-flash-lite` 未弃用。固定模型 ID 的代码仍返回 200，因此账单和模型行为会同时改变。路由目标的破坏性变更和 Vertex AI 状态见[模型分类](01-model-taxonomy.md#gemini-3-1-pro-preview-google-2026年2月)。
 
 #### xAI（Grok）
 | 模型 | 输入 / 1M | 输出 / 1M | 上下文 | 备注 |
 |-------|------------|-------------|---------|-------|
-| **Grok 4.7** | $2.00 | $6.00 | 500K | 2026 年 9 月 21 日。缓存 $0.50。提示词达到或超过 200K 后，**请求中每个 token** 的费率均变为 $4 / $12（缓存 $1）。快速变体（2 倍速度、2 倍价格）仅在 Cursor 和 Grok Build 提供，公共 API 不提供。底座比 4.6 更大更新；Artificial Analysis Index v5.0 得分 35（高档），比 $2/$10 模型低约 20 分。截至 11 月 2 日，仍是 xAI 最新文本模型；Grok 5 尚未发布。 |
+| **Grok 4.7** | $2.00 | $6.00 | 500K | 2026 年 9 月 21 日。缓存 $0.50。提示词达到或超过 200K 后，**请求中每个 token** 的费率均变为 $4 / $12（缓存 $1）。快速变体（2 倍速度、2 倍价格）仅在 Cursor 和 Grok Build 提供，公共 API 不提供。底座比 4.6 更大更新；Artificial Analysis Index v5.0 得分 35（高档），比 $2/$10 模型低约 20 分。截至 11 月 6 日，仍是 xAI 最新文本模型；Grok 5 尚未发布。 |
 | **Grok 4.6** | $2.00 | $6.00 | 500K | 2026 年 8 月 12 日。已由同价、相同长提示词规则的 4.7 接替。 |
 | **grok-4.3** | $1.25 | $2.50 | - | xAI 于 2026 年 5 月 15 日退役的文本标识（`grok-4-0709`、`grok-4-fast`、`grok-4-1-fast`、`grok-3`）的重定向目标。旧标识仍可解析，但按 grok-4.3 的费率与行为提供服务。Azure Foundry 仍将 `grok-4` 和 `grok-4-1-fast` 列为 GA。 |
 
 #### 通过 API 提供的开放权重、挑战者与价值层模型
 | 模型 | 输入 / 1M | 输出 / 1M | 上下文 | 提供方与许可证说明 |
 |-------|------------|-------------|---------|----------------------------|
-| **DeepSeek V4.1-Flash**（`deepseek-flash`） | $0.30 峰时 / $0.15 谷时 | $1.20 峰时 / $0.60 谷时 | 1M（384K 输出） | 2026 年 9 月 10 日起在 DeepSeek API 提供；自 10 月 17 日起以相同 token 价格运行 V4.1-Flash-1017 构建。Artificial Analysis Index v5.0 得分 32，并列开放权重模型最高分。缓存命中输入 $0.006 / $0.003。MIT 权重；552B 主干（763B 检查点），预填充激活 8B、解码激活 16B。旧 `deepseek-v4-flash` 名称按此费率路由至此。Together AI 和 Fireworks 标价同为 $0.30 / $1.20。 |
-| **DeepSeek V4-Pro**（`deepseek-v4-pro`，0813 构建） | $1.32 峰时 / $0.66 谷时 | $3.96 峰时 / $1.98 谷时 | 1M | 8 月 16 日重新定价后未变。缓存命中输入 $0.044 / $0.022。DeepSeek 于 9 月 10 日宣布 9 月 14 日起将所有 V4-Pro 流量转向 V4.1-Flash，随后于 9 月 11 日撤回。V4.1-Pro 尚未发布。 |
-| **Xiaomi MiMo-V2.6-Pro** | $0.435 | $0.87 | 1M | 2026 年 9 月 21 日，MIT，总参数 1.02T / 激活 42B。OpenRouter 价格。Artificial Analysis Index v5.0 得分 30，比开放权重模型最高分低 2 分。 |
+| **DeepSeek V4.1-Flash**（`deepseek-flash`） | $0.30 峰时 / $0.15 谷时 | $1.20 峰时 / $0.60 谷时 | 1M（384K 输出） | 2026 年 9 月 10 日起在 DeepSeek API 提供；自 10 月 17 日起以相同 token 价格运行 V4.1-Flash-1017 构建。Artificial Analysis Index v5.0.1 最大强度得分 33（高强度为 29），是 AA 标记为开放模型的已发布权重中最高分；最大强度每项指数任务花费 $0.60。并发上限 2,500。DeepSeek Search & Fetch API（10 月 17 日）的 Search 与 Fetch 各按每 1,000 次成功请求收取 $0.75。缓存命中输入 $0.006 / $0.003。MIT 权重；552B 主干（763B 检查点），预填充激活 8B、解码激活 16B。旧 `deepseek-v4-flash` 名称按此费率路由至此。Together AI 和 Fireworks 标价同为 $0.30 / $1.20。 |
+| **DeepSeek V4-Pro**（`deepseek-v4-pro`，0813 构建） | $1.32 峰时 / $0.66 谷时 | $3.96 峰时 / $1.98 谷时 | 1M | 8 月 16 日重新定价后未变。缓存命中输入 $0.044 / $0.022。DeepSeek 于 9 月 10 日宣布 9 月 14 日起将所有 V4-Pro 流量转向 V4.1-Flash，随后于 9 月 11 日撤回。V4.1-Pro 尚未发布。并发上限为 500，限制扇出。 |
+| **Xiaomi MiMo-V2.6-Pro** | $0.435 | $0.87 | 1M | 2026 年 9 月 21 日，MIT，总参数 1.02T / 激活 42B。OpenRouter 价格。Artificial Analysis Index v5.0.1 得分 30，比 DeepSeek V4.1-Flash-1017 低 3 分。 |
 | **Xiaomi MiMo-V2.6-Flash** | $0.14 | $0.28 | 1M | 309B / 激活 15B，MIT。OpenRouter 价格；与 DeepSeek V4 Flash 在 8 月前的费率相同。 |
-| **Z.ai GLM-5.3** | $1.40 | $4.40 | 1M | 缓存 $0.26。2026 年 8 月 28 日发布权重，MIT 加 Z.ai 安全审查条款：12 个月收入超过 US$10B 的模型即服务运营商需接受审查。也已在 Mistral La Plateforme GA（9 月 28 日）；GLM 5.2 原列为 10 月 31 日在该平台退役，截至 11 月 2 日尚未确认执行或延期。Artificial Analysis Index v5.0 得分 32。 |
+| **Z.ai GLM-5.3** | $1.40 | $4.40 | 1M | 缓存 $0.26。2026 年 8 月 28 日发布权重，MIT 加 Z.ai 安全审查条款：12 个月收入超过 US$10B 的模型即服务运营商需接受审查。也已在 Mistral La Plateforme GA（9 月 28 日）；GLM 5.2 原列为 10 月 31 日在该平台退役，截至 11 月 2 日尚未确认执行或延期。也已在 Amazon Bedrock 提供（10 月 5 日，美国和全球配置；AWS 称推理数据不与模型提供方共享）。Artificial Analysis Index v5.0.1 最大强度得分 32，低强度得分 23。 |
 | **Z.ai GLM-5.3-Flash** | $0.15 | $0.50 | 1M | 2026 年 8 月 26 日，纯 MIT，320B / 激活 18B。缓存 $0.03。 |
-| **Moonshot Kimi K3** | $3.00 | $15.00 | 1M | 缓存 $0.30。定制许可证：12 个月收入超过 US$20M 的 MaaS 运营商须另行签约。未列入 Artificial Analysis Index v5.0；此前分数（包括广为引用的 57.1）来自不可比较的旧版指数。更新的 Kimi K3.1 Pro 仅提供 API。 |
+| **Moonshot Kimi K3** | $3.00 | $15.00 | 1M | 缓存 $0.30（Fireworks 标价同为 $3 / $0.30 / $15）。定制许可证：12 个月收入超过 US$20M 的 MaaS 运营商须另行签约。未列入 Artificial Analysis Index v5.0；此前分数（包括广为引用的 57.1）来自不可比较的旧版指数。自 9 月 18 日起在 Amazon Bedrock 提供显式提示词缓存（至少 1,024 token 后设置断点，条目至少保留 30 分钟，缓存命中不计入输入 TPM 配额）；全球跨区域配置比美国配置便宜约 10%。 |
+| **Moonshot Kimi K3.1 Pro** | $2.00 | $10.00 | 1M | API 于 2026 年 10 月 23 日发布，权重于 11 月 4 日按定制 Kimi K3.1-Pro License 发布（12 个月收入超过 US$20M 的 MaaS 须另行签约；月活跃用户超过 100M 或月收入超过 US$20M 时须在界面注明）。`kimi-k3.1-pro-highspeed` 为 $4 / $20，速度为 2-3 倍（Moonshot）；Batch 为标准价格的 60%。Artificial Analysis 测得标准模式每项指数任务约 36 分钟，High Speed 为 16.7 分钟。由于 Moonshot 价格表显示为空，第一方价格采用 AA 所列数据。AA Index v5.0.1 得分 46，比同价 GPT-6.1 Sol 低 9 分，权重可用于其他平台。 |
 | **Qwen3.8-Max / -0902** | $2.00 | $6.00 | 1M | 阿里 Model Studio 国际价格，适用于 `qwen3.8-max` 及 9 月 2 日仅 API 提供的 `-0902` 快照。开放的 2.4T / 激活 95B 检查点仍是 8 月 12 日构建，12 个月收入超过 US$50M 的 MaaS 和助手产品有许可门槛：自托管者数周内就落后于 API 模型。 |
-| **Qwen3.8-Flash**（托管 Flash-Next） | $0.15 | $0.47 | 1M | Qwen Cloud。开放权重（Qwen3.8-Flash-Next，Qwen4 架构预览）使用 Qwen Community License 1.0，任何 MaaS 或编码/办公助手业务均须另获许可，不论收入。 |
+| **Qwen3.8-Flash**（托管 Flash-Next） | $0.15 | $0.47 | 1M | Qwen Cloud。开放权重（Qwen3.8-Flash-Next，Qwen4 架构预览）使用 Qwen Community License 1.0，任何 MaaS 或编码/办公助手业务均须另获许可，不论收入。截至 11 月 6 日 Qwen4 本身尚未发布（无日期、模型卡或许可证），因此不要将其纳入定价。 |
 | **Tencent Hy4 preview** | $0.834 | $2.501 | 1M | 2026 年 8 月 28 日，Apache 2.0，770B / 激活 49B。Tencent TokenHub 标价（缓存命中 $0.042）；第三方 OpenRouter 托管商同价。 |
+| **Tencent Hy4**（完整版，`tencent/hy4`） | $0.417 | $1.251 | - | 2026 年 11 月 4 日；新增图像输入和计算机操作。OpenRouter 价格；Tencent TokenHub 每 1M 标价 6 元 / 18 元（据报半价至 12 月 31 日）。尚无权重或许可证（Tencent 承诺提供，但未定日期），因此预览版 Apache 2.0 条款不适用于完整版。AA Index v5.0.1 得分 35，标为专有模型。 |
 | **Meta Muse Spark 1.3**（闭源） | $1.25 | $4.25 | 1M | 2026 年 9 月 2 日，Meta Model API 和 Muse Code。缓存 $0.15。`muse-spark-1.3-contributor` 为 $0.10 / $0.20，因为 Meta 可以使用流量：启用前核对政策。比 1.2 更冗长，因此每 token 价格不变时每任务成本仍上涨。 |
 | **Meta Muse Wonder**（闭源，`muse-wonder-1.0`） | $4.00 | $20.00 | 1M | 2026 年 10 月 12 日，Meta Model API 和 Muse Code。缓存 $0.20。标价与 Opus 5.5 相同，但 Artificial Analysis Index v5.0 得分更低（最大推理强度下 43 对 58）。Muse Wonder Full 没有 API 价格，仅通过 Muse Code 订阅（每月 $50 和 $200 方案）提供。 |
 | **StepFun Step 5 Preview** | $1.00 | $2.70 | 1M | 缓存命中 $0.05。600B / 激活 27B；权重约于 10 月 15 日按 StepFun Model License 1.0 发布（收入超过 US$20M 的 MaaS 业务须另行签约，任何品牌设备也须签约）。Artificial Analysis Index v5.0 得分 29。输出冗长：Artificial Analysis 较早测试集约消耗 160M 输出 token，中位数为 81M。 |
-| **Mistral Large 4** | $0.70 | $2.10 | 1M | 缓存 $0.07。2026 年 10 月 6 日公开预览；10 月 29 日发布开放权重（总参数约 1T / 激活 49B），采用 Mistral Ecosystem Open-Weight License，任何 MaaS 业务均须另行申请商业许可，无收入门槛。被指定为 Medium 3.5 和 Large 3 的替代型号。 |
+| **Mistral Large 4** | $0.70 | $2.10 | 1M | 缓存 $0.07。2026 年 10 月 6 日公开预览；10 月 29 日发布开放权重（总参数约 1T / 激活 49B），采用 Mistral Ecosystem Open-Weight License，任何 MaaS 业务均须另行申请商业许可，无收入门槛。推理模式为 Low、Medium 和 High，**默认为 High**（预览版的 `None` 模式已移除），未设置强度会消耗更多 token；AA 测得 High 为 26 分、Medium 为 23 分。被指定为 Medium 3.5 和 Large 3 的替代型号。 |
 | **Mistral Medium 3.5** | $1.50 | $7.50 | 256K | 2026 年 10 月 31 日弃用，2027 年 4 月 30 日退役（迁移到 Large 4）。权重采用修改版 MIT，月收入超过 US$20M 的组织失去所有权利。欧盟区域推理 +10%。 |
 | **Mistral Large 3** | $0.50 | $1.50 | 256K | Mistral API、AWS Bedrock。2026 年 10 月 31 日在 Mistral API 弃用，2027 年 4 月 30 日退役。Large 4 贵 40%。 |
-| **Microsoft MAI-Thinking-1** | 未公布 | 未公布 | 256K | 2026 年 8 月 12 日，Foundry 公共预览。总参数约 1T / 激活 35B。 |
+| **Microsoft MAI-Thinking-1** | $2.00 起 | $8.00 起 | 总计 256K（最大输出 64K） | 2026 年 8 月 12 日，Foundry 公共预览；价格来自 Microsoft Foundry 博客（8 月 12 日更新）。总参数约 1T / 激活 35B。仅支持 Global Standard，无 PTU；默认配额为 0 TPM 和 0 RPM，需先申请容量。 |
 | **MAI-Code-1.1-Flash** | $0.20 | $1.20 | 查看最新 | Microsoft，2026 年 8 月 11 日。沿用。 |
 | **Inception Mercury 2.5**（扩散） | $0.20 标价（$0.04 发布促销） | $0.75 标价（$0.15 发布促销） | - | 1,107 tokens/s（供应商报告）。速度选项，非前沿质量选项。 |
 | **Llama 3.3 70B** | $1.04 | $1.04 | 128K | Together AI 标价。Groq 于 2026 年 8 月 16 日对免费和开发者层停用 `llama-3.3-70b-versatile`。 |
 | **Llama 4 Scout / Maverick** | 查看最新 | 查看最新 | 10M / 1M | Groq 于 2026 年 7 月 17 日对免费和开发者层退役 Scout，快速推理托管商现以 gpt-oss、Qwen、GLM 和 DeepSeek 为中心。Scout 超过 32K 后有效上下文快速衰减。 |
 | **Gemma 4 / Qwen3.8-27B** | 自托管 | 自托管 | 256K / - | Apache 2.0。 |
-| **Meta Muse Spark Open** | 自托管 | 自托管 | 1M | 2026 年 10 月 15 日发布权重，816B / 激活 42B。Muse Model License 要求注明“Built with Muse Spark Open”；收入超过 US$20M 的 MaaS 运营商须与 Meta 另行签约。Artificial Analysis Index v5.0 得分 25。 |
-| **MiniMax-M3.1-Flash** | 自托管 | 自托管 | 1M | 2026 年 10 月 23 日发布权重，采用 minimax-community 许可证；模型卡显示约 428B / 激活 23B。Artificial Analysis Index v5.0 得分 29。 |
+| **Meta Muse Spark Open** | $1.25（Fireworks）或自托管 | $4.25（Fireworks）或自托管 | 1M（Fireworks 为 1,040K） | 2026 年 10 月 15 日，816B / 激活 42B。Fireworks 无服务器服务（10 月 20 日博客）：缓存 $0.15，仅美国容量且无美国附加费，可通过 Serverless Training API 训练 LoRA。Microsoft Foundry 托管计算（10 月 15 日起）和 GroqCloud 预览（131,072 上下文，联系销售）也提供。价格与闭源 Muse Spark 1.3 相同，按许可证和数据条款选择。Muse Model License 要求注明“Built with Muse Spark Open”；收入超过 US$20M 的 MaaS 运营商须与 Meta 另行签约。Artificial Analysis Index v5.0.1 得分 25。 |
+| **MiniMax-M3.1-Flash** | 自托管 | 自托管 | 1M | 2026 年 10 月 23 日发布权重（托管服务自 10 月 19 日起提供）；模型卡显示约 428B / 激活 23B。MiniMax Community License 有条件允许商业使用（向 MiniMax 一次性通知、年收入超过 US$20M 须事先获得书面授权、显示“Built with MiniMax M3.1-Flash”）。Artificial Analysis Index v5.0 得分 29。 |
 
 OpenRouter 于 2026 年 9 月 22 日新增 Batch API：70+ 模型通常优惠 50%，beta 期间批次完成时间中位数为 7 分钟。这让不直接提供批处理的供应商也能享受批量折扣。
 
@@ -220,7 +229,8 @@ OpenRouter 于 2026 年 9 月 22 日新增 Batch API：70+ 模型通常优惠 50
 | **Microsoft MAI-Transcribe-2** | 每音频小时 $0.10（约 $0.0017/min），限时 | 2026 年 9 月 3 日发布。优惠结束后需按更高费率预算。 |
 | **OpenAI TTS**（`gpt-4o-mini-tts`） | 每 1M 音频 token $12 | 8 月和 9 月未发布新 OpenAI TTS 模型。`tts-1`、`tts-1-hd` 和 `gpt-4o-mini-tts` 快照于 2027 年 1 月 6 日停服。 |
 | **xAI Grok voice** | $0.08/min，另加每次文本输入 $0.004 | 语音到语音按分钟统一计费；`grok-voice-latest` 别名于 10 月从 `grok-voice-2.0` 切换到 `grok-voice-3.0`，价格不变。xAI 语音转文本每小时 $0.10（REST）或 $0.20（流式）；TTS 每 1M 字符 $15。 |
-| **整套语音智能体平台** | 约 $0.06-0.14/min，另加电话费用 | Telnyx 约 $0.06（供应商报告），Deepgram Voice Agent $0.075（自备 LLM 和 TTS 时 $0.05），ElevenLabs Agents $0.08（突发 $0.16），Vapi $0.05 加提供方成本（总计约 $0.08-0.13），Retell 实例约 $0.13，Bland $0.12-0.14。这是自行组装流水线必须超越的基准。 |
+| **Mistral Voxtral 3**（10 月 20 日公开预览） | TTS 3 每 1M 字符 $13；Mini Transcribe 3 $0.0035/min；Mini Transcribe Realtime 3 $0.008/min；Small Transcribe 3 $0.004/min | 缓存输入为各费率的 10%。流式语音识别价格约为 `gpt-live-transcribe` 的一半。Mistral API 上的 Voxtral TTS 26.03 将于 2027 年 4 月 30 日退役。 |
+| **整套语音智能体平台** | 约 $0.04-0.14/min，另加电话费用 | Mistral Voice Agents 使用 Mistral Small 4 为 $0.04，使用更大模型为 $0.08（10 月 20 日，此处最低的整套服务费率）；Telnyx 约 $0.06（供应商报告），Deepgram Voice Agent $0.075（自备 LLM 和 TTS 时 $0.05），ElevenLabs Agents $0.08（突发 $0.16），Vapi $0.05 加提供方成本（总计约 $0.08-0.13），Retell 实例约 $0.13，Bland $0.12-0.14。ElevenLabs 的 Eleven Realtime 模型（11 月 2 日前向所有工作区推出）并非统一费率：连接的音频每额外分钟 $0.080（超过并发上限时突发价 $0.160），另加 token 费率，Mini 每 1M 为 $0.20 / $6.00，Max 为 $1.80 / $9.00。Cartesia 将于 2026 年 12 月 1 日停止托管 Line SDK 智能体。这是自行组装流水线必须超越的基准。 |
 
 这些选项的架构权衡见[实时语音智能体](../18-voice-and-audio-agents/01-realtime-voice-agents.md)。
 
@@ -244,45 +254,56 @@ OpenRouter 于 2026 年 9 月 22 日新增 Batch API：70+ 模型通常优惠 50
 
 生命周期现在按**（模型，平台）**组合跟踪：同一模型在供应商 API、Bedrock、Google Cloud 和 Foundry 上的退役可能相差数月。通知期下限也不构成保证：OpenAI 对 GA 模型声明 6 个月、专用变体 3 个月、预览最短 2 周，但 10 月 14 日对 GA GPT-4o 和 GPT-4.1 快照只提前约 3 个月公告（`gpt-5.4-cyber` 提前 20 天）；Anthropic 为 60 天；Bedrock 对旧模型承诺至少 6 个月 Legacy，但给部分 Claude 3.x 区域的通知约一个月（Legacy 期为 10 月 10 日至 15 日，11 月 13 日终止服务）。Bedrock 自 2026 年 9 月 7 日起发布的模型适用 6 个月或 45 天 Legacy 期；Legacy 期间，现有客户闲置 15 天后可能失去访问。Foundry 对 Fireworks 按 token 计费模型给出 15 天。
 
-**2026 年 10 月 1 日至 11 月 2 日已执行：** OpenAI 于 10 月 23 日按计划关闭旧快照（`gpt-4o-2024-05-13`、`gpt-4-turbo`、`o1`、`o3-mini`、`o4-mini`、`gpt-image-1` 等 4 月 22 日公告的模型及其微调版）；此前 `gpt-3.5-turbo-instruct`、`babbage-002` 和 `davinci-002` 已于 9 月 28 日停服。Bedrock 将 Claude 3 Haiku（9 月 10 日）、Nova Sonic v1（9 月 14 日）、Nova Canvas 和 Nova Reel（9 月 30 日）、Claude Sonnet 4（10 月 14 日）列为终止服务；Claude Opus 4.1 于 10 月 8 日在 Bedrock 进入更高价格的公开延长访问。Anthropic API 版本 `2026-10-21`（10 月 21 日）改变采样参数行为：升级到新 SDK 主版本的用户对任何模型传入采样参数都会收到 400。Google 于 10 月 8 日开始用 3.8 Flash 响应 `gemini-3.7-flash` 请求、用 3.6 Flash 响应 `gemini-3.5-flash` 请求。
+**2026 年 10 月 1 日至 11 月 6 日已执行：** Google 于 11 月 2 日在 Gemini API 弃用 `gemini-2.5-pro` 和 `gemini-2.5-flash`（12 月 1 日起按 3.8 Flash 和 3.5 Flash-Lite 费率计费）。xAI 于 11 月退役 `grok-imagine-image-quality`：该模型和 `grok-imagine-image-pro` 现在由 `grok-imagine-image-2.0-low` 以更低的每图价格提供，因此需要高于 low 的质量时应显式设置。Moonshot 于 10 月 31 日停止向新注册用户提供 K2 系列模型，Mistral 同日弃用 Voxtral TTS 26.03 API 模型。OpenAI 于 10 月 23 日按计划关闭旧快照（`gpt-4o-2024-05-13`、`gpt-4-turbo`、`o1`、`o3-mini`、`o4-mini`、`gpt-image-1` 等 4 月 22 日公告的模型及其微调版）；此前 `gpt-3.5-turbo-instruct`、`babbage-002` 和 `davinci-002` 已于 9 月 28 日停服。Bedrock 将 Claude 3 Haiku（9 月 10 日）、Nova Sonic v1（9 月 14 日）、Nova Canvas 和 Nova Reel（9 月 30 日）、Claude Sonnet 4（10 月 14 日）列为终止服务；Claude Opus 4.1 于 10 月 8 日在 Bedrock 进入更高价格的公开延长访问。Anthropic API 版本 `2026-10-21`（10 月 21 日）改变采样参数行为：升级到新 SDK 主版本的用户对任何模型传入采样参数都会收到 400。Google 于 10 月 8 日开始用 3.8 Flash 响应 `gemini-3.7-flash` 请求、用 3.6 Flash 响应 `gemini-3.5-flash` 请求。
 
 **已调整日期：** `gemini-2.5-flash-image` 改至 2027 年 3 月 15 日（原为 10 月 2 日）；Foundry 的 `gpt-4.1-nano` 改至 2027 年 4 月 14 日（原为 10 月 14 日）；Foundry 上 gpt-4o 2024-05-13 的自动升级改至 2027 年 1 月 14 日，目标改为 gpt-5.1（原计划 12 月 9 日升级到 gpt-5.6-sol）。
 
-**未执行：** Claude Haiku 4.5 的最早退役日期（10 月 15 日）已过，但尚无弃用通知；它在 Claude API 上仍为 Active。
+**未执行：** Claude Haiku 4.5 的最早退役日期（10 月 15 日）已过，但尚无弃用通知；截至 11 月 6 日，它在 Claude API 上仍为 Active。
 
-**尚未确认：** Google Cloud Vertex 上 `gemini-2.5-pro`、`-flash` 和 `-flash-lite` 退役（10 月 20 日）；Foundry 上 `gpt-4o-transcribe` 和 `gpt-4o-mini-transcribe` 2025-03-20 版退役（10 月 15 日，目前仍列为 GA）；GPT-Rosalind 开始计费（10 月 5 日）；OpenAI Evals 转为只读（10 月 31 日）；`antigravity-preview-05-2026`（10 月 5 日）；Mistral GLM 5.2（10 月 31 日）、OCR 4.0 和 Leanstral 1.5（9 月 30 日）均已过计划日期且没有延期；Bedrock Nova Premier（9 月 14 日）；以及原定 11 月 2 日退役的 `grok-imagine-image-quality`。若代码仍在使用这些模型，在完成实际测试前都应视为不可用。
+**尚未确认：** Google Cloud Vertex 上 `gemini-2.5-pro`、`-flash` 和 `-flash-lite` 退役（10 月 20 日）；Foundry 上 `gpt-4o-transcribe` 和 `gpt-4o-mini-transcribe` 2025-03-20 版退役（10 月 15 日，目前仍列为 GA）；GPT-Rosalind 开始计费（10 月 5 日）；OpenAI Evals 转为只读（10 月 31 日）；`antigravity-preview-05-2026`（10 月 5 日）；Mistral GLM 5.2（10 月 31 日）、OCR 4.0 和 Leanstral 1.5（9 月 30 日）均已过计划日期且没有延期；以及 Bedrock Nova Premier（9 月 14 日）。若代码仍在使用这些模型，在完成实际测试前都应视为不可用。
 
 | 日期 | 类型 | 平台 | 变化 | 迁移到 |
 |------|------|----------|--------------|---------|
 | 2026 年 11 月 13 日 | 退役 | Bedrock | 剩余区域中的 Claude 3 Haiku、3 Sonnet、3.5 Sonnet、3.5 Sonnet v2、3.7 Sonnet | 当前 Claude 模型 |
 | 2026 年 11 月 15 日 | 退役 | Foundry | `claude-haiku-4-5`、`codex-mini` | Claude Haiku 5.5 |
+| 2026 年 11 月 16 日 | 价格 | Lambda | 按需 GPU 价格于 UTC 00:00 计划上涨约 15%：8x HGX H100 每 GPU 小时 $4.59，8x HGX B200 为 $7.69 | 重新计算自托管盈亏平衡 |
+| 2026 年 11 月 17 日 | 退役 | Gemini API | 预览语音模型 `gemini-3.1-flash-live-preview`、`gemini-2.5-flash-native-audio-preview-12-2025`、`gemini-2.5-flash-preview-tts`、`gemini-2.5-pro-preview-tts`、`gemini-3.1-flash-tts-preview`（最早可能日期，无路由） | `gemini-3.8-live`；`gemini-3.8-flash-tts` 或 `gemini-3.8-flash-lite-tts` |
 | 2026 年 11 月 19 日 | 退役 | Foundry | o1、o1-pro、o3、o3-pro、o3-deep-research；o3-mini、o4-mini | gpt-5.6-sol；gpt-5.6-terra |
-| 2026 年 11 月 21 日 | 价格 | OpenAI | GPT-5.6 Sol 保证促销窗口结束（$4 / $20 可能恢复为 $5 / $30） | GPT-6 Sol 或 GPT-6.1 Sol |
+| 2026 年 11 月 19 日 | 退役 | Vertex AI | `gemini-3.6-flash`（未说明自动升级；仅 Vertex 的日期） | `gemini-3.8-flash` |
 | 2026 年 11 月 24 日 | 退役 | Foundry | `claude-opus-4-5`（Claude API 最早日期同为此日，但尚无通知，API 上约 2027 年 1 月前不会退役） | Opus 5.5 |
 | 2026 年 11 月 26 日 | 退役 | Bedrock | AI21 Jamba 1.5 | - |
+| 2026 年 11 月 27 日 | 退役 | Bedrock | `ca-central-1` 的 Claude 3 Haiku 和 Claude 3 Sonnet | 当前 Claude 模型 |
 | 2026 年 11 月 30 日 | 退役 | Claude API、Foundry | `claude-sonnet-4-5-20250929` | `claude-sonnet-5-5` |
 | 2026 年 11 月 30 日 | 功能移除 | Claude API | Opus 4.8 fast mode（10 月 30 日弃用）；此后 `speed: "fast"` 返回错误 | Opus 5.5 fast mode（$8 / $40） |
 | 2026 年 11 月 30 日 | 退役 | OpenAI | Evals、Agent Builder、Reusable Prompts 关闭 | Promptfoo；Agents SDK |
+| 2026 年 11 月 30 日 | 价格 | OpenAI | GPT-5.6 Sol 的 $4 / $20 促销最后一天；未公布后续价格，按推算的 $5 / $30 标价预算 | GPT-6 Sol 或 GPT-6.1 Sol |
 | 2026 年 12 月 1 日 | 价格 | Gemini API | Gemini 4 Argon 涨至 $4 / $20（缓存命中 $0.20；Priority $7.20 / $36） | 按 12 月价格预算 |
-| 2026 年 12 月 1 日 | 退役 | OpenAI | `gpt-image-1.5`、`gpt-image-1-mini`、`chatgpt-image-latest` | `gpt-image-2.5-sunburst` 或 `-flare` |
+| 2026 年 12 月 1 日 | 路由 / 价格 | Gemini API | `gemini-2.5-pro` 请求路由至 `gemini-3.8-flash`，`gemini-2.5-flash` 路由至 `gemini-3.5-flash-lite`，按目标费率计费 | 有计划地迁移；重新测试工具调用 |
+| 2026 年 12 月 1 日 | 退役 | OpenAI | `gpt-image-1.5`、`gpt-image-1-mini`、`chatgpt-image-latest` | `gpt-image-2.5-sunburst` 或 `-flare`，也可用 `gpt-image-2.6-sunburst` 或 `-flare`（11 月 4 日发布，每 1M 图像输入 $8 / 图像输出 $30 / 文本输入 $5，价格相同；2.6 未列 Batch 费率，批处理密集的流水线继续使用 2.5） |
+| 2026 年 12 月 1 日 | 托管 | Cartesia | Line SDK 智能体托管结束 | 自托管智能体 |
 | 2026 年 12 月 11 日 | 退役 | OpenAI | `gpt-5-2025-08-07`（含 mini、nano）、`gpt-5-pro-2025-10-06`、`o3-2025-04-16`、`o3-pro-2025-06-10` | gpt-5.6-sol / terra / luna；pro 通过 `reasoning.mode: "pro"` |
+| 2026 年 12 月 13 日 | 退役 | Vertex AI | `gemini-live-2.5-flash-native-audio` | `gemini-3.8-live` |
 | 2026 年 12 月 15 日 | 退役 | Foundry | whisper、tts、tts-hd | - |
+| 2026 年 12 月底 | 退役 | Moonshot | 所有 Kimi K2 系列模型，包括 K2.6 和 K2.7 Code（计划） | Kimi K3.1 Pro |
 | 2026 年 12 月 31 日 | 价格 | Gemini API | Gemini 3.6 / 3.7 / 3.8 Flash 和 3.8 Flash TTS 促销价最后一天（1 月 1 日起翻倍） | 按标价预算 |
 | 2027 年 1 月 6 日 | 退役 | OpenAI | `tts-1`、`tts-1-hd`、带日期的 `gpt-4o-mini-tts` 快照；现有客户停止创建微调任务 | `gpt-realtime-2.1-mini`；微调采用开放权重、Azure 或 Bedrock |
 | 2027 年 1 月 8 日 | 退役 / 价格 | Bedrock | Claude Opus 4.1 终止服务；Claude Sonnet 4.5 开始公开延长访问，提供方设定更高价格 | Claude 4.6+ |
 | 2027 年 1 月 14 日 | 退役 | OpenAI | `gpt-4o-2024-08-06`、`gpt-4o-2024-11-20`、`gpt-4o-mini-2024-07-18`、`gpt-4.1-2025-04-14`、`gpt-4.1-mini-2025-04-14` 及其微调模型（10 月 14 日公告） | `gpt-6-luna`，无法微调 |
 | 2027 年 1 月 14 日 | 自动升级 | Foundry | gpt-4o 2024-05-13 退役；Global Standard 和 Data Zone Standard 部署转至 gpt-5.1（2025-11-13），Provisioned 部署不变 | gpt-5.1（无代码变更但延迟、成本和风格会变） |
 | 2027 年 1 月 20 日 | 退役 | OpenAI | `gpt-realtime`、`gpt-audio`、`gpt-4o-realtime`、`gpt-4o-audio` 系列 | `gpt-realtime-2.1`、`-2.1-mini`、`gpt-audio-1.5` |
+| 2027 年 1 月 28 日 | 退役 | Vertex AI | `gemini-3.7-flash` | `gemini-3.8-flash` |
+| 2027 年 2 月 2 日 | 退役 | Foundry | `claude-opus-4-6`（Anthropic 的最早日期为 2 月 5 日） | Opus 5.5 |
+| 2027 年 2 月 10 日 | 退役 | Foundry | `claude-sonnet-4-6`（Anthropic 的最早日期为 2 月 17 日） | Sonnet 5.5 |
 | 2027 年 2 月 26 日 | 退役 | OpenAI | `whisper-1`、`gpt-4o-transcribe`、`gpt-4o-mini-transcribe`、`gpt-4o-transcribe-diarize` | `gpt-transcribe`、`gpt-live-transcribe` |
 | 2027 年 3 月 15 日 | 退役 | Gemini API | `gemini-2.5-flash-image` | 当前 Gemini 图像模型 |
 | 2027 年 3 月 30 日 | 退役 | Bedrock | Legacy 批处理模型：Llama 3.x、Llama 4 Scout 和 Maverick、DeepSeek-R1 和 V3.1、Gemma 3、Qwen3-Coder、GLM 4.7、MiniMax M2 和 M2.1、Kimi K2 Thinking、Devstral 2、Voxtral、Nemotron Nano | 当前 Bedrock 模型或自托管 |
 | 2027 年 4 月 1 日 | 退役 | OpenAI | `gpt-5.1`、`gpt-5.3-codex`、`gpt-5.4-nano` | GPT-6 Sol、GPT-6 Luna |
 | 2027 年 4 月 8 日 | 退役 | Bedrock | Claude Sonnet 4.5 终止服务 | Sonnet 5.5 |
 | 2027 年 4 月 14 日 | 退役 | Foundry | gpt-4o（2024-08-06、2024-11-20）、gpt-4o-mini、gpt-4.1、gpt-4.1-mini、gpt-4.1-nano | Foundry 上的当前 OpenAI 模型 |
-| 2027 年 4 月 30 日 | 退役 | Mistral | Mistral Medium 3.5 和 Mistral Large 3（10 月 31 日弃用） | Mistral Large 4（Large 3 用户价格上涨 40%） |
+| 2027 年 4 月 30 日 | 退役 | Mistral | Mistral Medium 3.5、Mistral Large 3 和 Voxtral TTS 26.03（均于 10 月 31 日弃用） | Mistral Large 4（Large 3 用户价格上涨 40%）；Voxtral TTS 3 |
 | 2027 年 5 月 7 日 | 退役 | Gemini API | `gemini-3.1-flash-lite` | Gemini 3.5 Flash-Lite |
 
-**同一模型，不同日期：** Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 退役，但 Bedrock 将提供至 2027 年 4 月 8 日（1 月 8 日起按更高的公开延长访问价格收费）。Claude Opus 4.1 于 2026 年 8 月 5 日在 Claude API 退役，但 Bedrock 提供至 2027 年 1 月 8 日。`gpt-4o-2024-08-06` 及其微调模型将于 2027 年 1 月 14 日在 OpenAI API 停服，而 Foundry 保留基础模型至 2027 年 4 月 14 日、微调部署至 2027 年 10 月 1 日。Grok 4 于 5 月 15 日被 xAI 退役，但 Foundry 仍列为 GA，直至 2027 年 1 月 31 日。多云故障转移链可能悄然落到主平台已退役的模型，因此模型注册表需要按平台记录日期。
+**同一模型，不同日期：** Claude Sonnet 4.5 将于 2026 年 11 月 30 日在 Claude API 退役，但 Bedrock 将提供至 2027 年 4 月 8 日（1 月 8 日起按更高的公开延长访问价格收费）。Claude Opus 4.1 于 2026 年 8 月 5 日在 Claude API 退役，但 Bedrock 提供至 2027 年 1 月 8 日。`gpt-4o-2024-08-06` 及其微调模型将于 2027 年 1 月 14 日在 OpenAI API 停服，而 Foundry 保留基础模型至 2027 年 4 月 14 日、微调部署至 2027 年 10 月 1 日。Grok 4 于 5 月 15 日被 xAI 退役，但 Foundry 仍列为 GA，直至 2027 年 1 月 31 日。Gemini 3.6 Flash 于 11 月 19 日在 Vertex AI 退役，与 Gemini API 同一 ID 的生命周期不同；Bedrock 的 Claude 3 Haiku 和 3 Sonnet 在大部分区域于 11 月 13 日终止服务，在 `ca-central-1` 则为 11 月 27 日，因此注册表需要按（模型、平台、区域）记录日期。多云故障转移链可能悄然落到主平台已退役的模型，因此模型注册表需要按平台记录日期。
 
 ### 2026 年早期价格历史
 
@@ -303,7 +324,7 @@ OpenRouter 于 2026 年 9 月 22 日新增 Batch API：70+ 模型通常优惠 50
 以下函数建模了朴素的 `tokens × rate` 计算遗漏的两点：缓存拆分和整个请求的长上下文价格跃升；现在 Anthropic Haiku 5.5 也与 OpenAI、xAI 一样有这种断崖。
 
 ```python
-# USD per 1M tokens, Standard tier, list prices as of November 2, 2026.
+# USD per 1M tokens, Standard tier, list prices as of November 6, 2026.
 # lc_at = smallest prompt size that moves the WHOLE request to long-context rates.
 PRICING = {
     "gpt-6-sol":         {"in": 2.00, "cached": 0.20, "out": 10.00,
@@ -639,7 +660,7 @@ OpenAI 和 Anthropic 的批处理折扣（50%）均可叠加缓存。折扣如�
 **高阶细节：**  
 “GPU Cloud Arbitrage（GPU 云套利）”是指基于**spot instance（抢占式实例）可用性**在不同提供商之间迁移生产工作负载。像 **Skypilot** 这样的工具可以自动化这一过程，通过跟随全球“低需求”区域，最多可节省 60% 的自托管成本。MoE 模型降低每 token 的活跃计算量，却不降低容纳权重所需的内存：Llama 4 Scout（总参数 109B）在 INT4 下可放入一张 H100，Maverick（总参数约 400B）需要 8x H100 节点，Xiaomi 称 MiMo-V2.6-Flash（309B / 激活 15B）可放入一个 8-GPU 节点。
 
-**2026 年 GPU 价格与 API 价格反向变动，且 10 月继续上涨。** Silicon Data 11 月 1 日租赁指数显示，B200 为每 GPU 小时 $6.50、B300 为 $7.56、H200 为 $3.46、H100 为 $2.93；10 月初 B200 为 $5.86，H100 为 $2.78。11 月 2 日按需标价：Lambda 8-GPU 实例上的 H100 SXM 为 $3.99、B200 为 $6.69（单 GPU 实例更贵）；RunPod（10 月 28 日更新）H100 SXM 为 $2.69（社区）/ $3.99（安全），B200 为 $5.98 / $7.99，B300 为 $6.94 / $8.99。长期合约更便宜：9 月 7 日，12 个月 B200 均价 $5.39，3 个月为 $5.73。
+**2026 年 GPU 价格与 API 价格反向变动，且进入 11 月仍在上涨。** Silicon Data 11 月 5 日租赁指数显示，B200 为每 GPU 小时 $6.70（11 月 1 日为 $6.50，10 月 7 日为 $5.88，四周约涨 14%），H200 为 $3.51、H100 为 $2.97、B300 持平于 $7.56；应查看每日表格，因为各指数页面的 FAQ 中“当前”价格已过时。按需标价：Lambda 的 8-GPU 实例上 H100 SXM 为 $3.99、B200 为 $6.69，直到计划于 11 月 16 日 UTC 00:00 生效的新标价：8x HGX H100 为 $4.59、8x HGX B200 为 $7.69，上涨约 15%；单 GPU H100 SXM 为 $4.89、B200 SXM6 为 $7.99。RunPod（11 月 4 日更新）H100 SXM 为 $2.69（社区）/ $3.99（安全），B200 为 $5.98 / $7.99，B300 为 $6.94 / $8.99；安全云价格在 10 月上涨 14% 至 18%。长期合约更便宜：9 月 7 日，12 个月 B200 均价 $5.39，3 个月为 $5.73。
 
 ### 何时适合自托管
 
@@ -653,20 +674,21 @@ API cost at scale (1M requests/month, 2,000 input + 500 output tokens each):
 - MiMo-V2.6-Flash (OpenRouter):     $280 +    $140 =    $420/month
 
 Self-hosted MiMo-V2.6-Flash (309B / 15B active, MIT) on one 8x H100 node:
-- GPU: 8 × $2.93/GPU-hr (November 1 index) × 730 = $17,111/month
-       (8 × $3.99 Lambda on-demand = $23,302/month)
+- GPU: 8 × $2.97/GPU-hr (November 5 index) × 730 = $17,345/month
+       (8 × $3.99 Lambda on-demand = $23,302/month; $26,806 at
+        Lambda's $4.59 rate from November 16)
 - Engineering time: $5,000/month (0.5 FTE)
 - Ops overhead: $2,000/month
-- Total: ~$24,100 to $30,300/month, before N+1 redundancy
+- Total: ~$24,300 to $33,800/month, before N+1 redundancy
 ```
 
-在此规模下，自托管比**每个** API 条目都贵，包括 Opus。旧经验法则（“每月约 500K 请求以上就自托管”）假设只有前沿 API；面对 $0.10 / $0.50 的闭源层和 $0.14 / $0.28 的托管开放权重，它已不成立。盈亏平衡现在取决于利用率：节点必须替代每月约 $24K 的 API 支出。按这种请求形状，对比 Sonnet 5.5 或 GPT-6 Sol 约需每月 2.7M 请求，对比 GPT-6.1 Terra 约需 5.4M，而对比 GPT-6 Luna 约需 54M 请求（约 134B token，即全天候每秒约 52K token）。相信任何一个数字前，都应在目标模型上测量自己的吞吐量。
+在此规模下，自托管比**每个** API 条目都贵，包括 Opus。旧经验法则（“每月约 500K 请求以上就自托管”）假设只有前沿 API；面对 $0.10 / $0.50 的闭源层和 $0.14 / $0.28 的托管开放权重，它已不成立。盈亏平衡现在取决于利用率：节点必须替代每月约 $24K 的 API 支出（11 月 16 日起按 Lambda 按需费率约 $34K）。按这种请求形状，对比 Sonnet 5.5 或 GPT-6 Sol 约需每月 2.7M 请求，对比 GPT-6.1 Terra 约需 5.4M，而对比 GPT-6 Luna 约需 54M 请求（约 134B token，即全天候每秒约 52K token）。相信任何一个数字前，都应在目标模型上测量自己的吞吐量。
 
 ### 自托管成本组成
 
 | 组成项 | 月度成本 | 说明 |
 |-----------|--------------|-------|
-| GPU 计算 | $5K-50K | 一个 8x H100 节点为 $17K-23K；HA 使其翻倍 |
+| GPU 计算 | $5K-50K | 一个 8x H100 节点为 $17K-27K；HA 使其翻倍 |
 | 存储 | $200-500 | 模型权重、日志 |
 | 网络 | $100-500 | 出口流量、负载均衡 |
 | 工程 | $5K-15K | 运维相关的部分 FTE |
@@ -680,11 +702,11 @@ Self-hosted MiMo-V2.6-Flash (309B / 15B active, MIT) on one 8x H100 node:
 | 7B (FP16) | 1x A100 40GB | $1,500-2,500 |
 | 70B (INT4) | 2x A100 80GB | $5,000-8,000 |
 | 70B (FP16) | 4x A100 80GB | $10,000-15,000 |
-| 405B 稠密（INT4），如 Llama 3.1 405B | 8x H100 | $17,000-23,000 |
-| ~300B MoE，激活 ~15B（MiMo-V2.6-Flash） | 1x 8-GPU 节点 | $17,000-23,000（H100） |
-| ~1T MoE，激活 ~42B（MiMo-V2.6-Pro） | 2x 8-GPU 节点（Xiaomi 的 SGLang 配方采用 16 路张量并行） | $34,000-47,000（H100） |
+| 405B 稠密（INT4），如 Llama 3.1 405B | 8x H100 | $17,000-27,000 |
+| ~300B MoE，激活 ~15B（MiMo-V2.6-Flash） | 1x 8-GPU 节点 | $17,000-27,000（H100） |
+| ~1T MoE，激活 ~42B（MiMo-V2.6-Pro） | 2x 8-GPU 节点（Xiaomi 的 SGLang 配方采用 16 路张量并行） | $35,000-54,000（H100） |
 
-H100 条目假设每 GPU 小时 $2.93-3.99。极端量化改变了小模型端：Ternary Bonsai 2 27B 以每权重 1.72 bits 将 Qwen3.8-27B 底座压至 5.95 GB（Apache 2.0），但需要 PrismML 的推理分支。
+H100 条目假设每 GPU 小时 $2.97-4.59（从 Silicon Data 指数到 Lambda 11 月 16 日按需费率）。极端量化改变了小模型端：Ternary Bonsai 2 27B 以每权重 1.72 bits 将 Qwen3.8-27B 底座压至 5.95 GB（Apache 2.0），但需要 PrismML 的推理分支。
 
 ### 决策框架
 
@@ -703,10 +725,12 @@ Choose self-hosting when:
 - Custom fine-tuning needed (OpenAI ends new fine-tuning jobs Jan 6, 2027)
 
 Before either, check the license:
-- MIT / Apache 2.0: MiMo-V2.6, GLM-5.3-Flash, DeepSeek V4.1-Flash(-1017), Hy4 preview, Qwen3.8-27B
+- MIT / Apache 2.0: MiMo-V2.6, GLM-5.3-Flash, DeepSeek V4.1-Flash(-1017), Ling-3.1-flash,
+  Beam 1.0, Hy4 preview (preview checkpoint only), Qwen3.8-27B
 - Gated: Mistral Large 4 (separate license for any MaaS business), Qwen Community 1.0
-  (any MaaS or coding/office-assistant business), Muse Spark Open and Kimi K3 (deal for
-  MaaS above US$20M revenue), Step 5 Preview (MaaS above US$20M, plus any branded device),
+  (any MaaS or coding/office-assistant business), Muse Spark Open, Kimi K3 and
+  Kimi K3.1 Pro (deal for MaaS above US$20M revenue), MiniMax-M3.1-Flash (notice for
+  any commercial use, written authorization above US$20M yearly revenue), Step 5 Preview (MaaS above US$20M, plus any branded device),
   Qwen3.8-Max (MaaS/assistant above US$50M), GLM-5.3 (security review for MaaS above
   US$10B revenue), Mistral Medium 3.5 (no rights above US$20M monthly revenue)
 ```
@@ -828,7 +852,7 @@ Savings: 57%
 
 **质量与许可：**
 - 需要绝对最佳效果：API（前沿模型）
-- 足够好即可：检查许可后使用自托管开放模型（Mistral Large 4、Muse Spark Open、Kimi K3、GLM-5.3、Qwen 和 Mistral Medium 3.5 都有商业门槛）
+- 足够好即可：检查许可后使用自托管开放模型（Mistral Large 4、Muse Spark Open、Kimi K3 和 K3.1 Pro、MiniMax-M3.1-Flash、GLM-5.3、Qwen 和 Mistral Medium 3.5 都有商业门槛）
 
 **其他因素：**
 - 数据隐私：可能强制要求自托管，但支持 ZDR 的 API（Opus 5.5、Sonnet 5.5）已覆盖许多情况
@@ -846,7 +870,7 @@ Savings: 57%
 **优秀答案：**
 每 token 标价是模型中最不稳定的输入。我会检查八件事：
 
-1. **促销到期。** Gemini 4 Argon 于 12 月 1 日翻倍至 $4 / $20，Gemini 3.8 Flash 于 2027 年 1 月 1 日翻倍至 $1.50 / $7.50，GPT-5.6 Sol 的 $4 / $20 仅保证至 2026 年 11 月 21 日。按标价预算，将促销视为额外收益。
+1. **促销到期。** Gemini 4 Argon 于 12 月 1 日翻倍至 $4 / $20，Gemini 3.8 Flash 于 2027 年 1 月 1 日翻倍至 $1.50 / $7.50，OpenAI 将 GPT-5.6 Sol 的 $4 / $20 定至 2026 年 11 月 30 日，未说明之后的价格。按标价预算，将促销视为额外收益。
 2. **长上下文价格跃升。** OpenAI 提示词只要超过 272K 一个 token，整个请求就按约 2 倍输入和 1.5 倍输出收费；xAI 界线为 200K；Claude Haiku 5.5 为 100K，且每种 token 都涨 5 倍，包括缓存读取。应建模提示词长度分布，而非均值。
 3. **缓存倍率因模型而异。** 读取为 0.1 倍、0.05 倍或 0.025 倍；OpenAI 写入在 30 分钟 TTL 时为 1.25 倍、12 小时时为 2.5 倍；Gemini 4 Argon 仅隐式缓存。即使标价相同，换模型也会改变缓存成本。
 4. **速度层级。** 产品若要求更低延迟，Fast 为 2 倍，Ultrafast 为 6 倍。为每类工作负载显式指定层级。

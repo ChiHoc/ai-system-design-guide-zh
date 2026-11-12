@@ -71,10 +71,10 @@
 | **HLE（Humanity's Last Exam）** | 覆盖 `100` 多学科的封闭式专家问题，抗检索（约 `2,500` 道题，约 `10%` 多模态） | 仍活跃，但 HLE-Diamond 如今是更干净的参照 | 到 `2026` 年年中，它是首要的前沿知识基准。Artificial Analysis 在智能指数 v`5.0` 中以 HLE-Diamond 替换了它，并将完整 HLE 列为历史评测。它在 `2025` 年 1 月发布时，最佳分数低于 `10%`，显示前沿移动之快。工具配置决定排名：Anthropic 自家的完整 HLE 带工具表格中，Claude Opus `5.5` 为 `67.7%`、GPT-`6` Astra 为 `57.2%`（供应商自报），顺序与下方官方 HLE-Diamond 工具运行相反。HLE-Physics 的专家重评（arXiv `2609.13009`）发现多数被审查的“错误”答案实为评分器错误、参考解错误或问题含糊，因此部分剩余提升空间来自标签错误。 |
 | **HLE-Diamond** | 从 HLE 清理出的 `1,000` 道题，推理和知识题各半；HLE 团队历经一年清理后于 `2026` 年 9 月 22 日发布 | 活跃，区分度大 | 无工具：GPT-`6` Astra `59.9%`、Claude Opus `5.5` `54.6%`、GPT-`6.1` Sol `53.2%`、Claude Fable `5.1` `50.7%`。带网页和代码工具：Astra `82.9%`、Opus `5.5` `73.9%`、Fable `5.1` `72.3%`。引用时必须注明配置；同时有两种运行结果的模型，工具约增加 `20` 个百分点。自 v`5.0`（2026 年 10 月）起，它占 Artificial Analysis 智能指数的 `10%`。 |
 | **GPQA-Diamond** | `198` 道博士级生物／物理／化学问题，抗谷歌搜索 | 已饱和 | 设计目标是让有网络访问能力的熟练非专家得分约 `34%`，博士专家约 `65–70%`。OpenAI 发布表格（二手材料转载）中 GPT-`6` Astra 为 `96.0%`，Artificial Analysis 独立运行在 xhigh 下为 `96.3%`。AA 在智能指数 v`4.2` 中将其移为历史指标，只单独运行。它可用于检查中端模型，但不再是前沿排名信号。 |
-| **ARC-AGI-2** | 抽象网格谜题推理，关注效率（约 400 个任务）；抗记忆 | 活跃，强区分 | **请仔细阅读：**人类评审组通过率为 85%，85% 是大奖*门槛*。聚合器会报告前沿模型“达到 85%”，但那是在非 ARC-Prize 评测框架下、使用大量测试时计算的自报数字。ARC-Prize-Verified 的天花板低得多（高成本下约在 50 多分中段）。绝不要把门槛当作已达成分数引用。 |
-| **ARC-AGI-3** | 首个完全交互式 ARC 基准（`2026` 年 3 月 25 日发布）：代理通过行动发现确定性的封闭机制和目标，效率按每关行动数与人类基线比较 | 依赖评测框架；提供方框架下接近满分 | 发布时前沿 AI 得分为 `0.51%`。ARC Prize 于 9 月 3 日对 GPT-`6` Astra 的半私有运行中，供应商中立的 Standard 框架、最高 effort 得分 **`62.7%`**（`$26,098`）；使用 OpenAI 自身上下文管理功能，在请求之间保留不透明推理状态并压缩上下文的 Provider Adapter 框架、高 effort 得分 **`99.9%`**（`$18,817`）。ARC Prize 分别标注并报告两者。同一模型、同一测试集，差距 `37` 个百分点：这是 `2026` 年评测框架决定标题数字的最鲜明案例。 |
+| **ARC-AGI-2** | 抽象网格谜题推理，关注效率（约 400 个任务）；抗记忆 | 前沿模型已超过人类门槛，区分力弱 | 人类评审组通过率为 85%，85% 是大奖*门槛*。ARC Prize 结果页面现列出多个超过该值的前沿模型：GPT-6 95.0%（9 月 2 日）、GPT-6.1 Sol 94.2%、Claude Opus 5.5 93.3%、GPT-5.6 92.5%、Gemini 4 Argon 91.3%、Claude Opus 5 90.4%、Claude Fable 5 89.2%。页面未说明运行框架、成本、数据集划分或验证状态，因此称任何数字为 Verified 前应核查 Verified 排行榜。七个前沿模型位于六个百分点内，已无法用于前沿排名；应将其作为层级筛选，由 ARC-AGI-3 区分。 |
+| **ARC-AGI-3** | 首个完全交互式 ARC 基准（`2026` 年 3 月 25 日发布）：代理通过行动发现确定性的封闭机制和目标，效率按每关行动数与人类基线比较 | 依赖评测框架；提供方框架下接近满分 | 发布时前沿 AI 得分为 `0.51%`。ARC Prize 于 9 月 3 日对 GPT-`6` Astra 的半私有运行中，供应商中立的 Standard 框架、最高 effort 得分 **`62.7%`**（`$26,098`）；使用 OpenAI 自身上下文管理功能，在请求之间保留不透明推理状态并压缩上下文的 Provider Adapter 框架、高 effort 得分 **`99.9%`**（`$18,817`）。ARC Prize 分别标注并报告两者。同一模型、同一测试集，差距 `37` 个百分点：这是 `2026` 年评测框架决定标题数字的最鲜明案例。ARC Prize 2026 比赛已结束，arcprize.org 表示计划于 2026 年 12 月 4 日公布结果；ARC-AGI-3 赛道奖金总计 $850K，包括首个符合条件、得分达到 100% 的智能体可获的 $700K 大奖（无人领取则顺延），符合奖金条件的代码必须开源。这些受计算限制的 Kaggle 参赛结果不能与前沿 API 运行比较。 |
 | **FrontierMath** | 研究级数学，专家数学家需要数小时到数天的问题（约 350 道题，私有；Tier 4 最难） | 活跃但快速攀升 | 开放式问题，答案为可自动验证的闭式形式（防猜）。v1 中约 42% 的问题有错误（已在 2026 年 6 月 v2 修复）；它部分由 OpenAI 资助，因此单一实验室数字需要治理层面的提示。Epoch 自己的表述是低于 70% 处于可达范围，因此应怀疑远高于该水平的聚合器分数。 |
-| **CritPt** | `50` 多名物理学家编写、覆盖 `11` 个领域的研究级物理推理 | 活跃，但低分部分源于评分问题 | 较新（`2025` 年末）。Artificial Analysis 智能指数 v`5.0` 使用 CritPt v2 私有困难子集（`10%`）。原始分数仍能区分模型，但 9 月的专家重评（arXiv `2609.13009`）修正参考解并删除有缺陷的题目：在保留的 `54` 项 CritPt 挑战上，GPT-`5.6` Sol 修正后的 pass@4 达到 `94.4%`。低分既可能反映模型弱项，也可能反映标签错误。 |
+| **CritPt** | `50` 多名物理学家编写、覆盖 `11` 个领域的研究级物理推理 | 活跃，但低分部分源于评分问题 | 较新（`2025` 年末）。Artificial Analysis 智能指数 v`5.0` 使用 CritPt v2 私有困难子集（`10%`），v5.0.1（2026 年 11 月 3 日）采用 CritPt 作者的评分稳健性修复，并据此重新评估每个模型。原始分数仍能区分模型，但 9 月的专家重评（arXiv `2609.13009`）修正参考解并删除有缺陷的题目：在保留的 `54` 项 CritPt 挑战上，GPT-`5.6` Sol 修正后的 pass@4 达到 `94.4%`。低分既可能反映模型弱项，也可能反映标签错误。 |
 
 ### 数学
 
@@ -126,7 +126,7 @@
 | **Agents' Last Exam** | 在沙箱中执行专业工作流；确定性的任务专用评分器将代理输出文件与隐藏参考结果比较。ALE-V1 公布跨 `55` 个细分行业、从 `1,500` 多项任务语料中选出的 `147` 项任务（UC Berkeley RDI 与 Snorkel AI） | 未饱和 | 榜单：Claude Opus `5.5`（Claude Code，max）通过率 `38.2%`、得分 `63.2`、约 `$1,340`；GPT-`6` Astra（Codex，max）通过率 `34.2%`、得分 `59.3`、约 `$1,100`。OpenAI 发布时引用的是 `59.3` 的得分，而非通过率；同一行的部分得分比完全通过率高约 `25` 个百分点。 |
 | **Online-Mind2Web / WebArena** | 实时网页智能体任务 | 混合 | Online-Mind2Web 的“进步幻觉”发现：一旦用透明方式评判，许多商业智能体表现不如一个 2024 年的学术基线。裁判方法差异极大，因此分数经常不可比。 |
 | **GDPval** | 覆盖 44 个职业的真实经济价值知识工作，由人类专家评分 | 活跃，未饱和 | 面向未来的“它能否完成一天真实工作”信号；前沿模型以约低 100 倍的成本接近专家交付物质量。成对 Elo 变体（GDPval-AA）不同于胜率版本。 |
-| **METR time-horizon** | 模型以 50% 可靠性完成的任务长度（以人类分钟计） | 活跃研究标准 | 不是排行榜，而是一种趋势：总体上时间范围约每 7 个月翻倍，在编码上更快。这是谈论智能体自主性增长最清晰的方式。 |
+| **METR time-horizon** | 模型以 50% 可靠性完成的任务长度（以人类分钟计） | 不再更新（自 2026 年 9 月 8 日起） | 不是排行榜，而是一种趋势：总体上时间范围曾约每 7 个月翻倍，在编码上更快，仍是谈论智能体自主性增长最清晰的方式。但 METR 页面现称不再积极更新：其中最新模型是 Claude Mythos Preview（早期版本，2026 年 5 月 8 日加入），结果使用 Time Horizon 1.1；METR 警告当前任务集下超过 16 小时的测量不可靠。当前世代模型（Claude Opus 5.5、GPT-6 Astra、Gemini 4 Argon）均没有官方 METR 时间范围，因此不要引用一个不存在的数字。 |
 
 ### 长上下文
 
@@ -165,7 +165,7 @@
 
 | 基准测试 | 衡量内容 | 状态 | 备注 |
 |-----------|----------|--------|-------|
-| **Arena（arena.ai，曾用名 LMArena 和 Chatbot Arena）** | 众包盲测成对偏好，以 Elo 报告 | 没有上限，但前约 `15` 名压缩在约 `25` 个 Elo 点内 | 著名的偏好信号，也是最常被误用的信号。参见[排行榜幻觉](#排行榜幻觉)。务必阅读**风格控制** Elo（回归剔除长度和格式偏差）及置信区间；约 `15–20` Elo 内的差异属于噪声。`lmarena.ai` 如今重定向到 `arena.ai`。新条目会在分数旁标注 **Preliminary**，直到票数累积（2026 年 10 月 27 日文本榜单中，榜首 Gemini 4 Carbon（High）以约 `4,400` 票获得 `1528 ±9` 分并标注 Preliminary；其下一名 Gemini 4 Argon 约有 `11,900` 票）。2026 年早些时候，Arena 还增加了由数百万条现场投票训练的奖励模型首日 AutoEval 分数（Arena 称排名相关性超过 `0.98`）。Preliminary 或 AutoEval 数字都应视为预测。代理类别（Code、Chat、Work）还增加每任务价格与成本帕累托前沿。 |
+| **Arena（arena.ai，曾用名 LMArena 和 Chatbot Arena）** | 众包盲测成对偏好，以 Elo 报告 | 没有上限，但前约 `15` 名压缩在约 `25` 个 Elo 点内 | 著名的偏好信号，也是最常被误用的信号。参见[排行榜幻觉](#排行榜幻觉)。务必阅读**风格控制** Elo（回归剔除长度和格式偏差）及置信区间；约 `15–20` Elo 内的差异属于噪声。`lmarena.ai` 如今重定向到 `arena.ai`。新条目会在分数旁标注 **Preliminary**，直到票数累积（2026 年 10 月 27 日文本榜单中，榜首 Gemini 4 Carbon（High）以约 `4,400` 票获得 `1528 ±9` 分并标注 Preliminary；其下一名 Gemini 4 Argon 约有 `11,900` 票）。2026 年早些时候，Arena 还增加了由数百万条现场投票训练的奖励模型首日 AutoEval 分数（Arena 称排名相关性超过 `0.98`）。Preliminary 或 AutoEval 数字都应视为预测。代理类别（Code、Chat、Work）还增加每任务价格与成本帕累托前沿。10 月 27 日榜单上，最佳开放模型在文本榜是 Kimi K3（Max）#19、1488，在 WebDev 榜是 Kimi K3.1 Pro（Max）#9、暂定 1695，低于 Claude Opus 5.5（Max）的 1810；Arena 将 Qwen3.8-Max 标为专有，因此‘Arena 上最佳开放模型’取决于榜单及 Arena 的分类。 |
 | **Arena-Hard-Auto v2** | Arena 的自动化、可复现代理指标：由强 LLM 对困难提示进行成对评判 | 未饱和，区分力强 | 可分离性约为 MT-Bench 的 3 倍，与人类 Arena 排名的相关性约为 98%。当你需要廉价且可重复运行的偏好信号时使用。开启风格控制。 |
 | **MT-Bench** | 通过 LLM 评委评估多轮质量（80 个提示） | 已饱和 / 过时 | 规模很小；GPT-4 评委存在偏差（自我偏好、冗长偏好）。已被 Arena-Hard 取代。 |
 
@@ -238,7 +238,7 @@
   | 科学 | `25%` | Terminal-Bench-Science `0.1`（`15%`）、CritPt v2 困难子集（`10%`） |
   | 通用 | `25%` | AA-Omniscience v`1.1`（`15%`：准确率 `10%`、非幻觉 `5%`）、HLE-Diamond（`10%`） |
 
-  GDPval-AA、SciCode、AA-LCR 和完整 HLE 已移出指数；GPQA Diamond、AIME `2025`、MATH-`500`、MMLU-Pro、LiveCodeBench、tau2 Telecom、tau3-Banking、Terminal-Bench `2.1` 和 Terminal-Bench Hard 原已列为历史指标。v`5.0` 榜单：Gemini 4 Carbon（high）`59`、Claude Opus `5.5`（max、带回退）`58`、GPT-`6` Astra（max）`57`、GPT-`6.1` Sol（max）`55`、Claude Sonnet `5.5`（max）`54`、GPT-`6.1` Terra（max）`51`、Gemini 4 Argon（high）`50`、Meta Muse Wonder Full（max）`50`（仅 Muse Code 订阅者可用）、Meta Muse Wonder（max）`43`、Claude Haiku `5.5`（max）`36`。两点值得注意：Carbon 于 10 月 28 日加入且尚未公开提供，因此目前可调用的最高分模型是 Opus `5.5`；Artificial Analysis 将 Kimi K`3.1` Pro 归为专有模型（没有公开权重），因此开放模型与闭源模型的差距取决于分类方式。旧版 v`4.3.2` 在 10 月初也给 Opus `5.5` 打了 `58` 分，但尺度和组成不同：数字相同，含义不同。不要把 v`4.x` 与 v`5.0` 分数放在同一表中。
+  GDPval-AA、SciCode、AA-LCR 和完整 HLE 已移出指数；GPQA Diamond、AIME `2025`、MATH-`500`、MMLU-Pro、LiveCodeBench、tau2 Telecom、tau3-Banking、Terminal-Bench `2.1` 和 Terminal-Bench Hard 原已列为历史指标。v5.0 发布榜单：Gemini 4 Carbon（high）59、Claude Opus 5.5（max、带回退）58、GPT-6 Astra（max）57、GPT-6.1 Sol（max）55、Claude Sonnet 5.5（max）54、GPT-6.1 Terra（max）51、Gemini 4 Argon（high）50、Meta Muse Wonder Full（max）50（仅 Muse Code 订阅者可用）、Meta Muse Wonder（max）43、Claude Haiku 5.5（max）36。2026 年 11 月 3 日，AA 发布方法论 **v5.0.1**，采用 CritPt 作者的评分稳健性修复并用 CritPt v2 重新评估所有模型；v5.0.1 榜单为 Gemini 4 Carbon（high）60、Claude Opus 5.5（max）59、GPT-6 Astra（max）57、GPT-6.1 Sol（max）55、Kimi K3.1 Pro 46、DeepSeek V4.1 Flash 1017（max）33 和 GLM-5.3（max）32。同一名义版本内几天就变化了一分，因此引用时也要注明补丁版本。两点值得注意：Carbon 于 10 月 28 日加入且尚未公开提供，因此目前可调用的最高分模型是 Opus 5.5；‘开放与闭源差距’取决于分类方式：Moonshot 于 11 月 4 日发布 Kimi K3.1 Pro 权重（定制许可证），AA 自己的 v5 公告已称它是‘得 46 分的最高开放权重模型’，但 11 月 6 日其模型页面仍标为专有。按权重可用性差距为 13 分（59 对 46），按 AA 当前标签为 26 分（59 对 DeepSeek 的 33）。引用差距时应说明指数版本和分类规则。旧版 v4.3.2 在 10 月初也给 Opus 5.5 打了 58 分，但尺度和组成不同：数字相同，含义不同。不要把 v4.x 与 v5.x 分数放在同一表中。
 - **Epoch Capability Index（ECI，Epoch 能力指数）** 在约 1,000+ 项评测上拟合 item-response-theory（项目反应理论）模型，从统计上推断每个基准测试的难度，因此模型在*更难*的基准测试上表现好会获得更高分。
 - **HAL（Holistic Agent Leaderboard，普林斯顿整体 Agent 排行榜）** 是面向 agent 的、具备成本意识的复合指标：它同时评分准确率*和*美元成本，在各模型上运行固定 harness，并用日志分析发现 agent 走捷径（从 arXiv 抓答案而不是解题）和 eval bug。它存在的原因是，以 10 倍成本换来 1% 的准确率提升并不算胜利。
 
@@ -254,7 +254,7 @@
 2. **检查置信区间。** 忽略噪声带内的差异。SWE-bench Verified 只有 `500` 道题（每题约 `0.2%`）；Terminal-Bench `4.0` 只有 `66` 项任务，Anthropic 自报的 Opus `5.5` 数字带有 ±`2.6` 个百分点的标准误；Arena 中低于约 `15–20` Elo 的差距都是噪声。在配置匹配前，不信任低于约 `3` 个百分点的差距。对于持续更新的榜单，基于 e-process 的随时有效检验（arXiv `2609.32248`）能在避免反复查看固定样本置信区间问题的同时回答“差距是真的吗”。
 3. **优先选择时间门控、私有、留出或委托编写的测试集。** 对静态公开集（MMLU、HumanEval、GSM8K、SWE-Bench Pro 公开子集），假设存在污染，并折扣绝对数值。
 4. **绝不要跨 harness 或自报分数比较。** 只有同一 harness 下的数字才可比较。
-5. **核对模型名称。** 如果某个前沿分数被归因于找不到一手来源的模型，它很可能是编造的。截至 `2026` 年 11 月 2 日已确认的前沿模型名称：Claude Fable `5.1` 与 Mythos `5.1`、Opus `5.5`、Sonnet `5.5`、Haiku `5.5`（10 月 7 日 GA）和 Haiku `4.5`（Fable `5`、Opus `5` 和 Sonnet `5` 仍可用）；GPT-`6` Astra、GPT-`6` Sol、GPT-`6` Luna、GPT-`6.1` Sol、GPT-`6.1` Terra（10 月 26 日）、GPT-`6` Rosalind（10 月 30 日，仅限可信访问），以及 GPT-`5.6` Sol、Terra、Luna 一代；Gemini `4` Argon（10 月 13 日以 `gemini-4-argon` GA）、Gemini `3.8` Flash 和 `gemini-3.1-pro-preview`；Grok `4.7`；Meta Muse Wonder（10 月 12 日，在 Meta Model API 上）和 Muse Wonder Full（仅 Muse Code 订阅者可用），以及 Muse Spark `1.3`；Kimi K`3.1` Pro（无公开权重）；开放权重模型 Mistral Large 4、Muse Spark Open、MiMo-V`2.6`-Pro、GLM-`5.3`、Kimi K`3`、DeepSeek V`4.1`-Flash（现为 1017 版本）和 V`4`-Pro，以及 Qwen`3.8`。Gemini 4 Carbon 真实存在但仅对部分网络安全防御者开放：10 月 28 日宣布，尚无公开模型 ID，却同时位列 Artificial Analysis 和 Arena 榜首，因此排行榜第一的模型可能无法调用。截至该日期尚未交付、无论聚合网站如何声称的名称：Grok `5`、Gemini `3.5` Pro，以及从不存在的 Llama `4` `8B/70B/405B`。聚合网站还会发布与基准官方榜单矛盾的成绩，例如“Gemini `3` Pro 在 SWE-bench Pro 上 `84.8%`”；应核查一手榜单。
+5. **核对模型名称。** 如果某个前沿分数被归因于找不到一手来源的模型，它很可能是编造的。截至 2026 年 11 月 6 日已确认的前沿模型名称：Claude Fable 5.1 与 Mythos 5.1、Opus 5.5、Sonnet 5.5、Haiku 5.5（10 月 7 日 GA）和 Haiku 4.5（Fable 5、Opus 5 和 Sonnet 5 仍可用）；GPT-6 Astra、GPT-6 Sol、GPT-6 Luna、GPT-6.1 Sol、GPT-6.1 Terra（10 月 26 日）、GPT-6 Rosalind（10 月 30 日，仅限可信访问）、GPT-6-Cyber（11 月 5 日，仅限 Daybreak Red 客户），以及 GPT-5.6 Sol、Terra、Luna 一代；Gemini 4 Argon（10 月 13 日以 `gemini-4-argon` GA）、Gemini 3.8 Flash 和 `gemini-3.1-pro-preview`；Grok 4.7；Meta Muse Wonder（10 月 12 日，在 Meta Model API 上）和 Muse Wonder Full（仅 Muse Code 订阅者可用），以及 Muse Spark 1.3；Kimi K3.1 Pro（自 11 月 4 日起在 Hugging Face 提供权重，定制许可证）；开放权重模型 Mistral Large 4、Muse Spark Open、MiMo-V2.6-Pro、GLM-5.3、Kimi K3、DeepSeek V4.1-Flash（现为 1017 版本）和 V4-Pro，以及 Qwen3.8。Gemini 4 Carbon 真实存在但仅对部分网络安全防御者开放：10 月 28 日宣布，尚无公开模型 ID，却同时位列 Artificial Analysis 和 Arena 榜首，因此排行榜第一的模型可能无法调用。截至该日期尚未交付、无论聚合网站如何声称的名称：Grok 5、Gemini 3.5 Pro 和 Qwen4（与会者报告在 10 月 29 日 Apsara Amsterdam 听到‘Qwen4 下周发布’，但 Alibaba 尚未发布任何日期、模型卡或许可证），以及从不存在的 Llama 4 8B/70B/405B。聚合网站还会发布与基准官方榜单矛盾的成绩，例如“Gemini 3 Pro 在 SWE-bench Pro 上 84.8%”；应核查一手榜单。
 6. **在信任排名前，三角验证三类信号**：静态学术 eval、人类偏好 arena，以及 agentic suite（智能体套件）。
 7. **对你的决策，在你的数据上构建 eval。** 公开分数很少能预测你的领域。排行榜告诉你该把谁列入候选；你的黄金集告诉你该把谁上线。
 
@@ -262,7 +262,7 @@
 
 ## 2026 中哪些基准测试重要
 
-用于判断**前沿通用能力**：HLE-Diamond（注明有无工具）、HLE 与 CritPt（注意标签错误）、ARC-AGI-`2` 与 ARC-AGI-`3`（注明评测框架），以及复合指数（Artificial Analysis 智能指数 v`5.0`，不可与 v`4.x` 混比；Epoch ECI）。排名时忽略 MMLU、MMLU-Pro、HellaSwag、ARC-Challenge，如今也应忽略 GPQA-Diamond。
+用于判断**前沿通用能力**：HLE-Diamond（注明有无工具）、HLE 与 CritPt（注意标签错误）、ARC-AGI-3（注明评测框架；ARC Prize 结果页面列出多个前沿模型超过 ARC-AGI-2 的 85% 人类门槛，但未说明验证状态，因此 ARC-AGI-2 已不再用于前沿排名），以及复合指数（Artificial Analysis 智能指数 v5.0.1，注明补丁版本，绝不与 v4.x 混比；Epoch ECI）。排名时忽略 MMLU、MMLU-Pro、HellaSwag、ARC-Challenge，如今也应忽略 GPQA-Diamond。
 
 用于**编码和代理**：SWE-Bench Pro v`2` 私有集、DeepSWE 和抗污染的实时变体（SWE-rebench、SWE-bench-Live）用于实际排序；Terminal-Bench `4.0` 用于终端工作，Terminal-Bench-Science 用于代理式科学工作流（两者的供应商排名不同）；tau-bench `2.0.0` 用于工具使用可靠性（关注 pass^k，绝不与 1.x 分数比较）；OSWorld `2.x` 的**二元完成**用于计算机操作；Agents' Last Exam 用于按工件评分的专业工作；HAL 或这些榜单上的成本列用于考虑成本。SWE-bench Verified 与 SWE-Bench Pro 公开子集最多只能作层级过滤器。排名时忽略 HumanEval/MBPP 和 OSWorld-Verified。
 
@@ -310,7 +310,8 @@
 - Wang 等人，《MMLU-Pro》 arXiv:2406.01574
 - Rein 等人，《GPQA: A Graduate-Level Google-Proof Q&A Benchmark》 arXiv:2311.12022
 - 《Humanity's Last Exam》 arXiv:2501.14249
-- 《ARC-AGI-2》 arXiv:2505.11831 和 [ARC Prize 排行榜](https://arcprize.org/leaderboard)
+- 《ARC-AGI-2》 arXiv:2505.11831、[ARC Prize 排行榜](https://arcprize.org/leaderboard)和[结果页面](https://arcprize.org/results)
+- [ARC Prize 2026，ARC-AGI-3 赛道](https://arcprize.org/competitions/2026/arc-agi-3)
 - ARC Prize，[GPT-`6` Astra 在 ARC-AGI-3 上的成绩](https://arcprize.org/blog/astra)（`2026` 年 9 月）
 - [HLE-Diamond](https://lastexam.ai/blog/hle-diamond)（`2026` 年 9 月）
 - [Epoch AI FrontierMath](https://epoch.ai/frontiermath) 和 [基准测试中心](https://epoch.ai/benchmarks)
@@ -327,7 +328,7 @@
 - 《OSWorld `2.0`》arXiv:`2606.29537` 和 [XLANG OSWorld `2.0` 榜单](https://osworld-v2.xlang.ai/)
 - 《Agents' Last Exam》arXiv:`2606.05405` 和[榜单](https://snorkel.ai/leaderboard/agents-last-exam/)
 - 《GDPval》 arXiv:2510.04374 和 [OpenAI GDPval](https://openai.com/index/gdpval/)
-- [METR，衡量 AI 任务完成时间跨度](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks)
+- [METR，衡量 AI 任务完成时间跨度](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks)和[时间跨度页面](https://metr.org/time-horizons/)（自 2026 年 9 月 8 日起不再更新）
 - 《RULER》 arXiv:2404.06654 和 [NVIDIA/RULER](https://github.com/NVIDIA/RULER)
 - 《MMMU-Pro》 arXiv:2409.02813
 - [OpenAI SimpleQA](https://openai.com/index/introducing-simpleqa/) 和 《SimpleQA Verified》 arXiv:2509.07968
@@ -335,7 +336,7 @@
 - Singh 等人，《The Leaderboard Illusion》 arXiv:2504.20879 和 LMArena 回应
 - Arena，[AutoEval 成绩](https://arena.ai/blog/autoeval-scores)和[代理类别与每任务成本](https://arena.ai/blog/agent-categories-and-cost)
 - 《Holistic Agent Leaderboard (HAL)》 arXiv:2510.11977
-- [Artificial Analysis 方法论](https://artificialanalysis.ai/methodology/intelligence-benchmarking) 和 [Epoch Capability Index](https://epoch.ai/benchmarks)
+- [Artificial Analysis 方法论](https://artificialanalysis.ai/methodology/intelligence-benchmarking)、[更新日志](https://artificialanalysis.ai/changelog)（v5.0.1，2026 年 11 月 3 日）和 [Epoch Capability Index](https://epoch.ai/benchmarks)
 - Desai 等人，跨 `53` 个模型的 `56` 个基准构念效度研究，arXiv:`2609.08812`
 - Google DeepMind，[双盲 AI 评测试点](https://deepmind.google/blog/piloting-the-worlds-first-double-blind-ai-evaluations/)（`2026` 年 8 月）
 - METR，[OpenAI／Hugging Face 事件调查](https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/)（`2026` 年 8 月）

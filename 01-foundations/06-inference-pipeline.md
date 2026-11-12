@@ -229,7 +229,7 @@ def top_p_sample(logits, p=0.9):
 
 | 提供商 | 变化内容 |
 |--------|----------|
-| Anthropic | 自 API 版本 `2026-10-21`（2026 年 10 月 21 日）起，所有 Claude 模型的 `temperature`、`top_p` 或 `top_k` 无论是否为默认值，都会返回 400；新的 SDK 主版本（Python 2.0.0、TypeScript 1.0.0、Go 2.0.0）默认发送该版本。此前，Claude 4.7 及后续模型仅对非默认值返回 400；Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法签名中移除这些参数。在 Bedrock 上，新版本仅适用于 Claude 4.7 及后续模型。 |
+| Anthropic | 自 API 版本 `2026-10-21`（2026 年 10 月 21 日）起，所有 Claude 模型的 `temperature`、`top_p` 或 `top_k` 无论是否为默认值，都会返回 400；全部八个新版 SDK 和 CLI 主版本（Python、TypeScript、Go、Java、C#、PHP、Ruby 和 ant CLI）默认发送该版本。此前，Claude 4.7 及后续模型仅对非默认值返回 400；Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法签名中移除这些参数。在 Bedrock 上，新版本仅适用于 Claude 4.7 及后续模型。 |
 | Google | Google 于 2026 年 7 月 21 日在 Gemini API 中弃用了 `temperature`、`top_p` 和 `top_k`。Gemini 3.8 Flash 用 `thinking_level`（`low`、默认的 `medium`、`high`）替代 `thinking_budget`。 |
 | OpenAI | GPT-6 Astra（2026 年 9 月 3 日）不接受自定义 `temperature` 或 `top_p`，也不返回 logprobs。 |
 
@@ -315,7 +315,7 @@ Result: if the target accepts 4, it adds 1 of its own: 5 tokens for one
 | DFlash 2 | 并行提出整个块的块扩散草稿器 | Inco AI，2026 年 8 月 18 日；在 Qwen3.8-27B 上达到 2.7x 至 3.4x（厂商报告）；于 8 月 19—27 日合入 SGLang、vLLM 和 llama.cpp |
 | N-gram、prompt lookup、suffix decoding | prompt 或先前输出的子串 | 无需额外模型；适合 RAG、代码编辑及重复文本的 agent 循环 |
 
-2024 年最受欢迎的 Medusa heads 已不再出现在 vLLM 文档中（仍接受 `medusa` 方法值）；应优先使用 EAGLE-3 或模型自身的 MTP heads。
+2024 年最受欢迎的 Medusa heads 已从 vLLM 移除：v0.33.0（2026 年 11 月 2 日）移除了 Medusa 和 MLP speculator，因此仍设置 `medusa` 的配置在升级时会失败。应迁移到 EAGLE-3 或模型自身的 MTP heads。
 
 **批大小的限制。** 推测解码通过额外计算节省受带宽限制的 decode 步骤。低并发时，这些计算近似免费；高并发时 GPU 已处于忙碌状态，每个被拒绝的草稿 token 都是浪费，这也是经典建议“在大 batch 下关闭它”的原因。vLLM 的**自适应验证（adaptive verification）**（2026 年 8 月 14 日；v0.30 扩展到 MTP、EAGLE-3 和 DFlash 草稿器）会为每个草稿位置预测存活概率，并在每一步只接纳全局 top-B 的草稿槽位。对于 DeepSeek-V4-Pro-0813，7 个草稿 token 中第一个的存活率超过 70%，最后一个不足 10%；vLLM 报告称推测解码在并发度达到 256 时仍有收益。
 
@@ -542,7 +542,7 @@ responses = model.generate_batch(batch)
 缓存公共前缀的 KV 张量（system prompts、工具定义、few-shot 示例、先前 agent 轮次）。
 - **TTFT 降低**：跳过共享前缀的 prefill，因此节省量随其占 prompt 的比例增长。具有长而稳定前缀的 agent 循环获益最大。
 - **机制**：vLLM 将固定大小的 KV 块哈希为一条由此前所有内容确定的链；SGLang 则将前缀存入基数树。被驱逐的块可沿层级链向下溢出：GPU HBM、主机 DRAM、磁盘、对象存储或对等节点。
-- **安全性**：共享前缀缓存是跨租户时序侧信道，因为命中比未命中返回得更快。应按租户为缓存键加盐（vLLM `cache_salt`），并保持引擎更新：已在 0.30.0 修复的 vLLM 公告 GHSA-935w-9g4m-p28p 发现，一个 API 路径上的工具续接轮次会丢失盐值。应将 vLLM 0.32.0 视为最低版本；2026 年 8—9 月的公告潮还包括单请求杀死引擎和模型加载 RCE（均已在 0.28.0 修复），10 月的 0.31.0 和 0.32.0 修复了 `/health` 仍显示健康时的生成卡死和通向 Ghostscript 的图像解码路径。
+- **安全性**：共享前缀缓存是跨租户时序侧信道，因为命中比未命中返回得更快。应按租户为缓存键加盐（vLLM `cache_salt`），并保持引擎更新：已在 0.30.0 修复的 vLLM 公告 GHSA-935w-9g4m-p28p 发现，一个 API 路径上的工具续接轮次会丢失盐值。应将 vLLM 0.32.0 视为最低版本（加载第三方仓库的主机需使用 0.33.0）；完整公告列表和当前最低版本见[服务基础设施](../04-inference-optimization/06-serving-infrastructure.md#运维姿态)。
 
 ### 多 LoRA 服务（Multi-LoRA Serving）
 

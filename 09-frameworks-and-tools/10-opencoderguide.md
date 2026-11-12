@@ -1,6 +1,6 @@
 # OpenCoder：AI 编码智能体（Coding Agents）全景图
 
-AI 编码智能体领域先是爆发式增长，随后逐渐整合。到 2026 年 11 月，它呈现出三种清晰形态：由实验室或大型社区支持的终端智能体（Claude Code、Codex CLI、OpenCode、Antigravity CLI）；由同时开发模型的公司掌控的 IDE 智能体（Cursor 自 2026 年 8 月起归属 SpaceX；Cognition 于 2025 年 7 月收购 Windsurf，并于 2026 年 6 月将其更名为 Devin Desktop）；以及供应商运行控制平面、用户自己的基础设施执行代码的分离式架构。本指南涵盖开放权重编码模型、AI 原生 IDE、开源编码智能体，以及如何为工程工作流选工具。
+AI 编码智能体领域先是爆发式增长，随后逐渐整合。到 2026 年 11 月，它呈现出三种清晰形态：由实验室或大型社区支持的终端智能体（Claude Code、Codex CLI、OpenCode、Antigravity CLI、Kiro CLI）；由同时开发模型的公司掌控的 IDE 智能体（Cursor 自 2026 年 8 月起归属 SpaceX；Cognition 于 2025 年 7 月收购 Windsurf，并于 2026 年 6 月将其更名为 Devin Desktop）；以及供应商运行控制平面、用户自己的基础设施执行代码的分离式架构。本指南涵盖开放权重编码模型、AI 原生 IDE、开源编码智能体，以及如何为工程工作流选工具。
 
 ## 目录
 
@@ -39,7 +39,7 @@ flowchart TB
         C1["Claude Opus 5.5、Sonnet 5.5、Haiku 5.5、Fable 5.1"]
         C2["GPT-6 Astra、GPT-6.1 Sol、GPT-6.1 Terra"]
         C3["Gemini 4 Argon、Gemini 3.8 Flash、Grok 4.7"]
-        C4["开放权重：MiMo-V2.6、GLM-5.3、Kimi K3、DeepSeek V4.1-Flash、Mistral Large 4"]
+        C4["开放权重：MiMo-V2.6、GLM-5.3、Kimi K3 和 K3.1 Pro、DeepSeek V4.1-Flash、Mistral Large 4"]
     end
     L3 --> L1
     L2 --> L1
@@ -61,6 +61,7 @@ flowchart TB
 | Mistral Large 4 | 2026 年 10 月 29 日开放权重 | 约 1T / 49B（含嵌入为 52B） | Mistral Ecosystem Open-Weight License：任何 MaaS 业务都需单独取得商业许可，无收入门槛 | API 每百万 token $0.70/$2.10 |
 | Meta Muse Spark Open | 2026 年 10 月 15 日 | 816B / 42B | Muse Model License；MaaS 收入超过 2000 万美元时有限制 | 将其用于托管编码产品前先核查门槛 |
 | Z.ai GLM-5.3 | 权重于 2026 年 8 月 28 日发布 | 744B / 40B | MIT；但过去 12 个月收入超过 100 亿美元的 MaaS 提供方还需经过安全审查 | API 每百万 token $1.40/$4.40；SWE-Bench Pro v2 私有集 272 题答对 211 题 |
+| Moonshot Kimi K3.1 Pro | 权重于 2026 年 11 月 4 日发布（API 于 10 月 23 日发布） | 2.8T / 激活 104B | Kimi K3.1-Pro License：定制的类 MIT 授权，并非 MIT；12 个月收入超过 US$20M 的 MaaS 业务需另签协议；超过 100M MAU 或 US$20M 月收入时须在 UI 中署名 | MXFP4 权重约 1.56 TB，1M 上下文；AA Index v5.0.1 得分 46，为开放权重最高分 |
 | Moonshot Kimi K3 | 2026 年 7 月 | 2.8T / 104B | 定制许可：开展任何 MaaS 业务、且连同关联公司在 12 个月内总收入超过 2000 万美元的企业，需另签协议 | SWE-Bench Pro v2 私有集 272 题答对 214 题；Cognition SWE-2 和 Fireworks Ember-1 的基础模型 |
 | Z.ai GLM-5.3-Flash | 2026 年 8 月 26 日 | 320B / 18B | MIT | API 每百万 token $0.15/$0.50 |
 | DeepSeek V4.1-Flash | 2026 年 9 月 10 日；10 月 17 日更新为 V4.1-Flash-1017，目前由 `deepseek-flash` 提供 | 主干 552B；预填充激活 8B、解码激活 16B | MIT | 原始版本由供应商报告 DeepSWE v1.1 在 max effort 下得分 74.2 |
@@ -71,7 +72,7 @@ flowchart TB
 
 **许可证陷阱**：Qwen Community License 1.0 要求从第一天起，基于 Qwen3.8-Flash-Next 构建编码智能体的创业公司就取得阿里巴巴许可；这比 Qwen 自家 2.4T 旗舰模型（收入超过 5000 万美元才触发）还严格。Mistral Large 4 对所有将其作为服务销售的企业也设有单独许可要求，不论收入多少；Mistral Medium 3.5 的 Modified MIT 许可证不向月收入超过 2000 万美元的企业授予权利（Mistral 于 10 月 31 日弃用 Medium 3.5 和 Large 3，二者将于 2027 年 4 月 30 日退役）。模型选型清单中应像评估一样包含许可证审查。
 
-**如何看待通用智能差距**：在 Artificial Analysis Intelligence Index v5.0（2026 年 10 月 27 日；60% 为私有或留出集，分数不可与 v4.x 比较）上，开放权重模型最高约为 32 分，而 Claude Opus 5.5 为 58 分、Sonnet 5.5 为 54 分。在 Scale 的干净 SWE-Bench Pro v2 私有集上，Kimi K3 和 GLM-5.3 与 Opus 5 只差约 3 至 4 分。两者可以同时成立：开放权重模型在范围明确的代码仓库任务上差距很小，在广泛的留出评估上则落后更多；因此应在自己的任务组合上测试，不要假设任一数字能代表生产表现。
+**如何看待通用智能差距**：在 Artificial Analysis Intelligence Index v5.0.1（2026 年 11 月 3 日；60% 为私有或留出集，分数不可与 v4.x 比较）上，Kimi K3.1 Pro（权重于 11 月 4 日发布）得 46 分，而 AA 标记为开放的最佳模型 DeepSeek V4.1 Flash 1017 在最高 effort 下得 33 分；Claude Opus 5.5 在最高 effort 下得 59 分。因此，差距是 13 分还是 26 分取决于是否将 K3.1 Pro 算作开放模型。Sonnet 5.5 在 v5.0（10 月 27 日）上得 54 分。在 Scale 的干净 SWE-Bench Pro v2 私有集上，Kimi K3 和 GLM-5.3 与 Opus 5 只差约 3 至 4 分。两者可以同时成立：开放权重模型在范围明确的代码仓库任务上差距很小，在广泛的留出评估上则落后更多；因此应在自己的任务组合上测试，不要假设任一数字能代表生产表现。
 
 ### 仍用于补全的早期小模型
 
@@ -110,7 +111,7 @@ Agentic coding on one 8-GPU node?
   → GLM-5.3-Flash or MiMo-V2.6-Flash (MIT); DeepSeek V4.1-Flash needs H200/B200-class memory
 
 Best self-hosted quality, multi-node budget?
-  → MiMo-V2.6-Pro, GLM-5.3 or Kimi K3 (check each license gate)
+  → MiMo-V2.6-Pro, GLM-5.3, Kimi K3.1 Pro or Kimi K3 (check each license gate)
 
 Building a coding-assistant product to sell?
   → Read the license first: Qwen Community License 1.0 requires a separate license
@@ -161,7 +162,9 @@ Windsurf 由 Codeium 打造，后于 2025 年 7 月被 Devin 的开发商 **Cogn
 |---------|---------------------|
 | 补全 | 按安装量仍是市场领导者 |
 | 编码智能体 | 分派 issue，获得 PR（Copilot Workspace 的预览已于 2025 年结束） |
-| 代码审查批准 | Copilot 的审查可计入必需批准（2026 年 9 月 1 日公开预览，默认关闭）；管理员可指定允许批准的路径；新增提交后其批准会失效 |
+| 代码审查批准 | 2026 年 10 月 28 日正式可用：管理员开启后，Copilot 的批准计入必需批准（默认关闭）；仓库管理员指定允许批准的路径；新增提交后批准失效。同一公告还加入 **Max** 审查强度（公开预览），运行多个使用不同供应商模型的独立审查智能体及一个汇总智能体，消耗的 AI 积分多于 Lite 或 Balanced |
+| Agentic Workflows | 2026 年 10 月 28 日在 github.com 正式可用（Free、Team、Enterprise）：自然语言 Markdown 自动化（issue 分类、CI 失败分析、文档、测试）编译为 Actions YAML，并在 Copilot CLI 引擎或其他编码智能体上运行；默认只读，运行于 Agent Workflow Firewall 后方的沙箱容器，在应用变更前使用“安全输出”和独立威胁检测作业 |
+| 辅助权限 | 2026 年 10 月 26 日在 Copilot CLI、Copilot 应用和 VS Code 正式可用：LLM 自动批准明显安全的命令、文件路径和 URL 请求，其余请求询问用户；管理员可禁用 Allow All，同时保留 Assisted |
 | 计算机操作与动态工作流 | 2026 年 10 月 1 日在 Copilot CLI 和应用中公开预览；工作流以代码定义阶段，并在检查点接受人工审查 |
 | Copilot Fusion | 2026 年 10 月 28 日 GA，所有套餐均可用。按任务路由模型，提供 Standard、High、Max 三档 effort，以及 Single、Cascade（低价模型先起草、质量门决定是否升级）或 Critique（跨模型家族评审）工作流；这些模式最初于 9 月 30 日以 HydraFusion 研究预览形式推出 |
 | 本地沙箱 | Copilot 应用中按项目限制文件系统、网络和凭据（2026 年 9 月 23 日公开预览，默认关闭） |
@@ -170,7 +173,7 @@ Windsurf 由 Codeium 打造，后于 2025 年 7 月被 Devin 的开发商 **Cogn
 
 **最适合：** 已经处于 Microsoft / GitHub 生态中的企业团队。
 
-**2026 现实：** 许多开发者在智能体工作中更喜欢 Cursor 或 Claude Code，但 Copilot 的企业控制和 GitHub 集成仍让它在大型组织中占据主导。有两点治理事项：Plugin4Shell 于 2026 年 9 月 17 日披露时，Copilot 尚未打补丁；自 10 月 1 日起，信用卡和 PayPal 客户需预付已分配席位的费用。
+**2026 现实：** 许多开发者在智能体工作中更喜欢 Cursor 或 Claude Code，但 Copilot 的企业控制和 GitHub 集成仍让它在大型组织中占据主导。有两点治理事项：Plugin4Shell 于 2026 年 9 月 17 日披露时，Copilot 尚未打补丁；自 10 月 1 日起，信用卡和 PayPal 客户需预付已分配席位的费用。自 10 月 28 日起，通过 GitHub 或 Microsoft 客户团队办理的 GitHub Enterprise Cloud 客户可为每个授权用户包含 Copilot，具备 Enterprise 功能和模型，但每席位不含每月 AI 积分：使用量从企业共享预算扣除；补全和下一编辑建议无需预算，聊天、代码审查和云端 Copilot 则需要；预算耗尽也不会取消访问。未获授权的用户可按每人每月 $10 购买 Copilot Standalone；自助客户暂时无法获得该捆绑方案。编码智能体的成本治理因此从计算席位转向设计预算。
 
 ### Google Antigravity
 
@@ -189,6 +192,10 @@ Google 将 Antigravity CLI 定位为 Gemini CLI 的继任者；自 2026 年 6 �
 
 **最适合：** 希望在“任务”层级操作（委派目标、审阅计划和结果）而非逐项编辑的开发者，以及希望在 IDE、CLI 和 SDK 中统一使用一个获许可 harness 的 Google Cloud 团队。
 
+### Kiro（AWS）
+
+Kiro 是 AWS 的代理式 IDE 和 CLI。**Kiro CLI 3.0.0**（2026 年 11 月 3 日）的升级值得警惕：V3 运行框架成为交互会话、使用 `--trust-all-tools` 的脚本以及新 ACP 客户端的默认值（其他无头脚本仍使用 V2）；CLI 变成独立的 `kiro-cli` 单一二进制文件；Classic（V1）、桌面应用和行内自动补全被停用，且没有独立替代品，`autocomplete`、`inline`、`translate`、`theme` 和 `dashboard` 命令也一同移除。V3 增加了 `/autonomous on`，可在沙箱内不逐条批准命令地运行任务；CLI 2.37.0（10 月 30 日）在 V3 启动时自动升级 V2 智能体文件，除非 `chat.enableAutoAgentUpgrade` 为 false。教训是：无人值守的 `--trust-all-tools` 脚本会在升级时静默切换运行框架，因此 CI 中应同时固定 CLI 版本与运行框架。
+
 ---
 
 ## 开源编码智能体
@@ -197,7 +204,9 @@ Google 将 Antigravity CLI 定位为 Gemini CLI 的继任者；自 2026 年 6 �
 
 **GitHub：** github.com/anomalyco/opencode | **许可证：** MIT
 
-GitHub star 最多的开源编码智能体（截至 2026 年 11 月 2 日约 22.4 万；10 月 28 日版本为 v1.19.5；10 月 `opencode-ai` 的 npm 下载量约 1240 万次）。它是带 TUI 的终端智能体，支持包括本地模型在内的任意模型提供方，并支持 MCP。对于“能选模型的开源 Claude Code”，它通常是首选答案。
+GitHub star 最多的开源编码智能体（截至 2026 年 11 月 2 日约 224K；10 月 `opencode-ai` 的 npm 下载量约 13.7M 次，`@opencode/cli` 约 1.6M 次）。它是带 TUI 的终端智能体，支持包括本地模型在内的任意模型提供方，并支持 MCP。对于“能选模型的开源 Claude Code”，它通常是首选答案。
+
+OpenCode 现在提供**两个系列**。V1（`opencode-ai`，10 月 28 日为 1.19.5）是旧系列；自 10 月 18 日起，README 指引新安装使用 V2（`curl -fsSL https://opencode.ai/v2/install | bash` 或 `npm i -g @opencode/cli@latest`；10 月 30 日为 2.2.5）。V2.2.0（10 月 27 日）移除了 OpenCode GitHub Action（“不再发布，请从工作流中移除”），将 `@opencode/ai` 包根入口改为 Promise API，并将 Effect API 移至 `@opencode/ai/effect`，TUI 插件则要求 OpenTUI 0.7。基于 GitHub Action 的 CI 在 V2 下失去了上游支持，应迁移为直接调用 CLI。
 
 ### Codex CLI（OpenAI）
 
@@ -338,7 +347,7 @@ SWE-bench Verified 已难以区分前沿智能体：分数接近天花板。2026
 | Claude Opus 5.5（API） | ~$0.56 | ~$16,800 | 58 | 所有费率恰好是 Sonnet 的两倍，因此任意任务组合下成本都是 2 倍 |
 | GPT-6.1 Sol（API） | ~$0.28 | ~$8,400 | 55 | 缓存读取每百万 token $0.10（0.05 倍）；此工作负载成本与 Sonnet 5.5 持平 |
 | GPT-6 Astra（API） | ~$1.74 | ~$52,000 | 57 | 缓存读取每百万 token $1；留给最难的任务 |
-| DeepSeek V4.1-Flash（API，峰时标价，假设无缓存折扣） | ~$0.23 | ~$6,900 | 约 32 或更低（开放权重最高分） | 非高峰时段半价；需确认提供方缓存命中率 |
+| DeepSeek V4.1-Flash（API，峰时标价，假设无缓存折扣） | ~$0.23 | ~$6,900 | 最高 effort 为 32（v5.0；v5.0.1 为 33）；11 月 4 日开放权重的 Kimi K3.1 Pro 得分 46 | 非高峰时段半价；需确认提供方缓存命中率 |
 | 自托管 GLM-5.3-Flash（单个 8×H100 节点，24/7 全天运行） | 取决于利用率 | 基础设施约 $16,900 | 28 | 每 GPU 小时 $2.93（Silicon Data H100 指数，2026 年 11 月 1 日），未计入工程与值班成本 |
 
 **关键洞察**：
@@ -367,7 +376,7 @@ What is your primary need?
 │  └─ VS Code embedded, MCP-native? → Cline
 │
 ├─ Self-hosted model for custom deployment?
-│  ├─ Best quality? → MiMo-V2.6-Pro, GLM-5.3 or Kimi K3 (check licenses)
+│  ├─ Best quality? → MiMo-V2.6-Pro, GLM-5.3, Kimi K3.1 Pro or Kimi K3 (check licenses)
 │  ├─ One node? → GLM-5.3-Flash or MiMo-V2.6-Flash
 │  ├─ Single GPU, Apache 2.0? → Qwen3.8-27B or Granite 4.2 30B
 │  └─ Fast completions / edge? → Qwen2.5-Coder-1.5B/7B or StarCoder2-3B
@@ -444,7 +453,7 @@ What is your primary need?
 
 | 决策 | 选项 | 推荐 |
 |----------|---------|----------------|
-| 智能体模型 | Claude Opus 5.5 / Sonnet 5.5、GPT-6.1 Sol、GPT-6 Astra、开放权重（GLM-5.3、Kimi K3、MiMo-V2.6） | 按任务类型固定模型（例如默认 Sonnet 5.5 或 GPT-6.1 Sol，难题用前沿模型），每次发布后重跑自己的评估集 |
+| 智能体模型 | Claude Opus 5.5 / Sonnet 5.5、GPT-6.1 Sol、GPT-6 Astra、开放权重（GLM-5.3、Kimi K3.1 Pro、Kimi K3、MiMo-V2.6） | 按任务类型固定模型（例如默认 Sonnet 5.5 或 GPT-6.1 Sol，难题用前沿模型），每次发布后重跑自己的评估集 |
 | 任务接入 | 手动、Jira webhook、GitHub 标签 | GitHub 标签触发 Actions 工作流 |
 | 代码执行 | 本地、Docker、微型虚拟机、自托管 runner | 在自己的边界内使用容器或微型虚拟机，并设置网络出站允许列表 |
 | 人工审查 | PR、Slack 审批、自动化 | 必须人工审查 PR，绝不自动合并；智能体批准不计入必需审查 |
@@ -479,7 +488,7 @@ What is your primary need?
 
 3. **独立性**：不必受其他供应商发布周期中的默认模型变化或平台退役计划影响。
 
-在仓库任务上，开放权重模型和前沿模型的差距已明显缩小：Scale 的干净 SWE-Bench Pro v2 私有集上，Kimi K3（78.7%）和 GLM-5.3（77.6%）与 Claude Opus 5（81.6%）只差约 3 至 4 个百分点。但在广泛的留出评测上差距仍很大（Artificial Analysis Intelligence Index v5.0 中，开放权重模型最高约 32 分，Claude Opus 5.5 为 58 分），因此在将困难任务迁入内部前，我会先在自有任务组合上验证。成本理由却没有过去那么强，因为缓存密集型智能体任务使用 API 也可能很便宜，而且许可证必须仔细阅读：未经另行授权，Qwen3.8-Flash-Next 不能用于商业编码助手。
+在仓库任务上，开放权重模型和前沿模型的差距已明显缩小：Scale 的干净 SWE-Bench Pro v2 私有集上，Kimi K3（78.7%）和 GLM-5.3（77.6%）与 Claude Opus 5（81.6%）只差约 3 至 4 个百分点。但在广泛的留出评测上差距仍很大（权重于 11 月 4 日公开的 Kimi K3.1 Pro 在 Artificial Analysis Intelligence Index v5.0.1 上得 46 分，Claude Opus 5.5 在最高 effort 下得 59 分；AA 标记为开放的最佳模型 DeepSeek V4.1 Flash 1017 在最高 effort 下得 33 分），因此在将困难任务迁入内部前，我会先在自有任务组合上验证。成本理由却没有过去那么强，因为缓存密集型智能体任务使用 API 也可能很便宜，而且许可证必须仔细阅读：未经另行授权，Qwen3.8-Flash-Next 不能用于商业编码助手。
 
 ### 问：如果在 CI 中为 AI 编码智能体设计测试策略，你会怎么做？
 
@@ -507,7 +516,7 @@ Senior engineer rates: Correctness, Style, Safety, 1-5 scale
 ### 问：GitHub 现在允许 Copilot 代码审查的批准计入必需审查，你会开启吗？
 
 **强答案：**
-只会在有限范围内开启。该功能自 2026 年 9 月 1 日公开预览，默认关闭；管理员可选择 Copilot 可以批准哪些路径，其批准会像人工批准一样在新增提交后失效。我会把它限制在文档、生成客户端或仅测试等低风险路径，以减少实际审查负担；排除基础设施、认证、支付、CI 配置和智能体指令文件。硬规则是职责分离：智能体编写的 PR 不能仅由智能体批准，因为造成错误的同一盲点也可能批准它。我还会记录所有智能体批准以备审计，并抽样进行人工复审；若获批路径上的合并后事故增加，就收窄范围。
+只会在有限范围内开启。该功能自 2026 年 10 月 28 日正式可用，默认关闭；仓库管理员可选择 Copilot 可以批准哪些路径，其批准会像人工批准一样在新增提交后失效。我会把它限制在文档、生成客户端或仅测试等低风险路径，以减少实际审查负担；排除基础设施、认证、支付、CI 配置和智能体指令文件。硬规则是职责分离：智能体编写的 PR 不能仅由智能体批准，因为造成错误的同一盲点也可能批准它。我还会记录所有智能体批准以备审计，并抽样进行人工复审；若获批路径上的合并后事故增加，就收窄范围。
 
 ---
 
@@ -522,7 +531,11 @@ Senior engineer rates: Correctness, Style, Safety, 1-5 scale
 - Google.《Introducing Google Antigravity CLI》：https://antigravity.google/blog/introducing-google-antigravity-cli
 - Cursor.《Joining SpaceX》（2026 年 8 月）：https://cursor.com/blog/joining-spacex
 - OpenAI.《Our decision on Cursor following its acquisition by SpaceX》（2026 年 8 月 28 日）：https://openai.com/index/our-decision-on-cursor-following-its-acquisition-by-spacex/
-- GitHub.《Copilot code review can now approve pull requests》（2026 年 9 月 1 日）：https://github.blog/changelog/2026-09-01-copilot-code-review-can-now-approve-pull-requests/
+- GitHub. “Copilot code review: merge with confidence with Max and approvals”（2026 年 10 月 28 日）：https://github.blog/changelog/2026-10-28-copilot-code-review-merge-with-confidence-with-max-and-approvals
+- GitHub. “GitHub Agentic Workflows generally available”（2026 年 10 月 28 日）：https://github.blog/changelog/2026-10-28-github-agentic-workflows-generally-available
+- GitHub. “GitHub Enterprise now includes access to GitHub Copilot”（2026 年 10 月 28 日）：https://github.blog/changelog/2026-10-28-github-enterprise-now-includes-access-to-github-copilot
+- OpenCode v2.2.0 发布说明（2026 年 10 月 27 日）：https://github.com/anomalyco/opencode/releases/tag/v2.2.0
+- Kiro CLI 3.0 更新日志（2026 年 11 月 3 日）：https://kiro.dev/changelog/cli/3-0/
 - Cognition 博客：https://cognition.com/blog
 - Qwen2.5-Coder: https://qwenlm.github.io/blog/qwen2.5-coder/
 - DeepSeek-Coder-V2: https://github.com/deepseek-ai/DeepSeek-Coder-V2

@@ -88,7 +88,7 @@ DeepSeek V4 Flash（2026 年 4 月 24 日发布）上市时以每 1M token $0.14
 
 ### 2026 年 GPU 价格：上涨，且长期合约更便宜
 
-随着受内存带宽约束的推理需求增长，GPU 租赁价格在 2026 年上涨。Silicon Data 于 2026 年 11 月 1 日的指数为：B200 每 GPU 小时 $6.50、B300 $7.56、H200 $3.46、H100 $2.93。B200 指数仅 10 月就上涨约 11%（10 月初为 $5.86）；进入 9 月时年初至今已上涨 27.6%。期限结构颠倒了过去的建议：9 月 7 日 B200 的 3 个月合约指数为 $5.73，12 个月合约为 $5.39，因此锁定更长时间反而更便宜。10 月 1 日的按需标价：Lambda H100 SXM $3.99、B200 $6.69；RunPod 的 community/secure H100 为 $2.69/$3.49、B200 为 $5.98/$6.79、B300 为 $6.94/$7.89。应仔细阅读新兴云服务商的合同条款；SemiAnalysis 的 ClusterMAX 3.0 指出，某些 1 年期承诺的预付款高达 100%。
+随着受内存带宽约束的推理需求增长，GPU 租赁价格在 2026 年上涨。Silicon Data 于 2026 年 11 月 5 日的指数为：B200 每 GPU 小时 $6.70、B300 $7.56（持平）、H200 $3.51、H100 $2.97。B200 指数四周上涨约 14%（10 月 7 日为 $5.88，11 月 1 日为 $6.50）；进入 9 月时年初至今已上涨 27.6%。应阅读每日表格，因为各指数页面的 FAQ 显示的‘当前’价格已过时。期限结构颠倒了过去的建议：9 月 7 日 B200 的 3 个月合约指数为 $5.73，12 个月合约为 $5.39，因此锁定更长时间反而更便宜。RunPod 定价页面（11 月 4 日更新）列出的 community/secure H100 SXM 为 $2.69/$3.99、B200 为 $5.98/$7.99、B300 为 $6.94/$8.99，secure-cloud 价格在 10 月上涨 14% 至 18%。Lambda 已公布计划于 2026 年 11 月 16 日生效的新按需价格：8x HGX H100 每 GPU 小时 $4.59、8x HGX B200 $7.69，较 $3.99 和 $6.69 上涨约 15%，使一台 8x H100 节点每月约 $26,806。每次上涨都进一步将自托管盈亏平衡点推向 API。应仔细阅读新兴云服务商的合同条款；SemiAnalysis 的 ClusterMAX 3.0 指出，某些 1 年期承诺的预付款高达 100%。
 
 ---
 
@@ -96,7 +96,7 @@ DeepSeek V4 Flash（2026 年 4 月 24 日发布）上市时以每 1M token $0.14
 
 - **提示缓存**：保持前缀在字节层面稳定（顶部不放时间戳或每用户 ID、工具顺序固定），使重复上下文按缓存读取价格计费：大多数模型为 0.1x，Opus 5.5、Sonnet 5.5、GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05x，Fable 5.1 为 0.025x。TTL 应与复用间隔匹配：OpenAI 的 12 小时缓存（写入为 2.5 倍）适合一天内复用数次、会错过 30 分钟缓存窗口的前缀。
 - **输入主导智能体成本**：Anthropic 的 Claude Code 遥测数据（2026 年 9 月 24 日，供应商自报）显示，输入与输出 token 比从 189:1 升至 324:1。在这一比例下，决定成本的是缓存命中率和缓存输入价格，而非输出价格。Cursor 报告称，在将系统提示缩短约三分之二并动态加载工具后，用户 token 成本降低 7%（供应商自报）。
-- **推理强度**：按路由显式设置。默认值因模型而异，且会随版本变化：Claude Opus 5.5 默认为 `medium`（Opus 5 为 `high`），Sonnet 5.5 和 Fable 5.1 默认为 `high`，GPT-6.1 Sol 和 GPT-6.1 Terra 默认为 `medium`。某些新模型根本无法关闭思考，此时强度是剩余的调节手段。
+- **推理强度**：按路由显式设置。默认值因模型而异，且会随版本变化：Claude Opus 5.5 默认为 `medium`（Opus 5 为 `high`），Sonnet 5.5 和 Fable 5.1 默认为 `high`，GPT-6.1 Sol 和 GPT-6.1 Terra 默认为 `medium`。某些新模型根本无法关闭思考，此时强度是剩余的调节手段。一项经过测量的策略：arXiv 2610.34491（2026 年 10 月 25 日；AIME 2026、GPQA Diamond、Terminal-Bench 2.1、SWE-Bench Pro）发现，在所有档位都能解决的任务上，最高强度成本最多为最低档的 42x；更高强度常因延长轨迹而无法解决低强度已解决的任务；从最低强度开始，仅在验证失败后升级，在每个受测模型和基准上均达到或超过固定最高强度，且对大多数专有模型成本更低。该策略需要验证器，真正的工程工作就在这里。
 - **Output Truncation（输出截断）**：严格限制 `max_tokens`。
 - **简洁输出指令**：要求简短回答（并规定固定输出 schema）能减少输出 token；应在自己的提示上测量节省幅度，而非假定固定比例，因为推理 token 常是主要部分，且不受这类指令影响。
 
@@ -112,7 +112,7 @@ DeepSeek V4 Flash（2026 年 4 月 24 日发布）上市时以每 1M token $0.14
 ### 问：什么时候自建单节点 GPU 集群比调用 API 更便宜？
 
 **高质量答案：**
-“Crossover Point（拐点）”出现在**持续高吞吐**下，而且高度依赖所替代的 API 档位。按 2026 年 11 月数据计算：两张 H100 按 Silicon Data 指数价格（11 月 1 日每 GPU 小时 $2.93）计，每月约 $4,300，足以运行 70B 级开源模型。输入与输出为 3:1 时，Claude Sonnet 5.5 或 GPT-6 Sol（$2/$10）每百万 token 约 $4，盈亏平衡点在每月约 1B token；对比 Opus 5.5（$4/$20）约为 540M；对比 GPT-6.1 Terra（$1/$5，混合价格约 $2）约为 2B。对比 GPT-6 Luna 或 Claude Haiku 5.5（$0.10/$0.50，混合价格约 $0.20），平衡点约为每月 21B token，即全天每秒约 8,000 token，已达到或超过两张 GPU 运行 70B 模型的可持续能力，因此实际很难仅凭价格胜过最低价 API 档位。自托管 70B 与前沿 API 的质量也不等价，应与达到自己质量门槛的 API 档位比较，而不是与最贵档位比较。波动性或集中在工作时间的流量更适合 API，因为它允许你在空闲时段“为沉默付费”；智能体负载若能以 0.1x 或更低价格读取 API 缓存，盈亏平衡点会进一步后移。自托管在利用率稳定且较高、数据无法离开自身边界，或需要微调开源模型时胜出；2026 年上涨的 GPU 租赁价格又提高了门槛。
+“Crossover Point（拐点）”出现在**持续高吞吐**下，而且高度依赖所替代的 API 档位。按 2026 年 11 月数据计算：两张 H100 按 Silicon Data 指数价格（11 月 5 日每 GPU 小时 $2.97）计，每月约 $4,300，足以运行 70B 级开源模型。输入与输出为 3:1 时，Claude Sonnet 5.5 或 GPT-6 Sol（$2/$10）每百万 token 约 $4，盈亏平衡点在每月约 1B token；对比 Opus 5.5（$4/$20）约为 540M；对比 GPT-6.1 Terra（$1/$5，混合价格约 $2）约为 2B。对比 GPT-6 Luna 或 Claude Haiku 5.5（$0.10/$0.50，混合价格约 $0.20），平衡点约为每月 21B token，即全天每秒约 8,000 token，已达到或超过两张 GPU 运行 70B 模型的可持续能力，因此实际很难仅凭价格胜过最低价 API 档位。自托管 70B 与前沿 API 的质量也不等价，应与达到自己质量门槛的 API 档位比较，而不是与最贵档位比较。波动性或集中在工作时间的流量更适合 API，因为它允许你在空闲时段“为沉默付费”；智能体负载若能以 0.1x 或更低价格读取 API 缓存，盈亏平衡点会进一步后移。自托管在利用率稳定且较高、数据无法离开自身边界，或需要微调开源模型时胜出；2026 年上涨的 GPU 租赁价格又提高了门槛。
 
 ---
 
@@ -122,6 +122,8 @@ DeepSeek V4 Flash（2026 年 4 月 24 日发布）上市时以每 1M token $0.14
 - OpenAI。[API 定价](https://developers.openai.com/api/docs/pricing)；Anthropic。[定价](https://platform.claude.com/docs/en/about-claude/pricing)；DeepSeek。[模型与定价](https://api-docs.deepseek.com/quick_start/pricing)
 - Silicon Data。[B200 租赁指数](https://www.silicondata.com/products/silicon-index/b200)、[B300 指数](https://www.silicondata.com/products/silicon-index/b300)、[H200 指数](https://www.silicondata.com/products/silicon-index/h200)和 [H100 指数](https://www.silicondata.com/products/silicon-index/h100)
 - OpenAI。[Decisions API 指南](https://developers.openai.com/api/docs/guides/decisions)
+- RunPod。[定价](https://www.runpod.io/pricing)；Lambda。[实例](https://lambda.com/instances)
+- Sun 等人。“What Effort Level Should I Choose?”（arXiv 2610.34491，2026）
 
 ---
 

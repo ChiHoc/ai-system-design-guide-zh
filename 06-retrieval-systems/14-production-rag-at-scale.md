@@ -24,7 +24,7 @@
 
 ## RAG 与长上下文
 
-随着多数前沿模型家族支持约 1M 令牌上下文窗口（Claude Opus 5.5 与 Sonnet 5.5、上下文达 1.05M 的 GPT-6 Sol 与 Astra、Gemini 3.8 Flash、Muse Spark 1.3，以及 Xiaomi MiMo-V2.6、Llama 4 Maverick 等开放模型），问题已经不再是“RAG 还是长上下文？”，而是“各自在什么情况下更优？”
+随着多数前沿模型家族支持约 1M 令牌上下文窗口（Claude Opus 5.5 与 Sonnet 5.5、上下文达 1.05M 的 GPT-6 Sol 与 Astra、Gemini 4 Argon 和快速档位的 Gemini 3.8 Flash、Muse Spark 1.3，以及 Xiaomi MiMo-V2.6、Llama 4 Maverick 等开放模型），问题已经不再是“RAG 还是长上下文？”，而是“各自在什么情况下更优？”
 
 ### 决策矩阵
 
@@ -775,7 +775,7 @@ def plan_retrieval_budget(query: str, max_budget_tokens: int = 4000):
 
 ### 作为托管功能的自适应推理强度
 
-托管搜索服务如今将这种升级模式作为配置提供。Azure AI Search 知识库在 REST API 2026-04-01 中正式可用（抽取式检索已正式可用，查询规划和答案合成仍在预览）；2026-08-01-preview API 新增 `retrievalReasoningEffort: "auto"`：先进行轻量检索，仅在依据不足时才升级到 LLM 查询规划，最高为中等强度。同一预览版还通过服务器发送事件流式返回检索结果，并允许按知识源跳过重排序。如果自行构建路由器，应沿用这种形式：低价路径为默认路径，升级触发器必须基于实测的依据充分性信号，而不是猜测查询复杂度。
+托管搜索服务如今将这种升级模式作为配置提供。Azure AI Search 知识库在 REST API 2026-04-01 中正式可用（抽取式检索已正式可用，查询规划和答案合成仍在预览）；2026-08-01-preview API 新增 `auto` 强度（`"retrievalReasoningEffort": {"kind": "auto"}`，要求知识库配置模型，较早 API 版本会返回 400）：先进行轻量检索，仅在依据不足时才升级到 LLM 查询规划，最高为中等强度。同一预览版还通过服务器发送事件流式返回检索结果，并允许按知识源跳过重排序。如果自行构建路由器，应沿用这种形式：低价路径为默认路径，升级触发器必须基于实测的依据充分性信号，而不是猜测查询复杂度。
 
 ---
 
@@ -886,7 +886,7 @@ class CostGuard:
 
 ### 自建还是购买：托管 RAG 的单价
 
-托管检索现在公开每次查询的价格，让自建与购买成为一道算术题。Cloudflare AI Search 于 2026 年 10 月 1 日正式可用：底层使用 Workers AI、Vectorize、R2 和 Browser Run，向量与关键词搜索并行运行，支持融合、可选重排序、扫描 PDF 的可选 OCR，以及通过 Qwen3-VL-Embedding 进行图像检索。收费从 2026 年 11 月 1 日开始：
+托管检索现在公开每次查询的价格，让自建与购买成为一道算术题。Cloudflare AI Search 于 2026 年 10 月 1 日正式可用：底层使用 Workers AI、Vectorize、R2 和 Browser Run，向量与关键词搜索并行运行，支持融合、可选重排序、扫描 PDF 的可选 OCR，以及通过 Qwen3-VL-Embedding 进行图像检索。2026 年 11 月 2 日，Cloudflare 将收费开始日期从 11 月 1 日推迟到 2026 年 12 月 1 日（价格和包含用量不变，之前的用量不收费），并将默认同步间隔从 6 小时改为 24 小时。如果新鲜度 SLO 严于一天，应显式设置间隔（可选 15 分钟至 24 小时），否则新文档可能要到下次同步才可搜索。计费项如下：
 
 | 项目 | 价格 | 每月免费额度（所有 Workers 套餐） |
 |------|-------|-------------------------------------|

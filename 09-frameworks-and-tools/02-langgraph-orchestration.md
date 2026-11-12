@@ -1,6 +1,6 @@
 # LangGraph 编排
 
-LangGraph 是构建有状态、多智能体系统的**事实标准**。它在 2025 年 10 月达到 v1.0，并于 2026 年 10 月 30 日发布 1.2.19（该月发布了七个补丁版本）；LangGraph 0.4 会处于维护模式直到 2026 年 12 月。不同于简单链式流程，LangGraph 支持**循环**、**状态持久化**以及**Human-in-the-Loop（人类参与闭环）**干预。
+LangGraph 是构建有状态、多智能体系统的**事实标准**。它在 2025 年 10 月达到 v1.0，并于 2026 年 11 月 5 日发布 1.2.20（10 月发布了七个补丁版本）；LangGraph 0.4 会处于维护模式直到 2026 年 12 月。不同于简单链式流程，LangGraph 支持**循环**、**状态持久化**以及**Human-in-the-Loop（人类参与闭环）**干预。
 
 采用情况取决于你查看的指标。截至 2026 年 11 月 2 日，CrewAI 在 GitHub stars 上仍领先（约 60.4K，`langchain-ai/langgraph` 约 44.3K）。按下载量看，LangGraph 则领先一个数量级：截至 11 月 1 日的 30 天内，PyPI 下载量约 44.8M，而 `crewai` 约 2.4M；`@langchain/langgraph` 10 月的 npm 下载量约 14.0M。star 衡量关注度；下载量衡量依赖采用，但会被 CI 和传递依赖放大。引用数字时应选择与论断相符的指标。
 
@@ -52,6 +52,8 @@ class GraphState(TypedDict):
 
 当前 LangGraph 使用**基于线程的持久化**。
 - **检查点存储是可调参数，默认值也会变化**：LangGraph 1.2.18（2026 年 10 月 26 日）将 `DeltaChannel` 从每 1,000 次更新写入一次完整快照改为每 100 次更新写入一次，以加快长线程读取速度，同时增加存储占用（设置 `snapshot_frequency=1000` 可恢复旧行为）。升级后不仅要关注延迟，也要监控检查点存储大小。
+- **恢复时的回答可能已过期**：LangGraph 1.2.20（2026 年 11 月 5 日）增加了可选的严格恢复模式（通过私有 configurable 键设置），当恢复回答过期或有歧义时抛出 `UnknownInterruptError`，而不是将其应用到当前待处理的任意中断。
+- **存储命名空间是租户边界，必须按此处理**：CVE-2026-115883（GHSA-6hmw-9432-67qq，CVSS v4 6.0，2026 年 10 月 21 日）显示 Postgres 和 SQLite 存储以“.”连接命名空间标签，因此 `("tenant.bob",)` 与 `("tenant", "bob")` 解析到同一命名空间。`put` 会拒绝含点的标签，但 `get`、`search`、`delete`、`list_namespaces`、其异步形式和批量操作不会；能够控制标签的调用方因此可读取、覆盖或删除其他租户的条目。问题已在 `langgraph-checkpoint-postgres` 3.1.3 和 `langgraph-checkpoint-sqlite` 3.1.2（均要求 `langgraph-checkpoint` 4.3.0）以及 Agent Server 0.15.5 和 0.16.2 中修复；新的 LangSmith Cloud 部署已包含修复，但现有部署只有在下一次修订时才会获得，因此应重新部署。`InMemoryStore` 不受影响。租户部分应由认证身份派生，绝不能采用用户提供的标签，并在底层保留行级安全策略。
 - **概念**：每个会话都有一个 `thread_id`，检查点存储（Postgres、SQLite、Redis，测试时也可用内存）会在每个超步后保存状态。
 - **收益**：如果用户在 2 天后回来，智能体仍记得自己在多步骤工作流中的精确位置。
 - **中断**：`interrupt()` 暂停节点以等待人工审批，然后从检查点恢复；持久的人类在环因此无需轮询循环。

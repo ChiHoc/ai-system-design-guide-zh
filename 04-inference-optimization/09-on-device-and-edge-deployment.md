@@ -89,7 +89,7 @@ Mac 上的这一差距正在缩小。vllm-metal 将 vLLM 的连续批处理和�
 
 **GGUF** 是 llama.cpp、Ollama 与 LM Studio 使用的本地模型格式。常见量化等级在质量与体积间做权衡：Q4_K_M 通常是工程上最实用的平衡点（相比 FP16 约 1%-3% 的质量损失，体积约四分之一），Q5_K_M 在代码与推理任务上明显更好，损失通常低于约 1%，Q8_0 在约半 FP16 时几乎无损，而 Q2/Q3 节省内存最多，但数学与推理质量会下降 5-10% 甚至更多。
 
-上一条规则适用于对按 16 位训练的模型进行朴素后训练量化。原本就针对低位宽构建的模型表现不同。PrismML 的 **Ternary Bonsai 2 27B**（2026 年 9 月，Apache 2.0，衍生自 Qwen3.8-27B）在 5.95 GB 文件中平均每权重使用 1.72 位，报告称在 14 个思考模式基准上保留 FP16 质量的 98.2%，RTX 5090 上解码约 130 tok/s，M5 Pro 上约 28 tok/s（均为厂商自报）。限制在于它只能运行于 PrismML 的 llama.cpp 和 MLX 分支。另一个极端是 Cactus Compute 的 **Needle 3**，一个 121M 参数的工具调用和抽取模型，压缩到每权重约 2 位、单文件 8-29 MB。相比自行量化，应优先选用供应商提供的 QAT 版本（Google 为 Gemma 系列提供 QAT int4 构建，包括 Gemma 4 12B）。
+上一条规则适用于对按 16 位训练的模型进行朴素后训练量化。原本就针对低位宽构建的模型表现不同。PrismML 的 **Ternary Bonsai 2 27B**（2026 年 9 月，Apache 2.0，衍生自 Qwen3.8-27B）在 5.95 GB 文件中平均每权重使用 1.72 位，报告称在 14 个思考模式基准上保留 FP16 质量的 98.2%，RTX 5090 上解码约 130 tok/s，M5 Pro 上约 28 tok/s（均为厂商自报）。限制在于它只能运行于 PrismML 的 llama.cpp 和 MLX 分支。另一个极端是 Cactus Compute 的 **Needle 3**，一个 121M 参数的工具调用和抽取模型，压缩到每权重约 2 位、单文件 8-29 MB。混合精度打包如今已用于 70B 级 MoE：NVIDIA 的 **Nemotron 3.5 Bolt 74B-A9B 24GB**（2026 年 10 月 15 日，OpenMDW-1.1）是总参数 74B、激活 9B 的 MoE，由 Nemotron 3.5 Super VL 压缩而来，以 24 GB 检查点发布；路由和共享专家使用 IQ2-XXS（每元素约 2.06 位），Mamba 层使用 NVFP4，嵌入和输出层使用 Q8_0，并通过量化感知蒸馏恢复准确率。它支持最多 256K 上下文，运行于 llama.cpp、Ollama、LM Studio 和 vLLM，面向 RTX PC、RTX Spark 笔记本及 DGX Spark；10 月 23 日还发布了 4 GB Bolt E4B。相比自行量化，应优先选用这类供应商 QAT 版本（Google 为 Gemma 系列提供 QAT int4 构建，包括 Gemma 4 12B）。
 
 **VRAM 经验法则**：
 
@@ -113,6 +113,7 @@ VRAM (GB) ≈ (params in billions × bits per weight) / 8   # model weights only
 | 32-35B | 24 GB | 24 GB 消费级 GPU；36-48 GB Mac |
 | 27B 三值模型（约 1.7 位） | 约 6-8 GB | 8 GB+ GPU 或 16 GB Mac，需使用供应商的运行时分支 |
 | 70B | ~40 GB+ | 高端或双 GPU；64 GB+ Mac；或数据中心显卡 |
+| 74B MoE，供应商打包的约 2-bit 专家（Nemotron 3.5 Bolt） | ~24 GB | 24 GB 消费级 GPU、RTX Spark 笔记本或 DGX Spark |
 | 200B+ | 48 GB+，常见多 GPU / 128 GB+ 统一内存 | 多 GPU 机架；大内存统一池工作站 |
 
 说明：
@@ -131,8 +132,11 @@ VRAM (GB) ≈ (params in billions × bits per weight) / 8   # model weights only
 | 手机或手表上的通用助手 | K2 Horizon 0.9B / 3.7B / 7B（Apache 2.0，训练数据开放） | 0.9B 支持 128K 上下文；3.7B 和 7B 支持 512K |
 | 面向企业的小模型，不使用中国来源权重 | IBM Granite 4.2 3B / 8B（Apache 2.0） | 官方提供 FP8、MXFP4、NVFP4、GGUF 和 MLX 构建 |
 | 笔记本级多模态（文本、图像、音频、视频） | Gemma 4 12B（Apache 2.0） | 无编码器设计；官方提供 QAT int4 构建 |
+| 单 GPU 推理，Apache 2.0 | Nanbeige4.3-33B（2026 年 10 月 24 日；33B 稠密模型，最多 524K 上下文） | 自 10 月 31 日起提供 FP8、INT8 和 INT4 构建；Artificial Analysis Intelligence Index v5.0.1 得分 20，与 xhigh 下的 Qwen3.8-27B 持平，但在指数上使用 160M 输出 token，远高于 77.7M 中位数，因此每任务成本更高；没有公开 API |
 | 本地编程智能体 | MiMo-V2.6-Distill-Qwen-9B（MIT） | 厂商报告 SWE-bench Verified 得分 61.1% |
 | 笔记本上的推理 | Ternary Bonsai 2 27B（Apache 2.0） | 需要 PrismML 运行时分支 |
+
+发布模型前检查模型卡固定的引擎版本。IBM 的 **Granite Switch 4.1**（8B 和 30B，Apache 2.0，模型卡日期为 2026 年 10 月 14 日）在一个端点后组合 Granite 4.1 基础模型、两个 aLoRA 适配器（用于安全检测的 guardian-core、用于对标记选项评分的 decision）和一个 470M Granite Speech 5.0 编码器，是将多个专用模型作为一个模型交付的巧妙方式。但其可选 vLLM 后端固定为 `>= 0.26.0, < 0.31.0`，低于本指南的 vLLM 安全下限（见[服务基础设施](06-serving-infrastructure.md#运维姿态)），因此用 vLLM 部署它意味着运行存在已知公告的引擎。若模型固定的引擎范围排除了安全下限，应使 CI 失败。
 
 ---
 

@@ -52,7 +52,7 @@ Query → Embed → Vector Search → Rerank → Top-K → Generate
 
 **编排器加隔离子智能体**是单智能体与多智能体之争最终落地的形态。子智能体拥有自己的上下文并返回摘要，彼此之间没有对等通信渠道。隔离的是上下文，而不是状态：托管平台通常会让整个智能体阵容共享同一个沙箱、文件系统和凭据集。供应商平台会强制实施实践中保证该模式有效的限制，典型规则是只允许一层委派，并限制阵容规模（OpenAI Agents API 的 `max_concurrent_subagents` 默认为 6）；即使你的框架不强制，这也是良好的默认设置。
 
-**托管执行框架**选项在 2026 年 9 月增多，OpenAI Agents API（公共 beta）和基于它的 Amazon Bedrock Managed Agents（预览）加入 Claude Managed Agents。它们都代为运行持久会话和崩溃恢复。排除条件通常是数据处理而非功能（Agents API 发布时仅支持美国驻留，不支持零数据保留），且没有托管运行时能为你自己的有副作用工具提供恰好一次语义。见[持久执行](07-agentic-systems/11-durable-execution.md#托管式智能体运行时-租用持久循环)。
+**托管执行框架**选项在 2026 年 9 月增多，OpenAI Agents API（公共 beta）和基于它的 Amazon Bedrock Managed Agents（预览）加入 Claude Managed Agents（beta）。Amazon Bedrock AgentCore 的托管智能体运行框架自 2026 年 6 月 17 日起正式可用，支持任意模型并可导出为基于 Strands 的代码，回应了供应商锁定顾虑。它们都代为运行持久会话和崩溃恢复。排除条件通常是数据处理而非功能（Agents API 发布时仅支持美国驻留，不支持零数据保留），且没有托管运行时能为你自己的有副作用工具提供恰好一次语义。见[持久执行](07-agentic-systems/11-durable-execution.md#托管式智能体运行时-租用持久循环)。
 
 ```
 ┌─────────────────────────────────────────┐

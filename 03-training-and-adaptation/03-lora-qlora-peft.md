@@ -83,7 +83,7 @@ VeRA 不使用可训练的低秩矩阵 `A` 和 `B`，而是在不同层间共享
 # Request 2 -> Base + Legal_Adapter
 # Request 3 -> Base + Medical_Adapter
 ```
-**技术方案**：批量 LoRA 内核（Punica 的 SGMV）让一次解码步骤能对批次中的不同行应用不同适配器；S-LoRA 的**统一分页（Unified Paging）**将适配器权重与 KV 缓存置于同一个分页池，闲置适配器保留在主机内存。S-LoRA 报告称，当时可服务数千个适配器，吞吐量最高为 HuggingFace PEFT 和 vLLM 的 4 倍。在 vLLM 中，`--enable-lora`、`--max-loras`（每批次常驻的适配器数）和 `--max-lora-rank` 是容量控制参数；开销会随秩及每批次不同适配器的数量增加，因此应针对自己的请求组合进行基准测试。
+**技术方案**：批量 LoRA 内核（Punica 的 SGMV）让一次解码步骤能对批次中的不同行应用不同适配器；S-LoRA 的**统一分页（Unified Paging）**将适配器权重与 KV 缓存置于同一个分页池，闲置适配器保留在主机内存。S-LoRA 报告称，当时（2023 年）可服务数千个适配器，吞吐量最高为 HuggingFace PEFT 的 30 倍、vLLM 的 4 倍。在 vLLM 中，`--enable-lora`、`--max-loras`（每批次常驻的适配器数）和 `--max-lora-rank` 是容量控制参数；开销会随秩及每批次不同适配器的数量增加，因此应针对自己的请求组合进行基准测试。
 
 **采用前检查功能之间的相互影响。** LoRA 支持往往落后于其他服务功能：例如，vLLM 的自适应推测验证在 2026 年 8 月推出时尚不支持 LoRA。如果租户的适配器使推测解码或快速内核路径在未察觉的情况下失效，该租户的延迟表现便会与基础模型不同。
 

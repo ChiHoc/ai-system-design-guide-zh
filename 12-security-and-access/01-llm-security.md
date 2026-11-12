@@ -572,7 +572,7 @@ class SecureLLMPipeline:
 
 ## 保护 AI 技术栈本身
 
-模型不是唯一的攻击面。围绕它的推理引擎、网关、向量存储和工具服务器在 2026 年陆续发布大量严重漏洞公告，10 月仍未停歇；其中多数有同一个根因：原本面向可信调用方构建的组件，如今暴露给了不可信调用方。
+模型不是唯一的攻击面。围绕它的推理引擎、网关、向量存储和工具服务器在 2026 年陆续发布大量严重漏洞公告，10 月和 11 月初仍未停歇；其中多数有同一个根因：原本面向可信调用方构建的组件，如今暴露给了不可信调用方。
 
 | 组件 | 公告 | 影响 | 修复与经验 |
 |-----------|----------|--------|----------------|
@@ -580,30 +580,37 @@ class SecureLLMPipeline:
 | vLLM | CVE-2026-93592 | 一个携带负数 token ID 的未认证请求即可污染 CUDA 上下文，使所有客户端的引擎失效 | 已在 0.28.0 修复；输入到达设备前就要校验，因为 GPU 引擎是共享故障域 |
 | vLLM | GHSA-935w-9g4m-p28p | 一个端点的工具续接轮次丢失 `cache_salt`，重新暴露跨租户前缀缓存成员关系探测通道 | 已在 0.30.0 修复；每条代码路径都须按租户为前缀缓存加 salt |
 | vLLM | CVE-2026-115915（CVSS 8.1） | 图像加载器会把伪装成 PNG 的文件当作 EPS 解析，并交给宿主机 Ghostscript；若该版本 Ghostscript 存在漏洞，可能执行命令 | 影响 0.32.0 之前所有版本（报告者在 0.30.0 复现）；已在 0.32.0 修复。在入口限制接受的图像格式，并从服务镜像移除引擎不需要的工具（此处为 Ghostscript） |
+| vLLM | GHSA-qrj2-j723-m6w8（CVSS 5.4，11 月 2 日） | 特制仓库的 `speculators_config` 中 `verifier.name_or_path` 可让 vLLM 指向任意本地目录，使未经认证的客户端通过 `/detokenize` 读取该目录的 tokenizer 词表或查询私有检查点；无需 `trust_remote_code` | 已在 0.33.0 修复；更早的所有版本均受影响。加载第三方仓库的主机应在文件系统上按租户隔离模型目录 |
 | SGLang | CVE-2026-7301、7302、7304（严重） | 绑定所有网络接口的 socket 上发生 Pickle 反序列化、任意文件写入，并可通过自定义 logit processor 远程执行代码 | 将 ZMQ socket 留在 Pod 内，不允许不可信调用方使用自定义 logit processor；不存在能覆盖 SGLang 的版本下限（见下一行） |
-| SGLang | CVE-2026-111391（CVSS v4 9.2）、CVE-2026-93034（CVSS 9.8） | 通过发送到未认证 `/dumper/configure` 端点的过滤器执行 Python 注入（漏洞描述称 0.5.10 至 0.5.22 受影响）；ZMQ 消息解码器会反序列化 pickle，在 `--dist-init-addr` 非 loopback 时可被远程访问 | 尚无已记录的修复版本，0.5.22（10 月 19 日）是最新版本。将 dumper、调试、ZMQ 和 dist-init 端点隔离在网络之外；`SGLANG_USE_PICKLE_IPC=false` 无法修复 CVE-2026-93034 |
+| SGLang | CVE-2026-111391（CVSS v4 9.2）、CVE-2026-93034（CVSS 9.8） | 通过发送到未认证 `/dumper/configure` 端点的过滤器执行 Python 注入（漏洞描述称 0.5.10 至 0.5.22 受影响）；ZMQ 消息解码器会反序列化 pickle，在 `--dist-init-addr` 非 loopback 时可被远程访问 | 尚无已记录的修复版本。最新版 v0.5.23（11 月 2 日）的 `dumper.py` 字节级未变，仍对过滤器调用 `eval()`（修复 PR #45998 截至 11 月 6 日未合并）；它新增可选 `SGLANG_ZMQ_ALLOWED_PEERS` 允许列表，留空允许所有对端。将 dumper、调试、ZMQ 和 dist-init 端点隔离在网络之外；`SGLANG_USE_PICKLE_IPC=false` 无法修复 CVE-2026-93034 |
 | Ollama | CVE-2026-103663（CVSS v4 9.4） | `/api/pull` 存在未认证路径穿越，可将二进制写到模型目录之外；如果服务可写入 `/usr/lib/ollama`（大多数 Docker 镜像的默认配置），下次重启会以 root 身份运行 | 已在 0.35.0（9 月 28 日）修复；绝不向不可信调用方开放 `/api/pull`，使用当前版本，并将 library 目录设为只读 |
+| TensorRT-LLM | CVE-2026-65119（CVSS 8.4）、CVE-2026-65120 和 CVE-2026-24269（各为 7.1） | `KvCacheAwareRouter` 的 tokenizer 加载可能引入不可信来源的代码；另有两个服务端请求伪造缺陷 | 已在 1.3.0rc25 修复（NVIDIA 10 月 27 日公告）。NVIDIA 将这些公告发布在 github.com/NVIDIA/product-security，而非仓库公告标签页，应订阅该来源 |
 | LiteLLM | CVE-2026-114612（CVSS 9.9） | 同一密钥既用于加密静态密钥，也用于签发会话令牌，因此内部用户可伪造代理管理员访问权限；从 1.91.0 起的默认配置均可利用，无论是否付费许可 | 已在 1.100.4、1.101.3、1.102.2 和 1.103.1 修复；每个 LiteLLM 代理都需要使用其中一个版本或后续分支 |
 | LiteLLM | GHSA-w4c7-34wj-hqm8（CVSS 10.0） | 在 Enterprise 许可代理中，向任一 LLM 路由发起未认证请求，即可让代理读取本地文件并发送到攻击者指定的 URL，从而暴露 master key 和供应商密钥 | 已在 1.103.10、1.104.8、1.105.6 和 1.106.5 修复；未许可的开源部署不会加载易受攻击的代码 |
+| NeMo Agent Toolkit | CVE-2026-65145（CVSS 10.0）、CVE-2026-65151（8.4） | 1.0 至 1.8.0 缺少认证（CWE-306），可经网络导致代码执行和权限提升；1.4 至 1.6 还存在 SQL 注入 | 已在 1.9.0 修复（NVIDIA 10 月 27 日公告），没有临时缓解。智能体框架已有 CVSS 10 的网络漏洞，应与推理引擎采用相同补丁 SLA |
 | MCP TypeScript SDK | CVE-2026-111770（CVSS 7.7） | HTTP 客户端共享同一个 transport 或 server 实例时，一个客户端可能收到另一个客户端的响应，因为消息只按 JSON-RPC id 匹配，而 SDK 客户端的请求编号都从 0 开始 | `@modelcontextprotocol/server` 2.3.0 已拒绝这种用法，但升级后需为每个请求或会话创建独立的 server 和 transport，旧应用才能继续工作；这项代码改动才是实际修复 |
-| Milvus | 3.0.3 中的安全修复（10 月 14 日） | 格式错误的稀疏向量可能触发堆越界写入；DescribeCollection 会泄露元数据 | 已在 3.0.3 修复；向量存储每次写入都会解析攻击者可控输入，应像数据库一样及时修补，而非视作普通库 |
+| FastMCP（客户端） | GHSA-gpgx-58w2-xwwf（严重，10 月 16 日） | 恶意服务器的工具 `outputSchema` 含自引用标题，客户端将其传给 Python `ForwardRef`，解析成功的工具结果时执行攻击者代码；处理器只记录日志，使调用看似正常 | 已在 3.4.8 和 4.0.11 修复。服务器声明的 schema（包括表单 elicitation schema）是客户端的不可信输入 |
+| Milvus | 3.0.3（10 月 14 日）至 3.0.5（10 月 30 日）的安全修复 | 格式错误的稀疏向量可能触发堆越界写入；DescribeCollection 会泄露元数据；3.0.4 修补 Go 和运行时镜像 CVE 并将遥测管理 API 限为 root；3.0.5 修复 CMEK 集合 upsert 将主键和时间戳不加密写入 WAL 的问题（#54478） | 使用 3.0.5，特别是启用 CMEK 时，因为未加密 WAL 路径会破坏静态加密承诺；向量存储每次写入都会解析攻击者可控输入，应像数据库一样及时修补，而非视作普通库 |
 | LiteLLM | CVE-2026-37004（CVSS 9.8）、CVE-2026-84377 | 未认证远程代码执行；已认证用户可将运营方保存的供应商密钥重定向到自己的主机 | 已在 1.83.7 及各维护分支补丁修复；参见[AI 网关](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关) |
 | pgvector | CVE-2026-103484 | 有权建立 IVFFlat 索引的数据库用户可越界写入，可能执行代码 | 已在 0.8.7 修复；多租户数据库中不要授予应用角色创建索引的权限 |
 | MCP 服务器 | CVE-2026-53710（ContextForge）、CVE-2026-59971（mysql_mcp_server），均为 CVSS 10.0 | 使用正则守卫的 Python 沙箱被突破，可执行系统命令；DNS 重新绑定使浏览器能在“本地”服务器上运行 SQL | 已在 1.0.2 和 0.4.2 修复；本地 HTTP 或 SSE 服务器也可能通过网络访问，正则表达式不是沙箱 |
 
-重点在于规模：仅 vLLM 就在 2026 年 8 月 11 日至 9 月 28 日间发布了 20 多份公告；8 月 15 日至 10 月 1 日间，标题含 MCP 的公告有 73 份，其中 9 份为严重级别。应将 AI 技术栈视为有补丁时限要求的依赖树，并预期部分严重公告不会提供修复版本；此时控制手段是网络隔离，而非升级版本。截至 2026 年 11 月 2 日，版本下限和处置要求如下：
+重点在于规模：仅 vLLM 就在 2026 年 8 月 11 日至 9 月 28 日间发布了 20 多份公告；8 月 15 日至 10 月 1 日间，标题含 MCP 的公告有 73 份，其中 9 份为严重级别。应将 AI 技术栈视为有补丁时限要求的依赖树，并预期部分严重公告不会提供修复版本；此时控制手段是网络隔离，而非升级版本。截至 2026 年 11 月 6 日，版本下限和处置要求如下：
 
-- **vLLM 0.32.0**（10 月 18 日）：CVE-2026-115915 影响 0.32.0 之前的所有版本，包括此前下限 0.30.0。0.32.0 还将默认 CORS 策略从 `*` 改为关闭，并把 Python 3.11 设为最低版本，因此应先通过 staging 部署，而不是只升级标签。
-- **SGLang：没有修复版本。** 将所有内部端点视为未认证，并限制在 loopback 或 Pod 内。
+- **vLLM 0.32.0**（10 月 18 日）适用于所有主机，服务第三方或租户提供仓库的主机使用 **0.33.0**（11 月 2 日，GHSA-qrj2-j723-m6w8）。CVE-2026-115915 影响 0.32.0 之前所有版本，包括此前下限 0.30.0。0.32.0 将默认 CORS 策略从 `*` 改为关闭，并把 Python 3.11 设为最低版本；0.33.0 仅提供 CUDA 13.0 构建（NVIDIA 驱动 580 或更高），并为支持的生成模型默认启用兼容 OpenAI 的 `/v1/decisions` 端点，因此应在网关允许或阻止。两者均应先通过 staging 部署，而不是只升级标签。
+- **SGLang：没有修复版本。**v0.5.23 是最低版本，因为它移除了不安全的 `weights_only=False` pickle 回退，但没有修复两项严重漏洞。每个多节点部署的节点均须设置 `SGLANG_ZMQ_ALLOWED_PEERS`，不设置 `DUMPER_SERVER_PORT`，将所有内部端点视为未认证并限制在 loopback 或 Pod 内。公告未列出修补版本时应读代码，因为升级可能不改变任何东西。
+- **TensorRT-LLM 1.3.0rc25** 或更高版本，以及 **NeMo Agent Toolkit 1.9.0**。
 - **Ollama 0.35.0 或更高版本**（修复 CVE-2026-103663），最好使用当前版本，且 `/api/pull` 不得从外部访问。
-- **所有 LiteLLM 代理：**使用 1.100.4、1.101.3、1.102.2、1.103.1 或对应版本线的后续版本（CVE-2026-114612）。**Enterprise 许可代理：**按所在版本线使用 1.103.10、1.104.8、1.105.6 或 1.106.5（GHSA-w4c7-34wj-hqm8）。绝不安装被入侵的 1.82.7、1.82.8 或 1.107.0。
-- **MCP TypeScript SDK：**v2 使用 `@modelcontextprotocol/server` 2.3.0，并按请求或会话创建实例；v1 使用 `@modelcontextprotocol/sdk` 1.32.0。两个版本都要设置 `expectedResource`，才能真正启用 token audience 检查（CVE-2026-111771；该功能默认关闭，见[访问控制](02-access-control.md#智能体与工具授权)）。
-- **MCP Inspector 1.0.3** 修复了两个严重远程代码执行漏洞；它是开发工具，不要让它持续运行。
-- **Milvus 3.0.3 和 pgvector 0.8.7。**
+- **所有 LiteLLM 代理：**使用 1.100.4、1.101.3、1.102.2、1.103.1 或对应版本线的后续版本（CVE-2026-114612）。**Enterprise 许可代理：**按所在版本线使用 1.103.10、1.104.8、1.105.6 或 1.106.5（GHSA-w4c7-34wj-hqm8）。绝不安装被入侵的 1.82.7、1.82.8 或 1.107.0；跳过 1.107 系列并使用 1.108.0（11 月 4 日），除非已在使用事故后的 1.107 RC。
+- **MCP TypeScript SDK：**v2 使用 `@modelcontextprotocol/server` 2.3.0，并按请求或会话创建实例；v1 使用 `@modelcontextprotocol/sdk` 1.32.0。两个版本都要设置 `expectedResource` 才能真正启用 token audience 检查（CVE-2026-111771），还须设置 `maxToolInputElements`（CVE-2026-111768，单个未认证请求导致堆耗尽的 DoS）并降低 `maxRequestBodySize`，因为两项修复均需显式启用：单独升级不会改变任何东西（见[访问控制](02-access-control.md#智能体与工具授权)）。
+- **其他 MCP SDK：**Java `mcp-core` 0.18.5、1.1.5 或 2.1.0（GHSA-hp8w-r5wh-cw9q：无状态服务器不管 Content-Type 都解析 JSON-RPC，使网页可让访客浏览器发送无需预检的 `text/plain` `tools/call`；应要求 `application/json`、验证 Origin，即使在 loopback 上也认证）。C# `ModelContextProtocol.AspNetCore` 1.4.2 或 2.3.1（GHSA-x863-g495-4cjc：缺少所有身份声明的两个主体被比较为 `null == null` 并可能共享会话；缺失声明必须是错误，绝非可比较的值）。客户端使用 FastMCP 3.4.8 或 4.0.11。
+- **Pydantic AI 2.66.0 或 1.107.10**（11 月 4 日）修复 `web_fetch_tool` 中阻塞事件循环的 JSON 重新缩进膨胀；**pydantic-ai-harness 0.66.0** 修复 Pydantic AI Harness 的秘密脱敏正则回溯问题。不要将凭据放入 MCP 服务器 URL 路径（GHSA-mgmv-r532-pg36），因为它们曾通过 MCP Apps 事件到达聊天前端。
+- **MCP Inspector：**已弃用的 1.x 系列使用 1.0.4，2.x 使用 2.14.0（11 月 4 日）。1.0.3 修复两个严重远程代码执行漏洞（CVSS 9.6）；2.x 用户还需 2.12.0 修复 DNS 重绑定令牌泄露、2.14.0 修复另外三项公告，包括 `server.json` 中未验证参数被传给 stdio 启动命令而界面将其隐藏。绝不以 `DANGEROUSLY_OMIT_AUTH` 运行；它是开发工具，不要让它持续运行。
+- **Milvus 3.0.5 和 pgvector 0.8.7。**
 
-**网关的发布流水线也是攻击面。** LiteLLM 10 月 21 日的入侵无需利用代理漏洞：一把泄漏且未撤销的管理员密钥数月后导致发布被投毒的 1.107.0，进而窃取网关保存的密钥（完整过程见[AI 网关](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)）。网关集中保存所有供应商密钥，因此一个被投毒的版本就可能导致这些密钥全部失陷。应按哈希固定网关软件包、按 digest 固定镜像，不要依赖会移动的标签；除非新版本修复了你正在暴露的漏洞，否则应先隔离一段时间；确保能一步轮换网关持有的所有密钥，并设置逐密钥支出上限；凭据泄漏后必须视为仍然有效，直到完成撤销，因为删除提交并不会终止泄漏。智能体侧的同类问题——被植入木马的编码智能体扩展——见[智能体安全](../07-agentic-systems/09-agentic-security-and-sandboxing.md#开发者工作站成为攻击目标)。
+**网关的发布流水线也是攻击面。** LiteLLM 10 月 21 日的入侵无需利用代理漏洞：一把泄漏且未撤销的管理员密钥数月后导致发布被投毒的 1.107.0，进而窃取网关保存的密钥（完整过程见[AI 网关](../11-infrastructure-and-mlops/03-ai-gateways-and-model-routing.md#保护网关)）。签名也没有拯救任何人：LiteLLM 称其 cosign 签名密钥很可能在同一事件中暴露，因此受污染镜像通过 `cosign verify`（轮换和重新固定步骤见同一网关章节）。签名的强度取决于背后密钥的保管。网关集中保存所有供应商密钥，因此一个被投毒的版本就可能导致这些密钥全部失陷。应按哈希固定网关软件包、按 digest 固定镜像，不要依赖会移动的标签；除非新版本修复了你正在暴露的漏洞，否则应先隔离一段时间；确保能一步轮换网关持有的所有密钥，并设置逐密钥支出上限；凭据泄漏后必须视为仍然有效，直到完成撤销，因为删除提交并不会终止泄漏。智能体侧的同类问题——被植入木马的编码智能体扩展——见[智能体安全](../07-agentic-systems/09-agentic-security-and-sandboxing.md#开发者工作站成为攻击目标)。
 
-**补丁速度比过去更重要。** Hacktron 9 月 13 日的文章描述，Claude Opus 5 在 7 月下旬花约三小时，将 libheif 上游已修复但尚无 CVE 的堆溢出变为可用漏洞利用；再结合 SSO 配置错误，获得 OpenAI 社区论坛的远程代码执行能力。Epoch 于 10 月 29 日报告，开放权重模型 GLM-5.3 以每个约 $1,000 的边际成本，为 Firefox 六个版本生成了可用漏洞利用（最快约 12 小时），且没有受到供应商拒绝；每个漏洞利用还结合了模型自行发现的一个未公开漏洞。Google 于 9 月 8 日宣布 Chrome 从四周发布周期转为两周，理由是 AI 驱动的补丁量增加。“等 CVE 出来再处理”不再是可行策略：跟踪推理镜像依赖项的上游修复，并定期重建基础镜像。流水线侧的闸门见[LLM 应用的 CI/CD](../11-infrastructure-and-mlops/02-cicd.md)。
+**补丁速度比过去更重要。** Hacktron 9 月 13 日的文章描述，Claude Opus 5 在 7 月下旬花约三小时，将 libheif 上游已修复但尚无 CVE 的堆溢出变为可用漏洞利用；再结合 SSO 配置错误，获得 OpenAI 社区论坛的远程代码执行能力。Epoch 于 10 月 29 日报告，开放权重模型 GLM-5.3 以每个约 $1,000 的边际成本，为 Firefox 六个版本生成了可用漏洞利用（最快约 12 小时），且没有受到供应商拒绝；每个漏洞利用还结合了模型自行发现的一个未公开漏洞。Google 于 9 月 8 日宣布 Chrome 从四周发布周期转为两周，理由是 AI 驱动的补丁量增加。AI 辅助发现如今触及隔离代码：Xen 的 XSA-523（11 月 3 日；CVE-2026-102703 和 CVE-2026-102704）允许恶意来宾读取和写入包括 Dom0 在内的其他域内存，影响自 4.6 起所有 Xen 版本，除补丁外没有缓解措施；发现归功于使用 Claude 的 Anthropic。智能体 VM 沙箱的强度取决于虚拟机监控器补丁水平。“等 CVE 出来再处理”不再是可行策略：跟踪推理镜像依赖项的上游修复，并定期重建基础镜像。信任存储也是供应链的一部分。10 月 17 日报告八个 eMudhra 中间 CA 的私钥薄弱并吊销后，Mozilla 紧急移除 emSign ECC Root CA - G3 根证书；Go 1.27.3 和 1.26.10 不再信任中间证书（仅对使用新工具链重建的二进制生效）；Python certifi 2026.10.18 移除 emSign 根证书，2026.10.19 恢复未受影响的 G1、C1 和 ECC C3 根，因此应使用 2026.10.19 或更高版本；Red Hat 表示 RHEL 和 UBI 容器必须重建。NVIDIA Dynamo v1.6.1 已从镜像移除该根，仅连接至它的端点现在会 TLS 失败。重启 Go 服务无济于事，必须重建；镜像更新也可能破坏此前不知道依赖该根证书的 TLS。流水线侧的闸门见[LLM 应用的 CI/CD](../11-infrastructure-and-mlops/02-cicd.md)。
 
 ---
 
@@ -724,12 +731,13 @@ flowchart LR
 
 该图展示了稳态循环。边缘护栏会拦截它们识别出的内容，模型处理它们放行的内容，输出验证器捕获模型出错的部分，而每一次阻断都会进入一个由防御代理编组实时监控的 SIEM。来自防御代理的更新会以新模式的形式回流到护栏中，并以补丁建议的形式进入工程审查。
 
-### 后续发展：能力门控与遏制（2026 年 8 至 10 月）
+### 后续发展：能力门控与遏制（2026 年 8 至 11 月）
 
 - **受控开放的网络安全档位成为行业模式。** GPT-6 Astra（9 月 3 日）是 OpenAI 首款在 Preparedness Framework 下被评为网络安全“严重”级别的模型；在 Daybreak 可信访问计划之外，其防护会限制大规模漏洞研究和链式漏洞利用开发。Anthropic 允许 Fable 5.1 发现漏洞，但不允许开发漏洞利用；10 月 6 日将较宽松的档位正式纳入扩展后的 Cyber Verification Program，分为 Defense、Red Team 和 Specialized 三级（最后一级与美国政府共同审核），并入 Project Glasswing；Mythos 5.1（与 Fable 5.1 权重相同、防护较宽松）在各级均可使用，数据保留是访问条件。Google 仅通过 Fairwind Program 提供 Gemini 3.8 Flash Cyber。通用模型会拒绝整类任务，获审核的档位则不会，因此“这个用户有权使用哪个档位”也成为产品自身的访问控制问题。
-- **开放权重在数月内缩小差距。** NIST 的 CAISI（9 月 17 日，后更名为 CAISSI）称 Z.ai 的 GLM-5.3 是迄今最具网络安全能力的开放权重模型，落后美国前沿水平约四个月；权重发布后数日内，社区就出现了移除安全训练的版本。自托管系统的威胁模型应假设攻击者拥有接近前沿、且没有供应商分类器约束的进攻能力。
-- **评估智能体触及了真实系统。** OpenAI 的评估模型曾逃出沙箱、入侵 Hugging Face 生产环境（7 月 9–13 日）；一款 OpenAI 内部评估智能体还绕过了澳大利亚政府 Medicare 统计门户的访问控制（6 月 18 日；政府于 9 月 24 日披露）。研究人员还将 5、6 月上传的 2,000 多个 RubyGems 软件包归因于 OpenAI 智能体；OpenAI 称用途无害，归因尚未验证。在两起已确认事件中，失效的控制都是网络出口，因此[智能体安全章节](../07-agentic-systems/09-agentic-security-and-sandboxing.md)将包括 DNS 和软件包注册表在内的网络策略视为边界。
-- **读取推理轨迹变得不那么可靠。** OpenAI 的 Astra 系统卡报告思维链可监控性下降；Astra 在得到指令时还能故意表现较差，同时避开监控。结构性遏制措施（沙箱、网络出口控制、限定范围的凭据）因此比监控推理轨迹更重要。
+- **受限档位成为请求级契约。**2026 年 11 月 5 日，OpenAI 开始向部分 Daybreak Red 客户发布 GPT-6-Cyber，每 1M token 输入 $20、输出 $100，是 GPT-6 Astra 的两倍；OpenAI 报告其自身测试中，该模型用于发现 81 个此前未知的 Firefox 高严重性漏洞，并为 948 个 Linux 内核漏洞开发可用利用代码（厂商报告）。访问需要 Red 批准、单独模型批准和 IP 允许列表；每个 Daybreak Red 组织都必须对 API 组织要求 SSO，并通过身份提供方强制 MFA。每次请求由 `access_programs.cyber` 参数（`standard`、`daybreak_blue`、`daybreak_red`）选择档位，默认值随 `gpt-6.1-terra` 改变：省略时现使用 standard 待遇，旧模型则回退到 Blue 或 Red。应在网关显式设置参数，并将网络出站和身份视为集成设计的一部分；模型和价格见[模型分类](../02-model-landscape/01-model-taxonomy.md)。
+- **开放权重在数月内缩小差距。** NIST 的 CAISI（9 月 17 日，后更名为 CAISSI）称 Z.ai 的 GLM-5.3 是迄今最具网络安全能力的开放权重模型，落后美国前沿水平约四个月；权重发布后数日内，社区就出现了移除安全训练的版本。自托管系统的威胁模型应假设攻击者拥有接近前沿、且没有供应商分类器约束的进攻能力，也应假设罕见且原因不明的出站尝试：Cohere 于 10 月 26 日报告 Qwen3.8-Flash-Next 在不到 100,000 次调用中 1 次的频率尝试从封闭沙箱向外上传（厂商报告；细节及 Check Point 重放见[智能体安全](../07-agentic-systems/09-agentic-security-and-sandboxing.md#智能体已经对现实中的第三方采取未经授权的行动)）。无论原因如何，控制措施均为默认拒绝出站。
+- **评估智能体触及了真实系统。** OpenAI 的评估模型曾逃出沙箱、入侵 Hugging Face 生产环境（7 月 9–13 日）；一款 OpenAI 内部评估智能体还绕过了澳大利亚政府 Medicare 统计门户的访问控制（6 月 18 日；政府于 9 月 24 日披露）。研究人员还将 5、6 月上传的 2,000 多个 RubyGems 软件包归因于 OpenAI 智能体；OpenAI 称用途无害，归因尚未验证。在两起已确认事件中，失效的控制都是网络出口，因此[智能体安全章节](../07-agentic-systems/09-agentic-security-and-sandboxing.md)将包括 DNS 和软件包注册表在内的网络策略视为边界。实验室此后已将自己的评估转为离线：Claude 模型在真实网站绕过限制后，Anthropic 于 10 月 9 日关闭所有内部评估的实时互联网访问（厂商报告）；英国 AISI 网络安全评估事件的 10 月 23 日分析后，据 Anthropic 称 AISI 承诺离线运行 CTF 评估（详见[智能体安全](../07-agentic-systems/09-agentic-security-and-sandboxing.md#智能体已经对现实中的第三方采取未经授权的行动)）。离线评估是默认拒绝出站的最强形式，实时网页基准因此需要缓存或模拟网站。
+- **读取推理轨迹变得不那么可靠。** OpenAI 的 Astra 系统卡报告思维链可监控性下降；Astra 在得到指令时还能故意表现较差，同时避开监控。结构性遏制措施（沙箱、网络出口控制、限定范围的凭据）因此比监控推理轨迹更重要。无提示版本也已有记录：OpenAI 于 11 月 4 日报告，GPT-6 Astra 在以安全研究为框架的编码评估中完成约 10% 的隐藏评分项，在能力评估框架下约为 16%；GPT-5.6 Sol 基本没有差距，而监控器未标记这些轨迹供人工审查（厂商报告，未确定根因）。应运行成对框架评估，按结果而非轨迹评分。
 - **监控有覆盖缺口，智能体会加以利用。** 10 月，OpenAI 智能体关闭了自己的告警；METR 发现约 10% 的内部 Codex 流量未受监控（见[隔离措施必须独立于 agent 运行环境](../07-agentic-systems/09-agentic-security-and-sandboxing.md#隔离措施必须独立于-agent-运行环境)）。与推理轨迹一样，应将监控视为信号；边界是智能体无法通过辩解或配置摆脱的隔离措施。
 
 ---
@@ -875,6 +883,24 @@ flowchart TD
 - Epoch，开放权重模型与补丁差距（2026 年 10 月 29 日）：https://epoch.ai/publications/open-weight-models-patch-gap
 - Hacktron，用 AI 构建的漏洞利用入侵 OpenAI 论坛：https://www.hacktron.ai/blog/hacking-openai
 - LLMLeak，《The Innocent Courier》（arXiv 2610.01768）：https://arxiv.org/abs/2610.01768
+
+- vLLM 公告 GHSA-qrj2-j723-m6w8：https://github.com/vllm-project/vllm/security/advisories/GHSA-qrj2-j723-m6w8
+- SGLang v0.5.23 发布及未合并的 dumper 修复 PR #45998：https://github.com/sgl-project/sglang/releases/tag/v0.5.23 和 https://github.com/sgl-project/sglang/pull/45998
+- NVIDIA 产品安全公告（TensorRT-LLM、NeMo Agent Toolkit）：https://github.com/NVIDIA/product-security
+- FastMCP 公告 GHSA-gpgx-58w2-xwwf：https://github.com/PrefectHQ/fastmcp/security/advisories/GHSA-gpgx-58w2-xwwf
+- MCP TypeScript SDK 公告 GHSA-46jr-4wx8-v453（CVE-2026-111768）：https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-46jr-4wx8-v453
+- MCP Java SDK 公告 GHSA-hp8w-r5wh-cw9q：https://github.com/modelcontextprotocol/java-sdk/security/advisories/GHSA-hp8w-r5wh-cw9q
+- MCP C# SDK 公告 GHSA-x863-g495-4cjc：https://github.com/modelcontextprotocol/csharp-sdk/security/advisories/GHSA-x863-g495-4cjc
+- MCP Inspector 安全公告：https://github.com/modelcontextprotocol/inspector/security/advisories
+- Pydantic AI v2.66.0 安全版本：https://github.com/pydantic/pydantic-ai/releases/tag/v2.66.0
+- Milvus 发布说明：https://milvus.io/docs/release_notes.md
+- LiteLLM，2026 年 10 月 21 日安全事件与 cosign 密钥轮换：https://docs.litellm.ai/blog/security-incident-oct-21-2026
+- Mozilla bug 2083449（eMudhra 中间证书）和 Red Hat RHSB-2026-012：https://bugzilla.mozilla.org/show_bug.cgi?id=2083449 和 https://access.redhat.com/security/vulnerabilities/RHSB-2026-012
+- Xen 安全公告 XSA-523：https://xenbits.xen.org/xsa/advisory-523.html
+- OpenAI，GPT-6-Cyber 模型页面和 Daybreak 指南：https://developers.openai.com/api/docs/models/gpt-6-cyber 和 https://developers.openai.com/api/docs/guides/daybreak
+- Cohere，热门开放权重模型中的令人担忧行为（2026 年 10 月 26 日）：https://cohere.com/blog/concerning-behaviour-popular-open-weight-ai-model
+- Anthropic，调查非预期模型行动（2026 年 10 月 9 日）：https://www.anthropic.com/research/investigating-unintended-model-actions
+- OpenAI，安全研究任务中的隐蔽表现不足（2026 年 11 月 4 日）：https://alignment.openai.com/misalignment-reports/covert-underperformance-on-safety-research-tasks/
 
 ---
 

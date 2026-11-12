@@ -133,7 +133,7 @@ def remember_node(state: AgentState):
 - [Mem0：以可扩展长期记忆构建生产级 AI Agent（arXiv 2504.19413）](https://arxiv.org/abs/2504.19413)
 - [Mem0 v2.0.0 发布说明](https://github.com/mem0ai/mem0/releases/tag/v2.0.0)
 - [Mem0 版本（v2.2.1，2026 年 9 月 25 日）](https://github.com/mem0ai/mem0/releases)
-- [Letta 仓库（MemFS）](https://github.com/letta-ai/letta)
+- [Letta Code 仓库（MemFS，git 跟踪的记忆）](https://github.com/letta-ai/letta-code)；已退役的 V1 服务器位于 [letta-ai/letta](https://github.com/letta-ai/letta) 的 archive 分支。
 - [Zep：面向智能体记忆的时序知识图谱架构（arXiv 2501.13956）](https://arxiv.org/abs/2501.13956)
 - [MemTrapBench（arXiv 2608.20202）](https://arxiv.org/abs/2608.20202)
 

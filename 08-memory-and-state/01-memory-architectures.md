@@ -28,7 +28,7 @@ LLM（大语言模型，Large Language Model）记忆已经从“历史缓冲区
 ## 第一层：工作记忆（L1）
 
 L1 是模型的**当前活跃焦点**。  
-- **上下文窗口**：当前前沿模型约为 1M token（Claude Opus 5.5 和 Sonnet 5.5 为 1M，GPT-6.1 Sol 为 1.05M，Gemini 3.8 Flash 为 1,048,576）；开放权重模型为 128K 到 1M。
+- **上下文窗口**：当前前沿模型约为 1M token（Claude Opus 5.5 和 Sonnet 5.5 为 1M，GPT-6.1 Sol 为 1.05M，Gemini 4 Argon 为 1M，与输出共享）；快速档位也达到这一水平（Gemini 3.8 Flash 为 1,048,576，GPT-6 Luna 为 1.05M）；开放权重模型为 128K 到 1M。
 - **KV Cache**：存储预计算键和值的 GPU“内存”。
 - **管理策略**：**滑动窗口**、**压缩**和**前缀缓存**（vLLM/PagedAttention、SGLang RadixAttention）。
 - **冗余说明**：我们只在 L1 中保留最近的轮次和关键系统指令。
@@ -84,6 +84,8 @@ L3 存储**持久事实**和**已学习规则**，直到有新信息取代它们
 
 记忆并非越多越好：在专门诱发记忆陷阱的 MemTrapBench（arXiv 2608.20202）任务中，测试过的所有记忆策略都不如不使用记忆，因为即便记忆正确且相关，也会造成推理固着。应对记忆注入实施门控，并分别评估使用与不使用记忆时的任务成功率。
 
+需要超越的基线是在原始历史上直接检索。arXiv 2610.30755（“Is Complex Agentic Memory Always Needed?”，2026 年 10 月 22 日）在 LoCoMo、LongMemEval、MEME 和 MemoryAgentBench 上，将 Raw-RAG（对原始对话日志进行稠密检索并重排序）与包括 Mem0、A-MEM、MemoryOS 和 MemMachine 在内的 12 个记忆系统比较。Raw-RAG 在 7 个基准与模型组合中的 6 个排名第一，领先 0.13 至 5.53 个百分点（LoCoMo 使用 GPT-4o-mini 时为 89.07，MemMachine 为 88.12）；即使允许读取器完整访问转换后的记忆库，其表现仍落后于原始证据。差距虽小，但这说明抽取、摘要和图结构往往没有带来收益，因此应先交付 Raw-RAG 基线，并要求每一层记忆证明自己优于它。
+
 ---
 
 ## 面试题
@@ -100,7 +102,7 @@ L3 存储**持久事实**和**已学习规则**，直到有新信息取代它们
 ### Q: 如何处理第三层（全局语义记忆）中的“隐私泄露（Privacy Leakage）”？
 
 **标准答案：**
-第三层（语义记忆）必须按**命名空间分片**。每个用户或组织在向量数据库和知识图谱中都会获得唯一的 `namespace_id`。我们在数据库层实现**RLS（Row Level Security，行级安全）**。此外，我们在巩固步骤中使用**PII 脱敏层**，以确保敏感数据（passwords、PII）永远不会从临时的 L1 上下文进入持久化的 L3 知识存储。如果要求连平台运营者都无法读取记忆，参考设计是由客户端持有密钥，并在硬件飞地中处理：Google 于 2026 年 9 月 23 日描述了 Private AI Compute 平台的服务端记忆计划（未给产品时间表），其中存储密钥只保存在用户设备上，经远程证明的飞地按请求解密并重新加密；服务器软件会发布到防篡改的公开记录中，供设备在发送数据前验证。这与 Apple Private Cloud Compute 的模式相同。
+第三层（语义记忆）必须按**命名空间分片**。每个用户或组织在向量数据库和知识图谱中都会获得唯一的 `namespace_id`，由认证身份派生，绝不采用调用方提供的标签。LangGraph 的 Postgres 和 SQLite 存储说明了原因：它们用“.”连接命名空间标签，因此 `("tenant.bob",)` 与 `("tenant", "bob")` 解析到同一命名空间，而只有 `put` 会拒绝含点的标签（CVE-2026-115883，2026 年 10 月 21 日；修复版本见 [LangGraph 编排](../09-frameworks-and-tools/02-langgraph-orchestration.md)）。我们在底层数据库实现**RLS（Row Level Security，行级安全）**，防止键构造错误导致跨租户读取。此外，我们在巩固步骤中使用**PII 脱敏层**，以确保敏感数据（passwords、PII）永远不会从临时的 L1 上下文进入持久化的 L3 知识存储。如果要求连平台运营者都无法读取记忆，参考设计是由客户端持有密钥，并在硬件飞地中处理：Google 于 2026 年 9 月 23 日描述了 Private AI Compute 平台的服务端记忆计划（未给产品时间表），其中存储密钥只保存在用户设备上，经远程证明的飞地按请求解密并重新加密；服务器软件会发布到防篡改的公开记录中，供设备在发送数据前验证。这与 Apple Private Cloud Compute 的模式相同。
 
 ### Q: 什么时候会把 agent 记忆存为文件，而不是向量数据库？
 
@@ -113,9 +115,10 @@ L3 存储**持久事实**和**已学习规则**，直到有新信息取代它们
 - Park 等人。“Generative Agents: Interactive Simulacra of Human Behavior”（2023）
 - Packer 等人。“MemGPT: Towards LLMs as Operating Systems”（2023）
 - [Mem0 v2.0.0 发布说明](https://github.com/mem0ai/mem0/releases/tag/v2.0.0)
-- [Letta 仓库（MemFS；MemGPT 时代服务器于 2026 年 8 月 16 日归档）](https://github.com/letta-ai/letta)
+- [Letta Code 仓库（MemFS、Git 跟踪的记忆）](https://github.com/letta-ai/letta-code)；已退役的 V1 服务器保存在 [letta-ai/letta](https://github.com/letta-ai/letta) 的归档分支。
 - [Just-in-Time Memory（arXiv 2609.27334）](https://arxiv.org/abs/2609.27334)
 - [MemTrapBench（arXiv 2608.20202）](https://arxiv.org/abs/2608.20202)
+- [Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought（arXiv 2610.30755）](https://arxiv.org/abs/2610.30755)
 - [Google DeepMind。“Advancing Private AI Compute with secure server-side memory”（2026 年 9 月）](https://deepmind.google/blog/advancing-private-ai-compute-with-secure-server-side-memory/)
 
 ---

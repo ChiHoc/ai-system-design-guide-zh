@@ -193,7 +193,7 @@ class SelfConsistencyDecoder:
 
 | 平台 | 状态（2026 年 11 月） |
 |----------|-----------------------|
-| Claude API | Anthropic API 版本 `2026-10-21` 起，所有模型在任何值下传入 `temperature`、`top_p`、`top_k` 都返回 400，包括默认值；新的 SDK 主版本（Python 2.0.0、TypeScript 1.0.0）默认发送该版本。更早版本已对 Claude 4.7 及更新模型的非默认值返回 400；Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法中移除了这些参数，传入会抛出 `TypeError` |
+| Claude API | Anthropic API 版本 `2026-10-21` 起，所有模型在任何值下传入 `temperature`、`top_p`、`top_k` 都返回 400，包括默认值；全部八个新的 SDK 和 CLI 主版本（Python、TypeScript、Go、Java、C#、PHP、Ruby 和 ant CLI；见[模型分类](../02-model-landscape/01-model-taxonomy.md)）默认发送该版本。更早版本已对 Claude 4.7 及更新模型的非默认值返回 400；Python SDK 1.0（2026 年 8 月 20 日）已从 Messages 方法中移除了这些参数，传入会抛出 `TypeError` |
 | Gemini API | `temperature`、`top_p`、`top_k` 于 2026 年 7 月 21 日被标记弃用；Gemini 3.8 Flash 用 `thinking_level` 而非 `thinking_budget` 控制推理 |
 | OpenAI GPT-6 Astra | 不支持自定义 `temperature`、`top_p` 或 `logprobs` |
 

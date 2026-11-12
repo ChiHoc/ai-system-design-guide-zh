@@ -63,9 +63,8 @@ Agent（智能体）是长期运行、具状态、会产生副作用的进程，
 核心映射是：**agent 循环变成一个 workflow，而每次模型调用和工具调用都变成一个 durable activity（持久活动）**。发生崩溃时，已完成的模型调用和工具调用会从日志中重放，而不是重新执行，因此你不会重复消耗 token，也不会再次触发副作用，而且你甚至可以在修复 bug 后继续恢复正在运行的应用。
 
 2026 年的集成格局：
-- **Temporal + OpenAI Agents SDK** 在 2026 年初达到正式可用（GA），将每次 agent 调用和工具调用都封装为 durable activity（持久活动）。
-- **Temporal + Google ADK** 仍处于实验阶段，通过活动重新路由 LLM 调用，值得注意的是它只需要极少的代码改动（封装层会检测自己是否运行在 workflow 内部，否则回退到直接执行）。
-- **LangGraph** 通过 **checkpointers（检查点器）** 提供更轻量、框架原生的持久化，在每个 super-step（超步）将图状态保存到持久化存储，并支持可选的持久化模式（退出时、异步，或每一步前同步）。它的指导原则与确定性规则一致：保持 workflow 确定且幂等，并把副作用包裹到 task（任务）中。
+- **Temporal 的框架集成于 2026 年 10 月 30 日正式可用**，覆盖 Google ADK（Python、Go、TypeScript）、TypeScript 版 OpenAI Agents SDK（Python 版于 2026 年初已 GA）、AWS Strands Agents（Python、TypeScript）、LangGraph（Python）、LangSmith（Python、TypeScript）、Vercel AI SDK 和 Gemini SDK，各自将智能体调用和工具调用封装为持久活动。Pydantic AI、Mastra 和 Braintrust 有合作伙伴构建的集成；Claude Agent SDK 不在列表中。ADK 封装层仍以所需代码改动少而突出（它会检测自己是否运行在 workflow 内部，否则回退到直接执行）。
+- **LangGraph** 也通过 **checkpointers（检查点器）** 提供更轻量、框架原生的持久化，在每个 super-step（超步）将图状态保存到持久化存储，并支持可选的持久化模式（退出时、异步，或每一步前同步）。它的指导原则与确定性规则一致：保持 workflow 确定且幂等，并把副作用包裹到 task（任务）中。
 - **DBOS 和 Restate** 在库层面与 agent 框架集成，把 agent 运行和 sub-agent（子智能体）调用封装成持久化 workflow 和 child workflows（子工作流）。
 - **Temporal + Amazon Bedrock AgentCore Runtime** 于 2026 年 9 月 21 日进入预发布阶段：Temporal 工作流运行持久化智能体循环，模型与工具调用作为带重试策略的活动，Strands Agents 提供编程模型，AgentCore Runtime 为 Temporal Serverless Workers 提供计算资源。
 
@@ -77,7 +76,7 @@ Agent（智能体）是长期运行、具状态、会产生副作用的进程，
 
 ## 托管式智能体运行时：租用持久循环
 
-截至 2026 年 9 月，Anthropic 和 OpenAI 都把智能体运行框架本身作为内置持久会话的托管运行时出售（OpenAI 的 Agents API 于 9 月 10 日加入 Claude Managed Agents 的行列）；AWS 还在自有云中提供 OpenAI 的方案。这在“框架检查点”和“自行运行持久执行引擎”之外增加了第三种选择：租用循环。截至 2026 年 11 月上旬，下文三种托管 agent 运行时均未 GA，因此应把其 API、价格和合规条款视为 beta 条款。
+截至 2026 年 9 月，Anthropic 和 OpenAI 都把智能体运行框架本身作为内置持久会话的托管运行时出售（OpenAI 的 Agents API 于 9 月 10 日加入 Claude Managed Agents 的行列）；AWS 还在自有云中提供 OpenAI 的方案。这在“框架检查点”和“自行运行持久执行引擎”之外增加了第三种选择：租用循环。截至 2026 年 11 月上旬，下文三种供应商托管的智能体运行时（Claude Managed Agents、OpenAI Agents API、Bedrock Managed Agents）均未 GA，因此应把其 API、价格和合规条款视为 beta 条款。例外是 AWS 自己的 **Bedrock AgentCore 托管运行框架**，自 2026 年 6 月 17 日起在 AgentCore 运行的所有商业区域 GA：它运行编排循环、执行工具、管理上下文并持久保存状态，允许选择任意模型及在会话中切换供应商，还能导出为基于 Strands 的代码（Claude Agent SDK 导出“即将推出”），直接回应了供应商锁定问题。AgentCore CLI 1.0（`@aws/agentcore` 1.0.0）于 10 月 28 日 GA，提供 `agentcore migrate` 迁移现有项目。
 
 | 平台 | 状态（2026 年 11 月 2 日） | 持久性与控制功能 | 需核对的限制 |
 |----------|--------------------------|---------------------------------|----------------------|

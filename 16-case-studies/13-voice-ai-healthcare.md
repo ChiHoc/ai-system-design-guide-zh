@@ -63,8 +63,8 @@ flowchart TB
 
 | 方案 | 示例 | HIPAA 条件 | 成本 | 需注意 |
 |--------|----------|---------------|------|-----------|
-| 签有 BAA 的云端流式语音转文字 | OpenAI `gpt-live-transcribe`（$0.017/分钟）；AssemblyAI Universal-3.5 Pro Realtime（$0.45/小时）；ElevenLabs Scribe v2 Realtime（$0.39/小时） | BAA 加零保留。OpenAI 的文件转录端点不保留数据，但流式处理走独立的 Realtime 端点，须确认其保留条款；ElevenLabs 仅在 Enterprise 档签 BAA，且要求零保留 | 按分钟计费，无需 GPU | 确认具体端点在 BAA 范围内；注意流式脱敏缺口（AssemblyAI 仅对最终轮次脱敏，不对音频脱敏） |
-| 医疗调优的云端语音转文字 | ElevenLabs Scribe v2 Medical（2026 年 9 月 11 日正式上线）；Deepgram `nova-3-medical`（临床），以及面向大量药名场景的 `nova-3-pharma`（2026 年 9 月 17 日） | 同样需要 BAA | 按分钟计费 | 临床词汇表现更好；仍须在自己的病区录音上验证 |
+| 签有 BAA 的云端流式语音转文字 | OpenAI `gpt-live-transcribe`（$0.017/分钟）；AssemblyAI Universal-3.6 Pro Realtime（$0.45/小时，2026 年 9 月；取代 Universal-3.5 Pro Realtime）；ElevenLabs Scribe v2 Realtime（$0.39/小时） | BAA 加零保留。OpenAI 的文件转录端点不保留数据，但流式处理走独立的 Realtime 端点，须确认其保留条款；ElevenLabs 仅在 Enterprise 档签 BAA，且要求零保留 | 按分钟计费，无需 GPU | 确认具体端点在 BAA 范围内；注意流式脱敏缺口（AssemblyAI 仅对最终轮次脱敏，不对音频脱敏） |
+| 医疗调优的云端语音转文字 | ElevenLabs Scribe v2 Medical（2026 年 9 月 11 日正式上线）；Deepgram `nova-3-medical`（临床），以及面向大量药名场景的 `nova-3-pharma`（2026 年 9 月 17 日）；AssemblyAI Medical Mode（`"domain": "medical-v1"`，在 Universal-3.6 Pro Realtime 上加收 $0.15/小时，漏掉的临床实体减少约 20%，厂商报告） | 同样需要 BAA | 按分钟计费 | 临床词汇表现更好；仍须在自己的病区录音上验证 |
 | 本地流式模型 | NVIDIA `nemotron-3.5-asr-streaming-0.6b`（OpenMDW 许可，允许商业使用；块大小可在 80 至 1,120 ms 间选择） | 音频不离开医院网络 | GPU 集群加运维；只有高利用率时才便宜 | 更新、扩容、故障切换和准确率评估都由自己承担 |
 
 **我们的选择：** 默认使用签有 BAA、且零数据保留的医疗云端语音转文字；安全政策禁止音频外传或病区网络不稳定的站点，则使用本地流式模型。两者位于同一个接口后，站点切换时无需修改其余流水线。本地模型的块大小是延迟调节钮：块越小，延迟越低，但准确率也会下降。
@@ -185,7 +185,7 @@ P (Plan): Next steps, orders
 
 | 路径 | 预算 | 决定因素 |
 |------|--------|--------------|
-| 护士屏幕上的实时转录 | 部分转录低于 500 ms | 流式语音转文字的部分结果。应测量 p95，而非中位数：AssemblyAI 公布其实时模型的轮次结束延迟为 P50 546 ms、P95 1,024 ms（供应商数据），因此 500 ms 要求只能适用于部分转录，而非最终文本 |
+| 护士屏幕上的实时转录 | 部分转录低于 500 ms | 流式语音转文字的部分结果。应测量 p95，而非中位数：对于 Universal-3.6 Pro Realtime（2026 年 9 月），AssemblyAI 报告 VAD 后流式延迟约为 P50 150 ms、P90 240 ms，但在 12,460 次英语语音智能体对话中的轮次结束延迟中位数为 537 ms（供应商数据），因此 500 ms 要求只能适用于部分转录，而非最终文本 |
 | 就诊结束后的记录草稿 | 低于 60 秒 | 在完整转录上运行一次说话人分离、NER、LLM 结构化与溯源校验 |
 | 护士审核并签署 | 人工用时 | 瓶颈是审核界面，而非模型 |
 

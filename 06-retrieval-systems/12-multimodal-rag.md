@@ -169,7 +169,7 @@ VLMs（视觉语言模型）在多模态 RAG 中承担两个角色：(1) 作为 
 | **结构化输出** | 原生支持（`output_config.format`） | 原生支持 | 原生支持 |
 | **注意事项** | 思考模式始终开启（Opus 5.5）或默认开启（Sonnet 5.5）；应读取文本块，而不是 `content[0]` | OpenAI 于 2026 年 9 月 25 日在模型 ID 不变的情况下修复了影响 GPT-6 Sol 和 Luna 图像理解的编码缺陷：修复前的图像评估需重跑 | 推广价于 12 月 31 日结束；预算应按 2027 年标价计算 |
 
-专用文档解析器（Cohere Parse、MinerU、jina-ocr-v1、Nemotron Parse 2.0）如今能以远低于前沿 VLM 的每页成本，输出包含表格、边界框和阅读顺序的 Markdown。大规模抽取时应优先比较这些工具；参见 [OCR 与版式分析](../10-document-processing/01-ocr-and-layout.md)。
+专用文档解析器（Cohere Parse、MinerU、jina-ocr-v1、Nemotron 3.5 Parse）如今能以远低于前沿 VLM 的每页成本，输出包含表格、边界框和阅读顺序的 Markdown。大规模抽取时应优先比较这些工具；参见 [OCR 与版式分析](../10-document-processing/01-ocr-and-layout.md)。
 
 ### VLM 增强摄入流水线
 

@@ -468,7 +468,7 @@ eval_cases = [
 2. **破坏性变更**（重命名、移除参数、语义变更）：需创建一个新工具名称并使用新 schema。保留旧工具继续运行，并在其说明中添加“DEPRECATED: Use new_tool instead”。所有弃用调用（deprecated call）都应记录（log）以便监控。
 3. **不得移除工具**，直到确认没有活跃 agent 依赖它为止。
 
-**使用外部工具时也要遵守同样的纪律。** 供应商可能很快更改内置工具 schema。Google 的 `antigravity-preview-09-2026` 代理（`2026` 年 9 月 17 日）将内置工具参数从 snake_case 改为 PascalCase，以行范围编辑取代整文件重写，并新增 `find_by_name` 和 `grep_search`；它替代的 `05-2026` 版本原定于 `2026` 年 10 月 5 日停用，仅相隔 `18` 天。本地执行这些工具或解析 `function_call` 步骤的代码必须跟着改变。应固定带日期的代理和工具版本，对收到的工具定义运行契约测试，并在取到的 MCP 工具列表与固定版本不同时告警（批准后偷偷改定义即“抽地毯”攻击）。SDK 主版本也应纳入同样的契约测试：Anthropic 的 Python SDK 2.0.0 和 TypeScript SDK 1.0.0 默认发送 API 版本 `2026-10-21`，在该版本下，所有模型的 `temperature`、`top_p` 和 `top_k` 即使为默认值也返回 HTTP 400；新版主版本采用 Apache 2.0 而非 MIT 许可。
+**使用外部工具时也要遵守同样的纪律。** 供应商可能很快更改内置工具 schema。Google 的 `antigravity-preview-09-2026` 代理（`2026` 年 9 月 17 日）将内置工具参数从 snake_case 改为 PascalCase，以行范围编辑取代整文件重写，并新增 `find_by_name` 和 `grep_search`；它替代的 `05-2026` 版本原定于 `2026` 年 10 月 5 日停用，仅相隔 `18` 天。本地执行这些工具或解析 `function_call` 步骤的代码必须跟着改变。应固定带日期的代理和工具版本，对收到的工具定义运行契约测试，并在取到的 MCP 工具列表与固定版本不同时告警（批准后偷偷改定义即“抽地毯”攻击）。SDK 主版本也应纳入同样的契约测试：Anthropic 的八个 SDK 和 CLI 新主版本（Python 2.0.0、TypeScript 1.0.0、C# 13.0.0、Go 2.0.0、Java 3.0.0、PHP 1.0.0、Ruby 2.0.0 和 `ant` CLI 2.0.0）默认发送 API 版本 `2026-10-21`，在该版本下，所有模型的 `temperature`、`top_p` 和 `top_k` 即使为默认值也返回 HTTP 400；新版主版本采用 Apache 2.0 而非 MIT 许可。
 
 ---
 

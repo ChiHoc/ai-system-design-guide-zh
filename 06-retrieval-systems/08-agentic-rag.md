@@ -74,7 +74,7 @@ CRAG 在检索和生成之间增加了一层“可靠性层（Reliability Layer�
 
 Agentic RAG 的成本问题在于每次查询都要支付循环成本，即便简单问题一次检索就能回答。**Adaptive RAG** 用路由器解决这个问题；2026 年，路由器成为托管设置。
 
-Azure AI Search 是最清晰的例子。其知识库在 REST API 2026-04-01 中正式支持提取式检索（LLM 查询规划与答案合成仍为预览）。2026-08-01-preview API 增加了 `retrievalReasoningEffort: "auto"`：先执行轻量检索，仅在依据不足时升级到 LLM 查询规划（最高中等投入）。同一预览还允许规划器将查询提示转换为过滤器和排序加权。另外，2026 年 6 月新增的知识源（MCP 服务器、Fabric、Azure SQL）让一次检索调用能够并行访问搜索索引之外的数据源；依赖它们之前，请逐项确认其预览或正式发布状态。
+Azure AI Search 是最清晰的例子。其知识库在 REST API 2026-04-01 中正式支持提取式检索（LLM 查询规划与答案合成仍为预览）。2026-08-01-preview API 增加了 `auto` 投入级别（`"retrievalReasoningEffort": {"kind": "auto"}`，要求知识库配置模型，较早的 API 版本会返回 400）：先执行轻量检索，仅在依据不足时升级到 LLM 查询规划（最高中等投入）。同一预览还允许规划器将查询提示转换为过滤器和排序加权。另外，2026 年 6 月新增的知识源（MCP 服务器、Fabric、Azure SQL）让一次检索调用能够并行访问搜索索引之外的数据源；依赖它们之前，请逐项确认其预览或正式发布状态。
 
 ```mermaid
 flowchart TD
@@ -127,7 +127,7 @@ Agentic RAG 在每次查询时都从原始片段重新推导结构。**知识编
 ### Q: Agentic RAG 中的“Reasoning-Retrieval Balance”是什么？
 
 **标准答案：**
-在 agentic loop 中，每一次“推理回合（Reasoning turn）”都会增加 token 成本和用户延迟。生产工程师的目标是找到“检索阈值（Retrieval Threshold）”。我们会使用 **Token-Budgeting**（Token 预算），只允许代理进行 3-5 个“回合”后就强制给出最终答案。我们还会使用 **Speculative Retrieval**（推测性检索）：代理预测接下来要执行的 2 个步骤，并同时为这两个步骤检索，以减少往返延迟。成本最低的回合是根本不执行的回合，因此我会在前面设置自适应门：先做一次混合检索加重排序并检查充分性，只有失败才升级到规划（Azure AI Search 将其作为 `retrievalReasoningEffort: "auto"` 提供）。
+在 agentic loop 中，每一次“推理回合（Reasoning turn）”都会增加 token 成本和用户延迟。生产工程师的目标是找到“检索阈值（Retrieval Threshold）”。我们会使用 **Token-Budgeting**（Token 预算），只允许代理进行 3-5 个“回合”后就强制给出最终答案。我们还会使用 **Speculative Retrieval**（推测性检索）：代理预测接下来要执行的 2 个步骤，并同时为这两个步骤检索，以减少往返延迟。成本最低的回合是根本不执行的回合，因此我会在前面设置自适应门：先做一次混合检索加重排序并检查充分性，只有失败才升级到规划（Azure AI Search 在 2026-08-01-preview API 中通过 `retrievalReasoningEffort` 的 `kind: "auto"` 提供此功能）。
 
 ### Q: 为什么 Agentic RAG 往往质量更高，但“可靠性”（Determinism，确定性）更低？
 

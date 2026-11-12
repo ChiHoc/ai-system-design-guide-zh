@@ -35,7 +35,7 @@ Python 是 AI 工作的默认语言。TypeScript 是最常见的第二语言，�
 
 ### AI 工程是个好职业吗？
 
-对有经验的工程师来说，是的：需求旺盛，薪酬与高级软件工程相当，在前沿实验室往往高得多（levels.fyi 自报的 2026 年 11 月 1 日中位数：Anthropic 软件工程师为 $882,500，OpenAI 为 $640,000，而美国 AI 工程师整体为 $156,000）。2026 年 10 月美国招聘信息中 AI 相关职位达到创纪录的 7.3%（Indeed Hiring Lab，按关键词统计），尽管整体软件开发招聘仍远低于 2020 年水平。但入门门槛更窄。在 AI 暴露程度最高的职业中，初级岗位占比从 2021 年的 29% 降至 2026 年的 10%；尽管应届毕业生失业率尚未激增，但自 2022 年末以来，受影响最大的专业（以计算机科学为首）的毕业生起薪相对受影响最小的专业下降约 13%（美国人口普查局工作论文，2026 年 9 月）。因此，最佳路径是保留资历的横向转岗。另一个风险是快速迭代：去年重要的框架今天可能已进入维护模式。跨版本持续增值的能力是评估、系统设计和基于证据的调试。参见 [Job Market Trends](06-job-market-trends-2026.md)。
+对有经验的工程师来说，是的：需求旺盛，薪酬与高级软件工程相当，在前沿实验室往往高得多（levels.fyi 自报的 2026 年 11 月 5 日中位数：Anthropic 软件工程师为 $882,500，OpenAI 为 $600,000，而美国 AI 工程师整体为 $160,000）。2026 年 10 月美国招聘信息中 AI 相关职位达到创纪录的 7.3%（Indeed Hiring Lab，按关键词统计），尽管整体软件开发招聘仍远低于 2020 年水平。但入门门槛更窄。在 AI 暴露程度最高的职业中，初级岗位占比从 2021 年的 29% 降至 2026 年的 10%；尽管应届毕业生失业率尚未激增，但自 2022 年末以来，受影响最大的专业（以计算机科学为首）的毕业生起薪相对受影响最小的专业下降约 13%（美国人口普查局工作论文，2026 年 9 月）。因此，最佳路径是保留资历的横向转岗。另一个风险是快速迭代：去年重要的框架今天可能已进入维护模式。跨版本持续增值的能力是评估、系统设计和基于证据的调试。参见 [Job Market Trends](06-job-market-trends-2026.md)。
 
 ### 我在哪里能获得模拟 AI 系统设计面试或导师指导？
 
@@ -123,11 +123,11 @@ Agent Skills 是智能体按需加载的指令、脚本和资源文件夹，让�
 
 ### 现在最好的 LLM 是什么？
 
-没有单一最佳模型，应按任务和价格层级选择（每 1M 输入/输出 token；指数分数除特别说明外均为 Artificial Analysis Intelligence Index v5.0、max effort）。**Claude Opus 5.5**（9 月 22 日，$4/$20）是 Anthropic 推荐起点，以 58 分位居公开可用模型之首（Google Gemini 4 Carbon 得 59，但仅向部分网络防御人员开放）。**Claude Sonnet 5.5**（9 月 28 日，$2/$10）得 54、价格减半；**Claude Haiku 5.5**（10 月 7 日，不超过 100K token 提示词时 $0.10/$0.50）是得分 36 的快速层；**Claude Fable 5.1**（$10/$50）用于 Opus 5.5 提高 effort 后仍不足的工作。（AA 将 Opus 标为“with fallback”：安全机制介入时部分任务由旧模型执行。）OpenAI 包括能力上限模型 **GPT-6 Astra**（$10/$50，57）、**GPT-6.1 Sol**（$2/$10，55，缓存读取 0.05x）、中间层 **GPT-6.1 Terra**（10 月 26 日，$1/$5，51）和面向吞吐的 **GPT-6 Luna**（$0.10/$0.50）。Google 的 **Gemini 4 Argon** 于 10 月 13 日以 `gemini-4-argon` 正式发布（high effort 得 50），11 月 30 日前为 $2/$10，12 月 1 日起为 $4/$20，应按较高价格预算；**Gemini 3.8 Flash** 的介绍价 $0.75/$3.75 于 2027 年 1 月 1 日翻倍至 $1.50/$7.50。AA v5.0（10 月下旬）以四个等权类别和大多私有或留出测试集重建指数，v4.x 分数不可直接迁移；分数也不能跨测试框架迁移，切换前应自行评估。参见 [Model Taxonomy](../02-model-landscape/01-model-taxonomy.md)。
+没有单一最佳模型，应按任务和价格层级选择（每 1M 输入/输出 token；指数分数除特别说明外均为 Artificial Analysis Intelligence Index v5.0、max effort；AA 于 2026 年 11 月 3 日以 v5.0.1 重评分后前两名各上升一分）。**Claude Opus 5.5**（9 月 22 日，$4/$20）是 Anthropic 推荐起点，以 v5.0.1 的 59 分位居公开可用模型之首（Google Gemini 4 Carbon 得 60，但仅向部分网络防御人员开放）。**Claude Sonnet 5.5**（9 月 28 日，$2/$10）得 54、价格减半；**Claude Haiku 5.5**（10 月 7 日，不超过 100K token 提示词时 $0.10/$0.50）是得分 36 的快速层；**Claude Fable 5.1**（$10/$50）用于 Opus 5.5 提高 effort 后仍不足的工作。（AA 将 Opus 标为“with fallback”：安全机制介入时部分任务由旧模型执行。）OpenAI 包括能力上限模型 **GPT-6 Astra**（$10/$50，57）、**GPT-6.1 Sol**（$2/$10，55，缓存读取 0.05x）、中间层 **GPT-6.1 Terra**（10 月 26 日，$1/$5，51）和面向吞吐的 **GPT-6 Luna**（$0.10/$0.50）。Google 的 **Gemini 4 Argon** 于 10 月 13 日以 `gemini-4-argon` 正式发布（high effort 得 50），11 月 30 日前为 $2/$10，12 月 1 日起为 $4/$20，应按较高价格预算；**Gemini 3.8 Flash** 的介绍价 $0.75/$3.75 于 2027 年 1 月 1 日翻倍至 $1.50/$7.50。AA v5.0（10 月下旬）以四个等权类别和大多私有或留出测试集重建指数，v4.x 分数不可直接迁移；分数也不能跨测试框架迁移，切换前应自行评估。参见 [Model Taxonomy](../02-model-landscape/01-model-taxonomy.md)。
 
 ### Claude / GPT / Gemini / DeepSeek 的费用是多少？
 
-价格每月变化，数字须注明日期。截至 2026 年 11 月 2 日（Standard，每 1M 输入/输出 token）：能力上限层 $10/$50（Claude Fable 5.1、GPT-6 Astra）；Claude Opus 5.5 $4/$20；中端 $2/$10（Claude Sonnet 5.5、GPT-6 Sol、GPT-6.1 Sol，以及 12 月 1 日涨至 $4/$20 前的 Gemini 4 Argon）；GPT-6.1 Terra 于 10 月 26 日开辟 $1/$5 层；高吞吐层从 $0.10/$0.50（GPT-6 Luna 和提示词不超过 100K token 的 Claude Haiku 5.5）到 $0.75/$3.75（Gemini 3.8 Flash，介绍价至 2026 年 12 月 31 日，之后为 $1.50/$7.50）。**DeepSeek 按时段定价**：V4.1-Flash 高峰 $0.30/$1.20，非高峰减半；V4-Pro 高峰 $1.32/$3.96；高峰仅覆盖工作日两个 UTC 时段，旧固定价 $0.14/$0.28 和 $0.435/$0.87 已过时。三个修正因素同样重要：缓存读取（多数模型为输入价 0.1x，Opus 5.5、Sonnet 5.5、GPT-6.1 Sol 和 Terra 为 0.05x，Fable 5.1 为 0.025x）；长上下文附加费（Haiku 5.5 提示词超过 100K 后整个请求按 5 倍计费，OpenAI 输入超过 272K 后整次重新定价，xAI 在 200K 及以上翻倍）；促销（GPT-5.6 Sol 的 $4/$20 仅保证至 2026 年 11 月 21 日，预算按 $5/$30 标价）。请交叉核对提供商定价页面。参见 [Pricing and Costs](../02-model-landscape/03-pricing-and-costs.md)。
+价格每月变化，数字须注明日期。截至 2026 年 11 月 2 日（Standard，每 1M 输入/输出 token）：能力上限层 $10/$50（Claude Fable 5.1、GPT-6 Astra）；Claude Opus 5.5 $4/$20；中端 $2/$10（Claude Sonnet 5.5、GPT-6 Sol、GPT-6.1 Sol，以及 12 月 1 日涨至 $4/$20 前的 Gemini 4 Argon）；GPT-6.1 Terra 于 10 月 26 日开辟 $1/$5 层；高吞吐层从 $0.10/$0.50（GPT-6 Luna 和提示词不超过 100K token 的 Claude Haiku 5.5）到 $0.75/$3.75（Gemini 3.8 Flash，介绍价至 2026 年 12 月 31 日，之后为 $1.50/$7.50）。**DeepSeek 按时段定价**：V4.1-Flash 高峰 $0.30/$1.20，非高峰减半；V4-Pro 高峰 $1.32/$3.96；高峰仅覆盖工作日两个 UTC 时段，旧固定价 $0.14/$0.28 和 $0.435/$0.87 已过时。三个修正因素同样重要：缓存读取（多数模型为输入价 0.1x，Opus 5.5、Sonnet 5.5、GPT-6.1 Sol 和 Terra 为 0.05x，Fable 5.1 为 0.025x）；长上下文附加费（Haiku 5.5 提示词超过 100K 后整个请求按 5 倍计费，OpenAI 输入超过 272K 后整次重新定价，xAI 在 200K 及以上翻倍）；促销（截至 11 月 6 日，OpenAI 称 GPT-5.6 Sol 的 $4/$20 促销持续至 2026 年 11 月 30 日，此后价格未公布，因此 12 月 1 日起按此前 $5/$30 标价预算）。请交叉核对提供商定价页面。参见 [Pricing and Costs](../02-model-landscape/03-pricing-and-costs.md)。
 
 ### Claude Opus 和 Claude Sonnet 有什么区别？
 
@@ -135,7 +135,7 @@ Opus 是 Anthropic 旗舰层：Opus 5.5（每 1M $4/$20）是推荐起点。Sonn
 
 ### 我应该使用开源模型吗？
 
-若关注高吞吐下的单次查询成本、数据驻留或微调，答案是肯定的。Artificial Analysis Intelligence Index v5.0 上最好的开放权重模型约 32 分，Claude Opus 5.5 为 58，差约 26 分。旧 v4.x 指数的差距约 12 分，但量表不可比较；AA 现将仅提供 API 的 Kimi K3.1 Pro 归为专有模型，因此应注明指数和分类。10 月中国以外新增 Meta Muse Spark Open（总参数 816B、活跃 42B）与 Mistral Large 4（总参数约 1T、活跃 49B，Mistral API 为 $0.70/$2.10）。不要只看排行榜，应阅读许可：“开放”涵盖纯 MIT（MiMo-V2.6、DeepSeek V4.1-Flash）；对收入超过 US$10B 的模型即服务运营商要求安全审查的 MIT（GLM-5.3）；收入超过 US$20M 需另签协议（Kimi K3、Meta Muse Model License）；任何 MaaS 业务均需单独商业许可、无收入门槛（Mistral Ecosystem Open-Weight License）；Qwen Community License 对部分 MaaS 业务也要求另行协议。代价是自行负责推理栈、GPU 账单和安全补丁。参见 [Model Landscape](../02-model-landscape/01-model-taxonomy.md)。
+若关注高吞吐下的单次查询成本、数据驻留或微调，答案是肯定的。最强开放权重模型现可下载：Moonshot 于 2026 年 11 月 4 日在 Hugging Face 发布 Kimi K3.1 Pro 权重（总参数 2.8T、激活 104B、1M-token 上下文）。在 Artificial Analysis Intelligence Index v5.0.1（11 月 3 日）上，它得 46 分，Claude Opus 5.5 得 59 分；下一名开放权重模型 DeepSeek V4.1 Flash 1017 在 max effort 下得 33 分。AA 的模型页面在 11 月 6 日仍将 K3.1 Pro 标为专有，因此按权重可用性计算开放与闭源差距为 13 分，按 AA 标签为 26 分；AA 自己的 v5 发布文章称 v4.3 差距为 3 分。应注明所引用的指数版本和分类规则，并按愿意支付的 effort 评估（DeepSeek V4.1 Flash 从 max 的 33 降至 high 的 29）。10 月中国以外新增 Meta Muse Spark Open（总参数 816B、活跃 42B）与 Mistral Large 4（总参数约 1T、活跃 49B，Mistral API 为 $0.70/$2.10）。不要只看排行榜，应阅读许可：“开放”涵盖纯 MIT（MiMo-V2.6、DeepSeek V4.1-Flash）；对收入超过 US$10B 的模型即服务运营商要求安全审查的 MIT（GLM-5.3）；MaaS 业务收入超过 US$20M 需另签协议（Kimi K3、Meta Muse Model License 和 Kimi K3.1 Pro；后者的定制许可还要求月活超过 100M 或月收入超过 US$20M 的产品显著标注 “Kimi K3.1-Pro”）；任何 MaaS 业务均需单独商业许可、无收入门槛（Mistral Ecosystem Open-Weight License）；Qwen Community License 对部分 MaaS 业务也要求另行协议。代价是自行负责推理栈、GPU 账单和安全补丁。参见 [Model Landscape](../02-model-landscape/01-model-taxonomy.md)。
 
 ### 什么是 prompt caching？
 
@@ -159,7 +159,7 @@ LLM-as-judge 是用一个 LLM 按照评分标准（正确性、帮助性、安�
 
 ### 什么是 RAGAS？
 
-RAGAS（Retrieval Augmented Generation Assessment）是用于 RAG 评估的 Python 库。它提供无参考指标（faithfulness、answer relevance、context relevance）和基于参考的指标（context recall、context precision），并使用 LLM-as-judge 计算。它是任何 RAG 评估流水线的事实起点。参见 [RAG Evaluation](../06-retrieval-systems/13-rag-evaluation-patterns.md)。
+RAGAS（Retrieval Augmented Generation Assessment）是用于 RAG 评估的 Python 库。它提供无参考指标（faithfulness、answer relevance、context relevance）和基于参考的指标（context recall、context precision），并使用 LLM-as-judge 计算。它曾成为 RAG 评估流水线的事实起点，但构建前应检查维护状态：vibrantlabsai/ragas 仓库自 2026 年 2 月 24 日以来没有提交，v0.4.3（2026 年 1 月 13 日）仍是最新版本。应固定版本，或将指标放在自己的接口之后，以便换成仍在维护的框架。参见 [RAG Evaluation](../06-retrieval-systems/13-rag-evaluation-patterns.md)。
 
 ### 你如何在生产环境中检测和处理模型漂移（model drift）？
 
@@ -171,11 +171,11 @@ RAGAS（Retrieval Augmented Generation Assessment）是用于 RAG 评估的 Pyth
 
 ### 什么是 vLLM？
 
-vLLM 是开源 LLM 推理引擎，首创 PagedAttention（类似虚拟内存分配 KV 缓存）。对 continuous batching 下的 Llama、Mistral、Qwen 或 DeepSeek，它是默认开源引擎，也是主要引擎中最易运维的方案。应像面向互联网的服务一样定期修补：运行 v0.32.0（2026 年 10 月 18 日）或更高版本。它修复 CVE-2026-115915（CVSS 8.1，影响 0.32.0 前所有版本，已在 0.30.0 复现）和 CVE-2026-115912，此外 0.30.0 已修复 20 多项公告，包括模型加载远程代码执行、单请求引擎崩溃及前缀缓存时序预言机。升级需测试：0.32.0 将默认 CORS 从 `*` 改为无、最低 Python 版本设为 3.11，并将 `max_tokens` 作为上限。见 [Serving Infrastructure](../04-inference-optimization/06-serving-infrastructure.md)。
+vLLM 是开源 LLM 推理引擎，首创 PagedAttention（类似虚拟内存分配 KV 缓存）。对 continuous batching 下的 Llama、Mistral、Qwen 或 DeepSeek，它是默认开源引擎，也是主要引擎中最易运维的方案。应像面向互联网的服务一样定期修补：运行 v0.32.0（2026 年 10 月 18 日）或更高版本；若加载未经审查的模型仓库，则运行 v0.33.0（2026 年 11 月 2 日）或更高版本。0.32.0 修复 CVE-2026-115915（CVSS 8.1，影响 0.32.0 前所有版本，已在 0.30.0 复现）和 CVE-2026-115912，此外 0.30.0 已修复 20 多项公告，包括模型加载远程代码执行、单请求引擎崩溃及前缀缓存时序预言机。升级需测试：0.32.0 将默认 CORS 从 `*` 改为无、最低 Python 版本设为 3.11，并将 `max_tokens` 作为上限。0.33.0 修复 GHSA-qrj2-j723-m6w8（特制仓库的 speculators 配置可通过 `/detokenize` 暴露其他目录的 tokenizer 词表），为支持的生成模型默认启用 `/v1/decisions` 路由（应在网关允许或阻止），移除 Medusa 和 MLP speculator，对生成暂停时发送的请求返回 HTTP 503；它仅提供 CUDA 13.0 wheel 和镜像（不再提供 CUDA 12.9 构建），因此主机需要 NVIDIA 驱动 580 或更高版本。见 [Serving Infrastructure](../04-inference-optimization/06-serving-infrastructure.md)。
 
 ### vLLM 和 SGLang 的区别是什么？
 
-两者都是开源推理引擎。vLLM 模型覆盖更广，运维更成熟。SGLang 借助异步约束解码，在结构化输出和函数调用任务上吞吐量约高 29%，并通过 RadixAttention 提供领先的前缀缓存复用。安全提醒：升级不能消除 SGLang 当前严重暴露。CVE-2026-111391（CVSS v4 9.2，eval 注入，描述覆盖 0.5.10 至 0.5.22）和 CVE-2026-93034（CVSS 9.8，ZMQ 解码器）均未列出修复版本；v0.5.22（2026 年 10 月 19 日）为最新版本。使用当前版本获得较早修复，将 ZMQ、dumper、debug 和 distributed-init 端点隔离在网络之外（保持 pod 内部，绝不放在可路由接口），且不要接受不可信调用方的自定义 logit processor。
+两者都是开源推理引擎。vLLM 模型覆盖更广，运维更成熟。SGLang 借助异步约束解码，在结构化输出和函数调用任务上吞吐量约高 29%，并通过 RadixAttention 提供领先的前缀缓存复用。安全提醒：升级不能消除 SGLang 当前严重暴露。CVE-2026-111391（CVSS v4 9.2，eval 注入，描述覆盖 0.5.10 至 0.5.22）和 CVE-2026-93034（CVSS 9.8，ZMQ 解码器）均未列出修复版本。最新版本 v0.5.23（2026 年 11 月 2 日）没有修复 CVE-2026-111391：其 dumper 代码与 v0.5.22 相同，仍将过滤字符串传给 `eval()`，修复 PR 截至 11 月 6 日仍未合并。公告没有列出修复版本时，应读代码而非盲信升级。v0.5.23 确实为 ZMQ 路径（CVE-2026-93034）增加可选的 `SGLANG_ZMQ_ALLOWED_PEERS` 对端允许列表，但留空会允许所有对端，因此每个多节点 data-parallel-attention 节点都应设置。运行 0.5.23 获得较早修复，将 ZMQ、dumper、debug 和 distributed-init 端点隔离在网络之外（保持 pod 内部，绝不放在可路由接口），且不要接受不可信调用方的自定义 logit processor。见 [Serving Infrastructure](../04-inference-optimization/06-serving-infrastructure.md)。
 
 ### 什么是 TensorRT-LLM？
 
@@ -187,7 +187,7 @@ NVIDIA 的推理引擎（inference engine）。在 H100/H200/B200 上，它相�
 
 ### 什么是推测解码（speculative decoding）？
 
-推测解码（speculative decoding）允许 LLM 在一次前向计算中生成多个 token：先由更便宜的“草稿”模型（draft model）或主模型上的额外头（如 Medusa）预测若干后续 token，再在目标模型上进行一次并行校验。其收益是生成耗时（wall-clock）提升 2-3 倍，且不损失质量（zero quality loss）。该能力内置于 vLLM 与 TensorRT-LLM。见 [Speculative Decoding](../04-inference-optimization/03-speculative-decoding.md)。
+推测解码（speculative decoding）允许 LLM 在一次前向计算中生成多个 token：先由更便宜的“草稿”模型或与主模型一起训练的轻量模块预测若干后续 token，再在目标模型上一次并行验证。Medusa 风格预测头已让位于 EAGLE-3（vLLM v0.33.0 于 2026 年 11 月 2 日彻底移除了 Medusa 和 MLP speculator）、多 token 预测（MTP）层以及 DFlash、DSpark 等新方法；部分开放权重版本（DeepSeek-V4-Flash-DSpark）将推测模块直接放入检查点。通常生成实际耗时可加速 2-3x 且不损失质量，因为目标模型会验证每个 token；但收益随批次增大而缩小。该能力内置于 vLLM、SGLang 和 TensorRT-LLM。见 [Speculative Decoding](../04-inference-optimization/03-speculative-decoding.md)。
 
 ### 什么是 token 预算，如何实施？
 
@@ -237,7 +237,7 @@ OWASP LLM Applications Top 10（2025 版）是 LLM 安全风险的权威清单�
 
 ## 相关阅读
 
-- [问题库（155 道高级面试题）](01-question-bank.md)
+- [问题库（193 道高级面试题）](01-question-bank.md)
 - [回答框架](02-answer-frameworks.md)
 - [常见陷阱](03-common-pitfalls.md)
 - [白板练习](04-whiteboard-exercises.md)

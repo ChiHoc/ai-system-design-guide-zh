@@ -1,6 +1,6 @@
 # LangSmith 可观测性
 
-2023 年，LLM 可观测性还只是“记录字符串”。如今，它是**完整轨迹调试**和**自动化评估流水线**；到 2026 年末，各平台正打通从追踪到评估再到微调的闭环。LangSmith 是 LangChain 原生的选择，位于拥挤的 **LLMOps** 层中，这一层还包括 Langfuse（自 2026 年 1 月起属于 ClickHouse；Python SDK 5.1.0 于 10 月 30 日发布，是 10 月 14 日以来的新主版本）、LangWatch、Braintrust 和 Arize Phoenix（采用 Elastic-2.0 许可证；Dynatrace 于 2026 年 10 月 1 日完成对 Arize 的 $915M 收购）。Phoenix 21.0.0（10 月 30 日）默认启用认证，因此自托管升级前须先配置认证。所有权变化如今也是选型标准：优先使用可接收 OpenTelemetry、并允许导出追踪和数据集的工具。
+2023 年，LLM 可观测性还只是“记录字符串”。如今，它是**完整轨迹调试**和**自动化评估流水线**；到 2026 年末，各平台正打通从追踪到评估再到微调的闭环。LangSmith 是 LangChain 原生的选择，位于拥挤的 **LLMOps** 层中，这一层还包括 Langfuse（自 2026 年 1 月起属于 ClickHouse；Python SDK 5.2.0 于 11 月 5 日发布，是 10 月 14 日以来的新主版本，需要 Python 3.11+ 和 Langfuse 服务端 v4.59.0 或更高版本，因此直接运行 `pip install langfuse` 会使 v4 时代的示例和自托管 v3 服务端失效）、LangWatch、Braintrust 和 Arize Phoenix（采用 Elastic-2.0 许可证；Dynatrace 于 2026 年 10 月 1 日完成对 Arize 的 $915M 收购）。Phoenix 21.0.0（10 月 30 日）默认启用认证，因此自托管升级前须先配置认证。所有权变化如今也是选型标准：优先使用可接收 OpenTelemetry、并允许导出追踪和数据集的工具。
 
 ## 目录
 

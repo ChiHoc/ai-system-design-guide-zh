@@ -17,7 +17,7 @@
 
 ## 三个层级：OCR 引擎、解析 VLM、前沿 VLM
 
-| 特性 | 传统 OCR 引擎（Tesseract、AWS Textract、Azure AI Document Intelligence、Google Document AI） | 文档解析 VLM（Cohere Parse、MinerU、PaddleOCR-VL、Nemotron Parse 2.0、DeepSeek-OCR 2） | 前沿 VLM（Claude Opus 5.5 / Sonnet 5.5、GPT-6 Sol、Gemini 3.8 Flash） |
+| 特性 | 传统 OCR 引擎（Tesseract、AWS Textract、Azure AI Document Intelligence、Google Document AI） | 文档解析 VLM（Cohere Parse、Mistral OCR 4.1、MinerU、PaddleOCR-VL、Nemotron 3.5 Parse、DeepSeek-OCR 2） | 前沿 VLM（Claude Opus 5.5 / Sonnet 5.5、GPT-6 Sol、Gemini 4 Argon；快速档位 Gemini 3.8 Flash 作为低成本回退） |
 |---------|-------------------------------------------|----------------------------------------|--------------------------------------------------------|
 | **主要机制** | 字符识别，辅以版面规则或模型 | 经过页面转结构训练的小型 VLM | 通用视觉 token 理解 |
 | **阅读顺序** | 简单；复杂版面上容易出错 | 显式预测 | 隐式处理，通常正确但难以审计 |
@@ -36,7 +36,9 @@
 | PaddleOCR-VL | 1.5 于 2026 年 1 月 29 日发布 | Jina 的对比显示 1.6 版在 OmniDocBench v1.6 得分 96.34；Apache 2.0 |
 | Chandra OCR 2 | 2026 年 3 月 18 日 | olmOCR-Bench 85.8；代码为 Apache 2.0，但权重采用 Datalab 修改的 OpenRAIL-M：研究、个人用途及融资额或收入低于 200 万美元的初创企业可免费使用，不得用于与 Datalab API 竞争的用途；否则需付费许可 |
 | Surya OCR 2 | 2026 年 5 月 27 日 | 代码 Apache 2.0；权重采用修改的 OpenRAIL-M：研究、个人用途及融资额或收入低于 500 万美元的初创企业可免费使用；否则需付费许可 |
-| NVIDIA Nemotron Parse 2.0 | 2026 年 8 月 3 日 | 参数少于 1B；提供版面类别、边界框、阅读顺序和图表转表格；OpenMDW-1.1 |
+| NVIDIA Nemotron Parse 2.0 | 2026 年 8 月 3 日 | 参数少于 1B；提供版面类别、边界框、阅读顺序和图表转表格；OpenMDW-1.1；已被 Nemotron 3.5 Parse 取代 |
+| NVIDIA Nemotron 3.5 Parse | 2026 年 10 月 17 日 | 约 0.631B 参数，包含多 token 预测头；OpenMDW-1.1；可选 89.3M DFlash2 推测草拟器（11 月 4 日）。NVIDIA 报告 ParseBench 单遍 72.74、双遍 74.92、三遍 75.20，Nemotron Parse 2.0 为 63.91（NVIDIA 测试，运行器和量表不同于 Cohere 的 ParseBench 数字）：处理遍数现可调节成本与准确率 |
+| Mistral OCR 4.1（`mistral-ocr-4-1`） | 2026 年 7 月 16 日（8 月 31 日 GA） | 闭源权重，API 每 1,000 页 $4（缓存后 $0.40）。`mistral-ocr-latest` 指向它；Mistral 于 9 月 29 日弃用 OCR 4.0，次日退役，因此应固定带版本的 ID，而不是别名 |
 | Cohere Parse（`parse-v5.0`） | 2026 年 8 月 27 日 | 闭源权重，2.3B 参数 VLM；API 每千页 $1.50；输出带 HTML 表格的 Markdown，或带边界框的有序块 |
 | jina-ocr-v1 | 2026 年 9 月 14 日 | 基于 DeepSeek-OCR（总参数 3.4B、MoE 激活约 570M）；OmniDocBench v1.6 91.14、olmOCR-Bench 83.4；**CC BY-NC 4.0，未经许可不能商用** |
 | MinerU 4.0 | 2026 年 9 月 16 日 | 提供质量层级和面向智能体的 CLI 的工具包（见下文）；MinerU Open Source License（Apache 2.0 附加条款）：允许商用，但月活用户超过 1 亿或月收入超过 2000 万美元需另行授权，线上服务还必须标注 MinerU |
@@ -77,9 +79,11 @@ flowchart TD
     X --> O
 ```
 
-**定位符使引用可以核查。** MinerU 4.0 的 `mineru` CLI（parse、read、find、search、watch）返回 `doc:{id}/tier:{tier}/page:{page}/block:{block}` 等稳定定位符，并逐步读取长文档（先取前 10 页，再按续读请求获取后文），让智能体可以引用具体块，审查人员也能打开对应区域。除非传入 `--remote`，解析会在本地运行。Docling 也朝同一方向发展：v2.128.0（9 月 16 日）加入 NVIDIA Nemotron Parse 2.0 可插拔 VLM 后端，v2.130.0（9 月 22 日）加入 MinerU 2.5 Pro。
+**定位符使引用可以核查。** MinerU 4.0 的 `mineru` CLI（parse、read、find、search、watch）返回 `doc:{id}/tier:{tier}/page:{page}/block:{block}` 等稳定定位符，并逐步读取长文档（先取前 10 页，再按续读请求获取后文），让智能体可以引用具体块，审查人员也能打开对应区域。除非传入 `--remote`，解析会在本地运行。Docling 也朝同一方向发展：v2.128.0（9 月 16 日）加入 NVIDIA Nemotron Parse 2.0 可插拔 VLM 后端，v2.130.0（9 月 22 日）加入 MinerU 2.5 Pro，v2.141.0（10 月 20 日）加入 Nemotron 3.5 Parse。
 
 应在每个块上存储解析器名称、版本和层级。Docling 于 2026 年 10 月 1 日在 v2.132.0 中改变了阅读顺序算法；解析器升级可能重排文本、移动分块边界，从而悄然改变检索结果。生产升级前应抽样重新解析并比较差异。
+
+**解析工作进程是攻击面。**不可信办公文件和 PDF 会经过 LibreOffice、图像解码器与 VLM 预处理器，因此应像处理恶意输入的其他代码一样隔离这些进程。Reducto 自托管版本 v1.12.21（2026 年 10 月 29 日）附有具体安全公告：在 Pod 可访问云实例元数据服务的节点上（IMDSv1，或跳数限制为 2 的 IMDSv2），LibreOffice 解析不可信文档时可能访问节点的实例角色。修复方式是将 IMDSv2 跳数限制设为 1，或从命名空间阻止 169.254.169.254。解析 Pod 不应访问元数据或拥有节点角色，出站只允许前往结果目的地。
 
 ---
 
@@ -110,8 +114,9 @@ flowchart TD
 
 | 方案 | 用例 | 吞吐量 | 成本（千页） |
 |--------|----------|------------|-----------------|
-| **自托管解析 VLM**（MinerU、PaddleOCR-VL、Nemotron Parse 2.0、DeepSeek-OCR 2） | PII 敏感、本地部署、高吞吐 | 视模型而定；jina-ocr-v1 报告在单张 A100、并发 32 下每秒 2.57 页（供应商报告） | GPU 每小时成本 ÷（每秒处理页数 × 3.6）；按每 GPU 小时 $2、每秒 2.5 页且满载，约 $0.22 |
+| **自托管解析 VLM**（MinerU、PaddleOCR-VL、Nemotron 3.5 Parse、DeepSeek-OCR 2） | PII 敏感、本地部署、高吞吐 | 视模型而定；jina-ocr-v1 报告在单张 A100、并发 32 下每秒 2.57 页（供应商报告） | GPU 每小时成本 ÷（每秒处理页数 × 3.6）；按每 GPU 小时 $2、每秒 2.5 页且满载，约 $0.22 |
 | **Cohere Parse API** | 托管专用解析器 | 单 GPU 每秒 4.5 页；8×H100 节点每秒 36 页（供应商报告） | $1.50 |
+| **Mistral OCR 4.1 API** | 托管专用解析器 | 未公布 | $4（缓存后 $0.40） |
 | **Gemini 3.8 Flash** | 高吞吐前沿模型回退 | 每页 1-2 秒 | 推广期约 $4；2027 年 1 月 1 日起约 $9 |
 | **Claude Sonnet 5.5 / GPT-6 Sol** | 复杂页面、法律精度 | 每页 3-5 秒 | 约 $11 |
 | **Claude Opus 5.5** | 只用于最难的页面 | 每页 3-5 秒 | 约 $23 |
@@ -138,7 +143,7 @@ Cohere 还提供单租户部署（Model Vault），并称在 GPU 利用率 50% �
 **强答：**
 我会采用**分层路由加并行 Map-Reduce**：
 1. **路由**：有干净原生文本层的页面完全跳过视觉模型；其他页面交给解析 VLM，只有验证失败的页面才升级到前沿模型。
-2. **Map**：启动并行 worker（AWS Lambda、Modal 或 GPU 池），每个处理 10 页。若有 50 个 worker、每页处理 1 至 2 秒，每个 worker 约需 10 至 20 秒，整体耗时可从顺序处理的 8 至 17 分钟降到一分钟以内；前提是服务商限流允许 50 路并发。
+2. **Map**：启动并行 worker（AWS Lambda、Modal 或 GPU 池），每个处理 10 页。若有 50 个 worker、每页处理 1 至 2 秒，每个 worker 约需 10 至 20 秒，整体耗时可从顺序处理的 8 至 17 分钟降到一分钟以内；前提是服务商限流允许 50 路并发，且每个请求符合载荷上限。不同平台上限不同：Anthropic 于 2026 年 10 月 28 日将自有 Claude API 的 Messages 和 Token Counting 限制从 32 MB 提高到 128 MB，而 Google 管理的 Agent Platform 将 Claude 载荷限制为 30 MB；因此在两者之间故障转移的网关必须按较小上限批量处理页面图像。
 3. **合并**：最后一轮将跨页块拼接，修复被分到两页的表格，并检查标题连续性。
 4. **索引**：存储带页码、边界框和定位符元数据的块，让每个分块都能引用源区域。
 
@@ -159,8 +164,10 @@ Cohere 还提供单租户部署（Model Vault），并称在 GPU 利用率 50% �
 - Cohere。《Introducing Cohere Parse》与更新日志（2026 年 8 月）
 - Jina AI。《jina-ocr-v1: Faster Document Parsing on Low-Budget GPUs》与模型卡（2026 年 9 月）
 - OpenDataLab。MinerU 4.0 发布说明（2026 年 9 月）
-- NVIDIA。Nemotron Parse 2.0 模型卡（2026 年 8 月）
-- Docling。v2.128.0 至 v2.132.0 发布说明（2026 年 9 至 10 月）
+- NVIDIA。Nemotron Parse 2.0 模型卡（2026 年 8 月）和 [Nemotron 3.5 Parse 模型卡](https://huggingface.co/nvidia/Nemotron-3.5-Parse)（2026 年 10 月）
+- [Mistral 更新日志](https://docs.mistral.ai/getting-started/changelog)（OCR 4.1；OCR 4.0 于 2026 年 9 月 30 日退役）
+- [Reducto 更新日志](https://docs.reducto.ai/changelog)（v1.12.21 安全公告，2026 年 10 月 29 日）
+- Docling。v2.128.0 至 v2.141.0 发布说明（2026 年 9 至 10 月）
 - OpenDataLab。OmniDocBench（v1.6）
 - Allen Institute for AI。olmOCR-Bench
 

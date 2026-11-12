@@ -355,7 +355,7 @@ class ModelCascade:
 - 查询复杂度变化大
 - 成本优化优先
 
-**路由与级联的区别。** 上面的代码通过分类器预先路由。真正的级联会先运行低成本模型，仅当校验器或置信度检查失败时才升级；当大多数请求简单且失败可检测时，这样才划算。如今还有两个复杂因素：每个档位都应固定推理 effort，因为默认值可能随版本改变（Claude Opus 5 默认 `high`，Opus 5.5 默认 `medium`）；价格变化时应重新划分档位，因为价格已不能代表能力。在 Artificial Analysis Intelligence Index v5.0 上，Opus 5.5 每 100 万输入/输出 token 为 $4/$20、得分 58（最高 effort 并启用安全回退），高于 $10/$50 的 GPT-6 Astra（57 分）；GPT-6.1 Terra 为 $1/$5、得分 51，高于 Gemini 4 Argon（50 分，高 effort），后者自 2026 年 12 月 1 日起标价 $4/$20。还应按提示长度路由：Claude Haiku 5.5 的提示超过 100K token 后，整个请求按 5 倍计价，便宜档位可能因此变成最贵档位。
+**路由与级联的区别。** 上面的代码通过分类器预先路由。真正的级联会先运行低成本模型，仅当校验器或置信度检查失败时才升级；当大多数请求简单且失败可检测时，这样才划算。如今还有两个复杂因素：每个档位都应固定推理 effort，因为默认值可能随版本改变（Claude Opus 5 默认 `high`，Opus 5.5 默认 `medium`）；价格变化时应重新划分档位，因为价格已不能代表能力。在 Artificial Analysis Intelligence Index v5.0.1（2026 年 11 月 3 日）上，Opus 5.5 每 1M 输入/输出 token 为 $4/$20、得分 59（最高 effort），高于 $10/$50 的 GPT-6 Astra（57 分，最高 effort）；在 v5.0 上，GPT-6.1 Terra 为 $1/$5，最高 effort 得分 51（默认 `medium` 为 38），高于 Gemini 4 Argon（50 分，高 effort），后者自 2026 年 12 月 1 日起标价 $4/$20。还应按提示长度路由：Claude Haiku 5.5 的提示超过 100K token 后，整个请求按 5 倍计价，便宜档位可能因此变成最贵档位。
 
 ---
 

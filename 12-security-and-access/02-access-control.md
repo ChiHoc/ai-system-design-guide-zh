@@ -112,6 +112,8 @@ class JWTAuthenticator:
 
 静态 API 密钥是智能体集群的薄弱环节，攻击者如今会按名称搜寻它们。2026 年 8 月的 ChainDrop npm 蠕虫除云服务和 GitHub 凭据外，还窃取 OpenAI、Anthropic、Cursor、Codex 与 Gemini token。Mandiant 描述了一起入侵：攻击者接管正在运行的 AI 编码助手会话，助手推荐了已被投毒的软件包，失窃的 GitHub OAuth token 又让 Shai-Hulud 蠕虫在约 100 个内部仓库间传播。供应商也在调整：OpenAI 于 2026 年 8 月 29 日正式开放双向 TLS 和 X.509 工作负载身份联合，9 月 10 日增加 API 密钥过期设置及组织和项目级最长有效期，9 月 15 日允许管理员限制或禁用密钥创建。
 
+**被盗凭据的费用按小时增长。**Google Threat Intelligence Group 和 Mandiant 于 2026 年 11 月 3 日报告，他们处理的 LLMjacking 事件在访问被撤销前单日欺诈费用超过 $100,000，累计最高达 $1 million；一名攻击者通过转售服务在不足八小时内进行超过 500,000 次 LLM API 调用，给受害者带来近 $1 million 的 token 成本（厂商报告）。入口是被盗云身份（IAM 凭据、服务账户密钥、GitHub PAT、会话令牌），而非模型漏洞；攻击者习惯可以检测：使用 `max_tokens=1` 请求验证密钥，启用受害者从未使用的 LLM 服务，并探测暴露的 Ollama `/api/create` 端点。因此逐密钥配额和支出上限不仅是 FinOps 控制，也是安全控制；‘从未使用过 LLM 服务的账户启用了该服务’值得设置告警。
+
 相应规则是：
 
 - **优先使用工作负载身份**（mTLS、联合签发的短时效 token）完成服务到供应商的调用。仍需保留密钥时，为每把密钥指定负责人、到期时间和费用上限。
@@ -221,6 +223,8 @@ class ModelAccessControl:
 | 无人值守智能体自身的身份 | 工作负载身份加 OAuth 协议家族，而非新协议 | IETF WIMSE 于 2026 年 9 月 15 日采纳 draft-ietf-wimse-aims-00；MCP 工作负载身份联合（SEP-1933）仍是开放草案 |
 
 **审批也是授权。** 每次调用都由人工审批无法扩展，因此平台正转向策略：Claude Managed Agents 的自动权限策略（2026 年 9 月 10 日）让服务器评估每次智能体或 MCP 工具调用，并选择运行、拒绝或暂停等待审批。需要人工审批时，要将审批绑定到准确调用：关于审批洗白的研究（arXiv 2609.38983）显示，人批准的动作并不总是编码智能体运行框架最终执行的动作。
+
+**智能体身份的政府检查清单。**NIST 的 NCCoE 于 2026 年 10 月 27 日发布十条‘智能体身份管理系统设计原则’（博客文章，没有 NIST 出版物编号，因此是草稿性质的起点而非标准）。它们与本章规则一致：每个智能体有独立身份；以密码学方式关联发起方，委派权限只能收窄；最小权限与零常驻权限；短期、任务专用、可撤销的授权，不使用长期 bearer token；防止同意疲劳的人工在环触发器；任务发起方签署的授权；策略决策与模型推理分离；主要访问决策使用确定性机制；针对智能体的监控；以及智能体无法触及的只追加证据。这是审查智能体平台设计的实用清单，也可作为面试中的可信引用。
 
 **用户委托的模型访问。** Sign in with ChatGPT（OpenAI 于 2026 年 9 月 29 日 DevDay 宣布，面向选定合作伙伴有限试用）采用带 PKCE 的 OAuth 2.0 和 OpenID Connect，并可选择让符合条件的 Responses API 请求使用用户自己的 ChatGPT 套餐。它便于身份接入，但也将登录和 AI 计费集中在一家模型厂商；应像评估任何 IdP 锁定风险一样权衡它。
 
@@ -560,6 +564,8 @@ class ComplianceReporter:
 - MCP TypeScript SDK 安全公告 GHSA-6qxp-vccf-f47h（CVE-2026-104850）：https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-6qxp-vccf-f47h
 - MCP TypeScript SDK 公告 GHSA-jm63-cq47-j5jp（CVE-2026-111770，共享 transport）和 GHSA-rvq5-wwqv-78pq（CVE-2026-111771，token 受众）：https://github.com/modelcontextprotocol/typescript-sdk/security/advisories
 - Anthropic，扩展网络安全验证计划（2026 年 10 月 6 日）：https://www.anthropic.com/news/cyber-verification-program
+- Google Threat Intelligence Group，LLMjacking（2026 年 11 月 3 日）：https://cloud.google.com/blog/topics/threat-intelligence/llmjacking-monetizing-compromised-cloud-models
+- NIST NCCoE，智能体身份管理系统设计原则（2026 年 10 月 27 日）：https://www.nist.gov/blogs/cybersecurity-insights/design-tenets-agent-identity-management-systems
 - IETF WIMSE，AI 身份管理系统（draft-ietf-wimse-aims）：https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/
 - OpenAI API 更新日志（工作负载身份、密钥到期）：https://developers.openai.com/api/docs/changelog
 

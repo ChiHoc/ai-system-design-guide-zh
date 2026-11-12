@@ -76,7 +76,7 @@ flowchart TD
 
 ## RAG vs. 长上下文（“混合时代”）
 
-前沿模型的上下文窗口稳定在约 **1M token**：Claude Opus 5.5、Sonnet 5.5 和 Fable 5.1 均为 1M，GPT-6 系列为 1.05M，Gemini 3.8 Flash 的输入上限为 1,048,576 token。Gemini 1.5 时代的 2M 窗口并未成为常态。2026 年的变化不在窗口大小，而在于**重复读取的价格**。
+前沿模型的上下文窗口稳定在约 **1M token**：Claude Opus 5.5、Sonnet 5.5 和 Fable 5.1 均为 1M，GPT-6 系列为 1.05M，Gemini 4 Argon 的 1M 与输出共享，就连快速档的 Gemini 3.8 Flash 输入上限为 1,048,576 token。Gemini 1.5 时代的 2M 窗口并未成为常态。2026 年的变化不在窗口大小，而在于**重复读取的价格**。
 
 - **上下文内 RAG（ICR）**：对于小型、稳定的语料库，跳过向量数据库，把全部内容放进可缓存的提示词前缀。
 - **提示词缓存**可降低重复读取 token 的费用，但折扣因模型而异：多数模型的缓存读取按输入价格的 0.1x 计费，Claude Opus 5.5、Claude Sonnet 5.5（2026 年 10 月 7 日从 0.1x 下调）、GPT-6.1 Sol 和 GPT-6.1 Terra 为 0.05x，Claude Fable 5.1 为 0.025x（每 1M token 为 $0.25，标价为 $10）。缓存写入仍需付费：OpenAI GPT-5.6 及更新模型的 30 分钟缓存、Anthropic 的 5 分钟 TTL 为 1.25x，Anthropic 的 1 小时 TTL 为 2x，OpenAI 于 2026 年 10 月 20 日增加的 12 小时选项为 2.5x。只有语料库被频繁重读，较长 TTL 才能摊平更贵的写入成本。

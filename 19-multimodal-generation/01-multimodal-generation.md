@@ -21,13 +21,13 @@
 
 **编排是 DAG，不是一次调用。** 典型的创意流水线是一个阶段图，往往每一阶段都来自不同厂商的不同模型：`prompt -> image (keyframes/style) -> image-to-video -> lip-sync -> voice/TTS -> music/SFX -> mux`。长期适用的经验是**在阶段边界做职责分离（separation of concerns）**，这样任何阶段都可替换，这与 [voice agents](../18-voice-and-audio-agents/01-realtime-voice-agents.md) 章节所讲的链式与单模型方案之间的权衡相同。节点图工具（如 ComfyUI）已经把这一点在图像和视频里制度化；应将工作流图视为版本化代码，而不是 UI 状态。
 
-**每个阶段都应通过适配器调用，因为供应商可能退出。** OpenAI 于 2026 年 9 月 24 日关闭了 Sora 2 模型和 Videos API，距 3 月的通知仅六个月，其模型页面明确表示没有一对一替代品；ElevenLabs 的发布说明记录了 ByteDance 将于 2026 年 11 月 11 日退役 Seedance 1.5 Pro，OpenAI 最初的 `gpt-image-1` 快照也于 2026 年 10 月 23 日关闭。直接调用单一视频供应商的流水线，到那一天就会硬停机。通过阶段接口调用、并已验证两家供应商的流水线，则只需调整配置并运行回归测试。
+**每个阶段都应通过适配器调用，因为供应商可能退出。** OpenAI 于 2026 年 9 月 24 日关闭了 Sora 2 模型和 Videos API，距 3 月的通知仅六个月，其模型页面明确表示没有一对一替代品；ElevenLabs 的发布说明记录了 ByteDance 将于 2026 年 11 月 11 日退役 Seedance 1.5 Pro（替代品为 Seedance 2.x）；Google 于 2026 年 10 月 22 日关闭了 Gemini API 上的 Veo 3.1 预览 ID，OpenAI 最初的 `gpt-image-1` 快照也于 2026 年 10 月 23 日关闭。直接调用单一视频供应商的流水线，到那一天就会硬停机。通过阶段接口调用、并已验证两家供应商的流水线，则只需调整配置并运行回归测试。
 
 **异步、队列和长任务处理是强制要求。** 图像生成通常以秒计；**视频生成每个 clip 往往需要几十秒到几分钟**，因此同步请求根本无法承受。通用模式是：提交后立即返回作业 ID，任务在 GPU worker 池中执行，客户端通过 webhook 回调获知完成情况（同时保留轮询兜底，因为 webhook 可能丢失）。必须验证 webhook 签名，并按队列深度而不是 CPU 来**自动扩缩容（autoscale）**。由于单个视频作业会真实消耗金钱和时间，需为每个逻辑请求附带幂等键（idempotency key），以免客户端重试或重复投递的 webhook 让你付两次钱。
 
-**成本与时延控制**，按大致收益排序：基于完整请求指纹缓存（prompt 加全部参数加 seed 加模型版本），让完全相同的请求永远不会重复计费；先用低成本方式草拟（低分辨率、少步数、小型快速模型），然后只对已批准的草稿做全质量重渲染，这是视频里最大的节省项（Veo 3.1 Lite 的 720p 视频每秒 $0.05，而 Veo 3.1 Standard 每秒 $0.40，相差 8 倍）；在支持时做批处理；有意识地选择档位（turbo 和 distilled 变体会用质量换来显著的时延和成本收益，厂商如今还会明确成对推出产品，例如 OpenAI 的快速 `gpt-image-2.5-flare` 和专注编辑精度的 `gpt-image-2.5-sunburst`）；并保持常驻 worker 池，因为加载一个多 GB checkpoint 可能需要几十秒。
+**成本与时延控制**，按大致收益排序：基于完整请求指纹缓存（prompt 加全部参数加 seed 加模型版本），让完全相同的请求永远不会重复计费；先用低成本方式草拟（低分辨率、少步数、小型快速模型），然后只对已批准的草稿做全质量重渲染，这是视频里最大的节省项（Gemini Omni 1.2 Flash 标价 360p 每秒约 $0.023、放大至 1080p 约 $0.104、放大至 4K 约 $0.209，同一模型相差 9x；Runway 的 Seedance 2.5 Draft Mode 于 10 月 2 日加入，正是先生成更便宜的 480p 草稿，再增强）；图像也类似（FLUX 3 Image Klein 每张 1k 图像 $0.009，FLUX 3 Image 为 $0.048，约便宜 5x，4k 下便宜 17x；但 BFL 将任何超过 2k 的自定义尺寸按 4k 计费，是成本陷阱）；在支持时做批处理；有意识地选择档位（turbo 和 distilled 变体会用质量换来显著的时延和成本收益，厂商如今还会明确成对推出产品，例如 OpenAI 的快速 `gpt-image-2.5-flare` 和专注编辑精度的 `gpt-image-2.5-sunburst`，现在还有带免费 `complexity` 参数的 2.6 组合）；并保持常驻 worker 池，因为加载一个多 GB checkpoint 可能需要几十秒。
 
-**由服务器保存生成状态，会改变编辑循环。** Gemini Omni 1.1 Flash（2026 年 8 月 27 日正式上线）支持通过对话编辑视频：每轮通过 `previous_interaction_id` 引用上次结果，无需重新上传片段。这要求开启存储，意味着供应商会持有你的中间资产，因此要核对其保留条款是否符合内容策略。这也不能替代自己的 manifest：供应商的交互链不是你的来源记录。
+**由服务器保存生成状态，会改变编辑循环。** Gemini Omni Flash（1.1 于 2026 年 8 月 27 日 GA；1.2 于 11 月 5 日 GA）支持通过对话编辑视频：每轮通过 `previous_interaction_id` 引用上次结果，无需重新上传片段。这要求开启存储，意味着供应商会持有你的中间资产，因此要核对其保留条款是否符合内容策略。即使从未使用该功能，存储现在也是默认值：自 2026 年 10 月 26 日起，新的付费 Gemini API 项目默认存储 `generateContent`、`streamGenerateContent` 和 `batchGenerateContent` 请求（`store=true`；现有项目保留原设置），因此创建项目时就应审查保留策略；可逐请求使用 `store=false` 或在 Logs and Datasets 设置中关闭。这也不能替代自己的 manifest：供应商的交互链不是你的来源记录。
 
 **资产与 prompt 管理。** 将 prompt、negative prompt、seed、模型及版本，以及所有条件输入（control maps、参考图像、adapter ID 和权重）都作为结构化、可版本化记录，与每个输出一并存储。没有完整参数集，你无法复现或调试一次生成，而提供方也会在稳定名称下悄悄更换模型。这个 manifest 同时也是你的来源日志。
 
@@ -71,7 +71,7 @@
 
 **人类偏好才是 gold standard。** 这个领域用盲测的 pairwise arena，通过大量投票按 Elo 或 TrueSkill 对图像和视频模型排序。应把公开 arena 排名视为粗信号，并在*你自己的* prompt 分布上验证，遵循 [benchmarks](../14-evaluation-and-observability/03-benchmarks-and-leaderboards.md) 章节对 LLM 所要求的同样纪律。
 
-**针对不可复现流水线的回归测试**是长期可行的做法，因为提供方会在稳定名称下悄悄更新模型。构建一个版本化的 golden prompt 集，覆盖你的真实用例和失败模式；在托管 API 上放弃 exact match，改为比较*分布*；使用感知相似度（perceptual hashing、SSIM、相对基线的 CLIP-embedding distance）而不是等值判断；再用 VLM-as-judge 按 rubric（prompt 遵循度、伪影、品牌安全）去评估哈希看不到的内容；持续跟踪 judge 和指标分布，并对 drift 告警，因为这通常意味着上游提供方更换了模型；并在 API 允许时固定到带日期的模型版本。还要记得评审模型本身也会漂移：2026 年 9 月 25 日，OpenAI 在不改变模型 ID 的情况下修复了 GPT-6 Sol 和 Luna 的图像编码缺陷，并告知客户重跑图像评估，因此使用这两款模型的 VLM 评审器在发布之初曾经通过有缺陷的路径打分。发布门槛应基于统计显著性，而不是原始差值，并且让 prompt 独立于模型进行版本化。
+**针对不可复现流水线的回归测试**是长期可行的做法，因为提供方会在稳定名称下悄悄更新模型。构建一个版本化的 golden prompt 集，覆盖你的真实用例和失败模式；在托管 API 上放弃 exact match，改为比较*分布*；使用感知相似度（perceptual hashing、SSIM、相对基线的 CLIP-embedding distance）而不是等值判断；再用 VLM-as-judge 按 rubric（prompt 遵循度、伪影、品牌安全）去评估哈希看不到的内容；持续跟踪 judge 和指标分布，并对 drift 告警，因为这通常意味着上游提供方更换了模型；并在 API 允许时固定到带日期的模型版本。2026 年 11 月的例子说明了原因：xAI 退役 `grok-imagine-image-quality` 和 `grok-imagine-image-pro`，现用低质量设置 `grok-imagine-image-2.0-low` 服务这两个名称，每张图片价格更低且请求不变，因此‘pro’流量在旧名称下静默变成低质量输出；应显式设置质量并监控输出得分漂移。还要记得评审模型本身也会漂移：2026 年 9 月 25 日，OpenAI 在不改变模型 ID 的情况下修复了 GPT-6 Sol 和 Luna 的图像编码缺陷，并告知客户重跑图像评估，因此使用这两款模型的 VLM 评审器在发布之初曾经通过有缺陷的路径打分。发布门槛应基于统计显著性，而不是原始差值，并且让 prompt 独立于模型进行版本化。
 
 ---
 
@@ -79,17 +79,18 @@
 
 这里保持简短且带时效性，因为这个领域每个月都在变化，而且大量流传的规格细节都来自低质量来源。
 
-- **图像。** OpenAI 的 GPT Image 2.5（2026 年 9 月 8 日）成对推出：`gpt-image-2.5-flare` 用于快速日常生成，`gpt-image-2.5-sunburst` 注重编辑精度，采用 GPT Image 2 的 token 费率（每 100 万文本输入 $5、图像输入 $8、图像输出 $30），并新增 `xhigh` 和 `max` 质量设置；`gpt-image-1.5` 和 `gpt-image-1-mini` 将于 2026 年 12 月 1 日退役。Midjourney V8.1 自 2026 年 6 月 11 日起为默认版本。开放权重前沿由 FLUX 系列领跑；Black Forest Labs 于 2026 年 10 月初发布 FLUX 3 Image，并于 10 月 13 日在 Hugging Face 发布 FLUX 3 Image Klein 的开放权重，受定制 FLUX 许可证约束。Stable Diffusion 系列仍是广泛使用的工具基础。授权陷阱仍是：开放*权重*不等于开放*用途*，若干 FLUX 变体（`dev` 线）限于非商业用途，商业使用须付费许可，蒸馏版 `schnell` 则采用 Apache-2.0 宽松许可；构建在任何新开放版本之上前，都要核对许可。条件控制可以组合：ControlNet（根据姿态、深度、边缘或分割图进行结构控制）、参考适配器（用图像提示风格或肖像）、局部重绘和扩图，以及区域提示；生产组合通常在同一图中叠加身份适配器、结构控制和文本主题。LoRA 仍是风格或主体个性化的默认方案。
-- **视频。** 按输出秒计费，生成耗时几十秒到几分钟，且结果不可复现，因此必须采用异步作业、先草稿后渲染以及严格的单用户成本上限。本节快速过时的现实例子是：一年前还属领跑者的 OpenAI Sora 2 已退出（消费者应用于 2026 年 4 月 26 日关闭，API 于 9 月 24 日关闭），Google 则推出 Gemini Omni 品牌，而不是 Veo 4。构建系统前应核查视频模型的当前状态，不要相信任何静态快照，包括本章。ByteDance、Kuaishou、Runway 等强劲竞争者与快速进步的开放权重层并存。
+- **图像。** OpenAI 的 GPT Image 2.5（2026 年 9 月 8 日）成对推出：`gpt-image-2.5-flare` 用于快速日常生成，`gpt-image-2.5-sunburst` 注重编辑精度，采用 GPT Image 2 的 token 费率（每 1M 文本输入 $5、图像输入 $8、图像输出 $30），并新增 `xhigh` 和 `max` 质量设置。11 月 4 日 OpenAI 以相同费率加入 `gpt-image-2.6-sunburst` 和 `gpt-image-2.6-flare`，提供 `complexity` 字段（low、medium、high；默认 high；不单独收费）、SVG 和动画 GIF 输出，以及同样适用于 2.5 的标记引导编辑；定价页面列出 2.5 的 Batch 半价，但没有 2.6 Batch 费率，因此批处理密集型流水线暂应保留 2.5。`gpt-image-1.5` 和 `gpt-image-1-mini` 将于 2026 年 12 月 1 日退役，2.6 是同价替代目标。Midjourney V8.1 自 2026 年 6 月 11 日起为默认版本。开放权重前沿由 FLUX 系列领跑；Black Forest Labs 于 2026 年 10 月初发布 FLUX 3 Image，并于 10 月 13 日在 Hugging Face 发布 FLUX 3 Image Klein（5.6B）的开放权重，受定制 FLUX 许可证约束；Klein 于 10 月 15 日进入 BFL API，作为上文定价的草稿档。Stable Diffusion 系列仍是广泛使用的工具基础。授权陷阱仍是：开放*权重*不等于开放*用途*，若干 FLUX 变体（`dev` 线）限于非商业用途，商业使用须付费许可，蒸馏版 `schnell` 则采用 Apache-2.0 宽松许可；构建在任何新开放版本之上前，都要核对许可。条件控制可以组合：ControlNet（根据姿态、深度、边缘或分割图进行结构控制）、参考适配器（用图像提示风格或肖像）、局部重绘和扩图，以及区域提示；生产组合通常在同一图中叠加身份适配器、结构控制和文本主题。LoRA 仍是风格或主体个性化的默认方案。
+- **视频。** 按输出秒计费，生成耗时几十秒到几分钟，且结果不可复现，因此必须采用异步作业、先草稿后渲染以及严格的单用户成本上限。本节快速过时的现实例子是：一年前还属领跑者的 OpenAI Sora 2 已退出（消费者应用于 2026 年 4 月 26 日关闭，API 于 9 月 24 日关闭），Google 则推出 Gemini Omni 品牌，而不是 Veo 4。构建系统前应核查视频模型的当前状态，不要相信任何静态快照，包括本章。ByteDance（Seedance 2.x 替代即将退役的 1.5 Pro）、Kuaishou、Runway 等强劲竞争者与快速进步的开放权重层并存。
 
 | 模型 | 状态 | 每输出秒价格 | 备注 |
 |-------|--------|-------------------------|-------|
-| Gemini Omni 1.1 Flash | 2026 年 8 月 27 日正式上线 | 720p 约 $0.10（每 100 万视频输出 token $17.50，每秒 5,792 token） | 3–10 秒片段，可延长至 40 秒；从 360p 到放大后的 4K；有状态的对话式编辑；每段均有 SynthID |
-| Veo 3.1 Standard / Fast / Lite | 可用 | $0.40 / $0.10（720p）/ $0.05（720p） | 原生同步音频 |
+| Gemini Omni 1.2 Flash | 2026 年 11 月 5 日 GA | 720p 约 $0.07（每 1M 视频输出 token $12.00，每秒 5,792 token）；360p 约 $0.023，放大至 1080p 约 $0.104，放大至 4K 约 $0.209 | 最长 15 秒片段、对话式编辑、最多 6 张参考图；付费档速率限制翻倍；每段均有 SynthID |
+| Gemini Omni 1.1 Flash | 2026 年 8 月 27 日 GA；计划于 2026 年 12 月 3 日自动路由至 1.2 Flash，并按 1.2 费率计费 | 720p 约 $0.10（每 1M $17.50） | 固定 1.1 的流水线将被迫更换模型；12 月 3 日前对 1.2 做回归测试 |
+| Veo 3.1 Standard / Fast / Lite | Gemini API 预览 ID 于 2026 年 10 月 22 日关闭（替代为 `gemini-omni-1.2-flash`）；Vertex AI 上 `veo-3.1-generate-001` 和 `veo-3.1-fast-generate-001` 为 GA（‘2027 年 5 月 4 日或更晚’退役），Lite 为预览，仅 us-central1 | 核查 Vertex 定价 | 原生同步音频；此后仅 Vertex ID 可用 |
 | FLUX 3 Video | 自 2026 年 8 月 4 日起处于 BFL API 预览 | HD 画质 $0.17，含音频 | 文本或图像生成视频 |
 | Sora 2 / Videos API | 2026 年 9 月 24 日关闭 | - | OpenAI 无一对一替代品；调用会失败 |
 
-- **音频。** 语音和 TTS：ElevenLabs 是参考产品（Eleven v4 于 2026 年 9 月 28 日发布，可从 10 秒音频克隆声音，覆盖 90 多种语言）；Gemini 3.8 Flash TTS 于 9 月 22 日正式上线，目前的促销价将在 2027 年 1 月 1 日翻倍。音乐：Google 的 Lyria 3.5 于 9 月 3 日在 Gemini API 正式上线，完整歌曲每首 $0.08（Lyria 3 的 30 秒片段为 $0.04）；授权数据正在取代诉讼时期的默认做法（见上文）。与语音章节相同，原生联合音视频同步最好，但控制最少；级联方式（先生成静音视频，再分别加入 TTS 和音乐并单独做口型同步）提供独立控制和配音能力，但需要更多工作，因此大多数生产级配音流水线仍保持级联。
+- **音频。** 语音和 TTS：ElevenLabs 是参考产品（Eleven v4 于 2026 年 9 月 28 日发布，可从 10 秒音频克隆声音，覆盖 90+ 种语言）；Gemini 3.8 Flash TTS 于 9 月 22 日正式上线，目前的促销价将在 2027 年 1 月 1 日翻倍（自 11 月 4 日起还可将自定义声音混合为可复用的 `voice_` ID，因此声音相似性同意要求也适用于超大规模云 TTS）。音乐：Google 的 Lyria 3.5 于 9 月 3 日在 Gemini API 正式上线，完整歌曲每首 $0.08（Lyria 3 的 30 秒片段为 $0.04）；授权数据正在取代诉讼时期的默认做法（见上文）。与语音章节相同，原生联合音视频同步最好，但控制最少；级联方式（先生成静音视频，再分别加入 TTS 和音乐并单独做口型同步）提供独立控制和配音能力，但需要更多工作，因此大多数生产级配音流水线仍保持级联。
 - **实时虚拟形象。** 语音智能体正拥有面孔：据报道，Google 的 Gemini Live Avatar 于 9 月 25 日在 Gemini Enterprise 正式上线；Meta 宣布了 Muse Realtime Avatar 模型，但尚未发布；Tavus 称在自家研究中，48% 的参与者经过一分钟通话后认为其 Griffin 模型是真人（厂商报告）。上述所有披露与深度伪造规则都适用于面向客户的虚拟形象。
 
 ---
@@ -99,7 +100,7 @@
 ### Q: 设计一个把脚本转换为带旁白、配乐视频的服务骨架。难点是什么？
 
 **优秀回答：**
-骨架是一个异步 DAG 的多阶段流水线，每个阶段都是通过适配器调用的可替换模型：prompt 到关键帧图像、image-to-video 负责运动、TTS 负责旁白、音乐模型生成配乐、lip-sync 将语音绑定到视频，最后再做 mux。由于视频生成通常耗时几十秒到几分钟，所以每一阶段都是一个作业：提交后返回 ID，任务在按队列深度自动扩缩容（autoscale）的 GPU worker 池中执行，完成后通过 webhook 通知，并保留轮询兜底。难点在成本、可靠性和供应商更迭。成本方面：要基于完整请求指纹做缓存，用低价档位草拟（Veo 3.1 Lite 的每秒价格比 Standard 低 8 倍），再只把已批准的草稿重渲染到全质量，并对单用户支出设置上限，因为每次重试都是真金白银。可靠性方面：要附加幂等键，确保重试或重复投递的作业不会重复计费，并为每个资产保存一份包含 prompt、seed、参数和模型版本的完整 manifest，既用于调试，也作为来源记录。供应商更迭方面：OpenAI 于 2026 年 9 月关闭 Sora 2 API，且没有替代品，因此每个昂贵阶段都应保留两家已验证供应商。合规也是骨架的一部分：输入和输出审核须配有成文的非自愿亲密影像（NCII）防护（欧盟禁令自 2026 年 12 月 2 日适用），每个资产还要同时附上 C2PA 凭证和水印，因为欧盟行为准则要求两层标记，加州《AI 透明度法》要求生成视频和音频携带隐性披露。自 2027 年 1 月 1 日起，加州 AB 2713 禁止大型平台明知故犯地移除签名来源信息，签名也因此更能在分发中保留下来。
+骨架是一个异步 DAG 的多阶段流水线，每个阶段都是通过适配器调用的可替换模型：prompt 到关键帧图像、image-to-video 负责运动、TTS 负责旁白、音乐模型生成配乐、lip-sync 将语音绑定到视频，最后再做 mux。由于视频生成通常耗时几十秒到几分钟，所以每一阶段都是一个作业：提交后返回 ID，任务在按队列深度自动扩缩容（autoscale）的 GPU worker 池中执行，完成后通过 webhook 通知，并保留轮询兜底。难点在成本、可靠性和供应商更迭。成本方面：要基于完整请求指纹做缓存，用低价档位草拟（Gemini Omni 1.2 Flash 的 360p 每秒成本约为 1080p 的五分之一），再只把已批准的草稿重渲染到全质量，并对单用户支出设置上限，因为每次重试都是真金白银。可靠性方面：要附加幂等键，确保重试或重复投递的作业不会重复计费，并为每个资产保存一份包含 prompt、seed、参数和模型版本的完整 manifest，既用于调试，也作为来源记录。供应商更迭方面：OpenAI 于 2026 年 9 月关闭 Sora 2 API，且没有替代品，因此每个昂贵阶段都应保留两家已验证供应商。合规也是骨架的一部分：输入和输出审核须配有成文的非自愿亲密影像（NCII）防护（欧盟禁令自 2026 年 12 月 2 日适用），每个资产还要同时附上 C2PA 凭证和水印，因为欧盟行为准则要求两层标记，加州《AI 透明度法》要求生成视频和音频携带隐性披露。自 2027 年 1 月 1 日起，加州 AB 2713 禁止大型平台明知故犯地移除签名来源信息，签名也因此更能在分发中保留下来。
 
 ### Q: 当输出不可复现时，你如何对生成流水线做回归测试？
 
@@ -118,7 +119,8 @@
 - 欧盟《人工智能法》[第 50 条](https://artificialintelligenceact.eu/article/50/)（生成内容透明度）、欧盟委员会的[第 50 条指南](https://digital-strategy.ec.europa.eu/en/library/guidelines-transparency-obligations-providers-and-deployers-ai-systems)，以及[欧盟条例 2026/1744](https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng)
 - 加州，[AB 2713 法案文本](https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202520260AB2713)
 - Google，[Gemini Omni 视频生成](https://ai.google.dev/gemini-api/docs/omni)与[Gemini API 定价](https://ai.google.dev/gemini-api/docs/pricing)
-- OpenAI，[弃用列表](https://developers.openai.com/api/docs/deprecations)与[GPT Image 2.5 Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst)
+- OpenAI，[弃用列表](https://developers.openai.com/api/docs/deprecations)、[GPT Image 2.5 Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst)和 [API 更新日志](https://developers.openai.com/api/docs/changelog)（GPT Image 2.6，2026 年 11 月 4 日）
+- Google，[Gemini API 弃用列表](https://aistudio.google.com/docs/deprecations)和[更新日志](https://aistudio.google.com/docs/changelog)；Black Forest Labs，[发布说明](https://docs.bfl.ai/release-notes)；xAI，[发布说明](https://docs.x.ai/docs/release-notes)
 
 ---
 

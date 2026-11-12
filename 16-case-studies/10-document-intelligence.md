@@ -68,10 +68,12 @@ flowchart TB
 | Tesseract | 噪声多、表格被破坏 | ~$0.02（CPU） | 在布局解析上缺乏竞争力 |
 | AWS Textract | 文本更好，但在布局上仍吃力 | ~$0.15 | ParseBench 53.3（Cohere 测试） |
 | 通过 API 使用解析 VLM（Cohere parse-v5.0） | 带 HTML 表格的 Markdown，或带边界框的块 | $0.15（每 1,000 页 $1.50） | ParseBench 79.2（厂商测试） |
-| 自托管解析 VLM（MinerU 4.0、PaddleOCR-VL、NVIDIA Nemotron Parse 2.0） | 阅读顺序、布局类别、边界框 | 仅 GPU 时间 | OmniDocBench v1.6 和 olmOCR-Bench；逐一检查许可证（例如 jina-ocr-v1 为 CC BY-NC） |
+| 自托管解析 VLM（MinerU 4.0、PaddleOCR-VL、NVIDIA Nemotron 3.5 Parse） | 阅读顺序、布局类别、边界框 | 仅 GPU 时间 | Nemotron 3.5 Parse（2026 年 10 月 17 日，约 0.63B，OpenMDW-1.1）：ParseBench 单遍 72.74、三遍 75.20，而 Nemotron Parse 2.0 为 63.91（NVIDIA 测试，运行器与 Cohere 不同，不能与上行直接比较）；另有 OmniDocBench v1.6 和 olmOCR-Bench；逐一检查许可证（例如 jina-ocr-v1 为 CC BY-NC） |
 | 前沿 VLM（Gemini 3.8 Flash） | 干净的 Markdown；处理印章和手写内容的最强兜底 | 入门价约 $0.43，2027 年 1 月 1 日起约 $0.86 | 前沿 VLM 的 ParseBench：GPT-5.5 为 84.4，Gemini 3.5 Flash 为 81.8（Cohere 测试；未列出 3.8 Flash） |
 
-前沿模型一行采用与 [OCR 与布局章节](../10-document-processing/01-ocr-and-layout.md#成本与延迟权衡)相同的逐页假设：约 1.7K 输入 token（页面图像加提示词）和约 800 输出 token，尚未计入推理 token。即使按入门价，把一份 100 页扫描件的所有页面都送入 Gemini 3.8 Flash，也几乎会在开始抽取前用完 $0.50 预算；按 2027 年 1 月的标价则会超支。因此，流水线让每个扫描页面先经过解析 VLM，仅将返回低置信度或未通过布局检查的约 15% 页面（印章、手写内容、破损表格）升级至前沿 VLM。MinerU 4.0 在解析器中也内置了类似思路，从数字 PDF 的无模型抽取到难处理文档的“高级”档位，共四种质量档位。这里所有 ParseBench 数字均来自 Cohere 发布文章（厂商测试），因此前沿 VLM 与 Cohere Parse 之间 3 到 5 分的差距只能作为参考，仍需在自己的合同数据上重新测量。
+前沿模型一行采用与 [OCR 与布局章节](../10-document-processing/01-ocr-and-layout.md#成本与延迟权衡)相同的逐页假设：约 1.7K 输入 token（页面图像加提示词）和约 800 输出 token，尚未计入推理 token。即使按入门价，把一份 100 页扫描件的所有页面都送入 Gemini 3.8 Flash，也几乎会在开始抽取前用完 $0.50 预算；按 2027 年 1 月的标价则会超支。因此，流水线让每个扫描页面先经过解析 VLM，仅将返回低置信度或未通过布局检查的约 15% 页面（印章、手写内容、破损表格）升级至前沿 VLM。MinerU 4.0 在解析器中也内置了类似思路，从数字 PDF 的无模型抽取到难处理文档的“高级”档位，共四种质量档位。除了自托管一行由 NVIDIA 测试的 Nemotron 数字，其余 ParseBench 数字均来自 Cohere 发布文章（厂商测试），因此前沿 VLM 与 Cohere Parse 之间 3 到 5 分的差距只能作为参考，仍需在自己的合同数据上重新测量。Nemotron 3.5 Parse 还增加了路由器可使用的调节项：单遍、双遍或三遍处理可在 GPU 时间与准确率之间取舍；Docling 自 v2.141.0 起支持该模型。
+
+解析工作进程也是攻击面，而不只是成本项。Reducto 自托管版本 v1.12.21（2026 年 10 月 29 日）附有一份安全公告：在 Pod 可以访问云实例元数据服务的节点上，LibreOffice 解析不可信 Office 文件时可能触及节点的实例角色。运行解析工作进程时，应禁止其访问元数据（IMDSv2 跳数限制设为 1，或从命名空间阻止 169.254.169.254），且不授予节点角色，因为此流水线中的每份合同都是不可信输入。
 
 ### 2. 并行抽取器 vs 单次抽取
 

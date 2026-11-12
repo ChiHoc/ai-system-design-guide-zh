@@ -134,6 +134,8 @@ Voyage 报告称，rerank-3 相比 rerank-2.5 总体提升 0.96%、长文档提�
 
 **校准后的分数会改变候选筛选方式。** Cohere 报告称，Rerank 5 的预期校准误差约为 0.06，而 Rerank 4 Pro 为 0.38、Voyage rerank-3 为 0.23（厂商报告），并建议将 0.50（Pro）和 0.45（Fast）作为“有用”阈值。如果这在你的数据上也成立，就能用分数阈值替代固定 top-k：简单查询传入两个片段，困难查询传入十个。需注意两点：Rerank 4 上调优的阈值不能沿用，因为分数尺度已变化；Cohere 测试集上的校准不等于你的数据也经过校准，因此应在自己的黄金测试集上重新拟合阈值。Context Focus 将同一思路应用到文档内部，返回带分数的片段；Cohere 报告称，移除一半上下文后仍保留 96% 的答案质量。可将片段裁剪作为控制上下文预算的手段，并在裁剪后测量忠实度，因为丢失限定语可能改变答案。
 
+**自行微调时，应训练重排序器，而非是/否判断模型。** arXiv 2610.32318（“System One models Are Not Better Rerankers”，2026 年 10 月 23 日）将六个 0.6B 至 27B 的 Qwen 基座分别微调为重排序器或判断模型，并在十个 TREC DL 和 BEIR 集合上测试。在 0.6B 至 9B 范围内，重排序微调在每个基座上均领先判断微调 5 至 29 个 nDCG@10 分数点，包括零样本集合；判断微调相比直接询问未微调模型没有带来收益，只有 27B 时两者打平。判断模型的校准优势（4B 及以上）在问题采用更宽松的相关性定义时消失。这与 Cohere 阈值的教训相同：校准只属于特定数据分布上的特定问题，任一改变时都应重新拟合阈值。
+
 **“Lost in the Middle” 修复**：重排序器的训练目标是优先关注与位置无关的相关信息，确保“中间”位置的数据在送入最终 LLM 之前被正确评分。
 
 ### 使用 Cross-encoder
@@ -641,6 +643,7 @@ Bi-Encoder（双编码器）会在知道任何查询之前，就为文档创建�
 - Cohere Rerank: https://docs.cohere.com/docs/rerank
 - [Voyage AI. “rerank-3”（2026 年 9 月）](https://blog.voyageai.com/2026/09/30/rerank-3/)
 - [Cohere. “Rerank 5”（2026 年 10 月）](https://cohere.com/blog/rerank-5)
+- [Dinzinger, Ghosh Dastidar, Granitzer. “System One models Are Not Better Rerankers”（arXiv 2610.32318，2026 年 10 月）](https://arxiv.org/abs/2610.32318)
 - [“The Embedder's Dilemma”（arXiv 2608.12875，2026 年 8 月）](https://arxiv.org/abs/2608.12875)
 - Sun et al. "Is ChatGPT Good at Search? Investigating Large Language Models as Re-Ranking Agents" (2023)
 
